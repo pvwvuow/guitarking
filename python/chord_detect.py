@@ -1,34 +1,24 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-GuitarKing — Chord detection engine (v3)
+GuitarKing — Chord detection engine (v4)
 ========================================
 Detects the chords of every section of a song.
 
-Primary pipeline (research-grade, robust to dense vocal mixes):
-  1. Load audio (mono, 22050 Hz)
-  2. Essentia: SpectralPeaks -> HPCP chroma
-  3. Beat ticks via RhythmExtractor2013 -> ChordsDetectionBeats
-     (beat-synchronised chord estimation is markedly more stable on
-      rhythmic pop than frame-level ChordsDetection; frame-level is
-      kept as an internal fallback)
-  4. Key via Essentia KeyExtractor, cross-checked against the
-     chord-evidence key (Krumhansl-Schmuckler on duration-weighted
-     chord roots) — the chord-derived key is reported when available
-  5. Beat-aware segment folding: blips shorter than ~1 beat are merged
-     into their *longer* neighbour; true silence only -> "N"
-
-Fallback pipeline (if Essentia is unavailable):
-  1. librosa harmonic/percussive separation
-  2. CQT chroma + bass chroma, beat-anchored grid, log-compressed
-     sparsified chroma (top-3 pitch classes), TWO-PASS Viterbi:
-     pass 1 unconstrained -> chord-evidence key -> pass 2 with a soft
-     diatonic penalty that pulls outliers back into the key
-  3. Duration-weighted template-match confidence (was 0 before)
-
-Shared post-processing:
-  - merge tiny segments, structural segmentation (A/B/C sections),
-    chord usage statistics
+Ensemble decoding with composite scoring:
+  1. Load audio (mono, 22050 Hz); estimate the global tuning offset and
+     re-centre every chroma (CQT and Essentia HPCP) on it
+  2. Candidate A — Essentia: SpectralPeaks -> HPCP chroma, beat ticks via
+     librosa, ChordsDetectionBeats (one chord per bar), key-coverage pick,
+     chroma sanity relabel, diatonic relabel with bass evidence
+  3. Candidate B — two-pass key-constrained Viterbi over beat-synced,
+     log-compressed, sparsified CQT chroma with bass-root anchoring
+  4. Winner = highest composite score: 0.50 * diatonic key coverage
+     + 0.30 * bass-root agreement + 0.20 * template fit
+  5. Repeated-section harmonization: occurrences of the same section are
+     force-aligned and disagreeing chords re-decided on the POOLED chroma
+     of both occurrences (a chorus must not change chords when it returns)
+  6. Beat-aware folding, structural segmentation (A/B/C), usage stats
 
 Usage:  python3 chord_detect.py <audio_file>
 Output: JSON on stdout
@@ -84,6 +74,8 @@ SECTION_COLORS = ["#f59e0b", "#f43f5e", "#10b981", "#a855f7", "#f97316",
 MIN_SEG = 0.8      # seconds; absolute floor for a chord segment
 KEY_PENALTY = 0.42 # emission multiplier for out-of-key chords (fallback path)
 BASS_MIX = 0.40    # bass-chroma share in the fallback feature mix
+PAIR_SIM_THR = 0.90   # mean-chroma cosine for "these two sections repeat"
+REPEAT_MIN_SPAN = 8.0 # only harmonize sections at least this long
 
 
 def fail(msg):
@@ -213,6 +205,75 @@ def pick_key(candidates, segments):
     return best
 
 
+def refine_key(key, segments, mean_chroma, cov_win=0.12):
+    """Scale-mass tiebreak between keys with near-equal chord coverage.
+
+    Fifth-related minor keys (Fm vs Cm, Am vs Em, ...) share 6 of 7 scale
+    notes and both 'explain' a pop loop diatonically, so pure coverage
+    flips a coin between them — and the wrong pick then bends every
+    chord quality through relabel_to_key (Bbm -> Bb). The two scales
+    differ by exactly one or two pitch classes, so compare the song's
+    global chroma mass on the DIFFERING classes: the scale whose
+    signature notes actually sound more wins.
+    """
+    if not key or mean_chroma is None:
+        return key
+    try:
+        best_cov = key_compatibility(segments, key["tonic"], key["mode"])
+    except Exception:
+        return key
+    w = np.asarray(mean_chroma, dtype=float)
+    s = w.sum()
+    if s < 1e-9:
+        return key
+    w = w / s
+
+    def scale_pcs(tonic, mode):
+        ti = NOTES.index(tonic)
+        if mode == "major":
+            return {(ti + st) % 12 for st in (0, 2, 4, 5, 7, 9, 11)}
+        return {(ti + st) % 12 for st in (0, 2, 3, 5, 7, 8, 10)}
+
+    best = key
+    best_pcs = scale_pcs(key["tonic"], key["mode"])
+    for r in range(12):
+        for mode in ("major", "minor"):
+            if NOTES[r] == key["tonic"] and mode == key["mode"]:
+                continue
+            try:
+                cov = key_compatibility(segments, NOTES[r], mode)
+            except Exception:
+                continue
+            if cov < best_cov - cov_win:
+                continue
+            # compare ONLY the pitch classes where the two scales differ:
+            # fifth-related minors differ by 1-2 classes, and those carry
+            # the whole decision (Fm's Db vs Cm's D, Am's F vs Em's F#)
+            pcs = scale_pcs(NOTES[r], mode)
+            diff_new = sorted(pcs - best_pcs)
+            diff_cur = sorted(best_pcs - pcs)
+            only_new = float(w[diff_new].sum()) if diff_new else 0.0
+            only_cur = float(w[diff_cur].sum()) if diff_cur else 0.0
+            flip = False
+            if only_new > only_cur * 1.12 + 1e-9:
+                flip = True
+            elif pcs == best_pcs:
+                # identical scale (relative major/minor): the key whose
+                # tonic chord actually gets played decides
+                sh_new = tonic_chord_share(segments, NOTES[r], mode)
+                sh_cur = tonic_chord_share(segments, best["tonic"],
+                                           best["mode"])
+                if sh_new > sh_cur + 0.05:
+                    flip = True
+            if flip:
+                best = {"tonic": NOTES[r], "mode": mode,
+                        "confidence": key.get("confidence", 0.0),
+                        "tonicFa": NOTE_FA[NOTES[r]],
+                        "modeFa": "ماژور" if mode == "major" else "مینور"}
+                best_pcs = pcs
+    return best
+
+
 def tonic_chord_share(segments, tonic, mode):
     """Fraction of chord-time spent on the tonic chord itself
     (major key -> I / I7, minor key -> im / im7). Used as a tie-break
@@ -289,15 +350,20 @@ def key_chord_mask(tonic, mode):
             allowed.add(NOTES[(ti + st) % 12] + "m")
             allowed.add(NOTES[(ti + st) % 12] + "m7")
     else:
-        # i iv v (+V, V7) III VI VII
+        # i iv v (+V, V7) III VI VII — with seventh colors. In minor pop
+        # the v7 (Cm7 in Fm) is everywhere; without it the relative-major
+        # candidate (which has the m7 via its own st-2/st-4/st-9 rows)
+        # outscores the true tonic key on coverage.
         for st in (0, 5):
             allowed.add(NOTES[(ti + st) % 12] + "m")
             allowed.add(NOTES[(ti + st) % 12] + "m7")
         for st in (3, 8, 10):
             allowed.add(NOTES[(ti + st) % 12])
             allowed.add(NOTES[(ti + st) % 12] + "7")
-        allowed.add(NOTES[(ti + 7) % 12])
-        allowed.add(NOTES[(ti + 7) % 12] + "m")
+        allowed.add(NOTES[(ti + 7) % 12])          # V (harmonic minor)
+        allowed.add(NOTES[(ti + 7) % 12] + "m")    # v (natural minor)
+        allowed.add(NOTES[(ti + 7) % 12] + "7")    # V7
+        allowed.add(NOTES[(ti + 7) % 12] + "m7")   # v7
     mask = np.array([lab in allowed for lab in LABELS], dtype=bool)
     mask[LABELS.index("N")] = True
     return mask
@@ -344,7 +410,7 @@ def build_templates():
 TEMPLATES, LABELS, WEIGHTS = build_templates()
 
 
-def bass_chroma(y, sr):
+def bass_chroma(y, sr, tuning=0.0):
     """Chroma computed only from low frequencies (bass emphasis)."""
     n_fft = 8192
     S = np.abs(librosa.stft(y, n_fft=n_fft, hop_length=HOP))
@@ -352,7 +418,7 @@ def bass_chroma(y, sr):
     mask = (freqs > 40) & (freqs <= 280)  # bass register
     Sb = S[mask]
     fb = freqs[mask]
-    midi = 69 + 12 * np.log2(np.maximum(fb, 1e-6) / 440.0)
+    midi = 69 + 12 * np.log2(np.maximum(fb, 1e-6) / 440.0) - tuning
     pcs = np.mod(np.round(midi).astype(int), 12)
     bc = np.zeros((12, Sb.shape[1]))
     for p in range(12):
@@ -602,12 +668,20 @@ def essentia_chords(path):
     if len(audio) < SR * 4:
         return None
 
+    # global tuning offset (a recording a quarter tone off A440 smears
+    # every chroma bin between its neighbours — estimate and re-centre)
+    try:
+        tuning = float(np.clip(librosa.estimate_tuning(y=audio, sr=SR),
+                               -0.45, 0.45))
+    except Exception:
+        tuning = 0.0
+
     w = es.Windowing(type="blackmanharris92")
     spectrum = es.Spectrum(size=8192)
     peaks = es.SpectralPeaks(minFrequency=55, maxFrequency=5000,
                              magnitudeThreshold=0.00001, maxPeaks=120)
-    hpcp = es.HPCP(size=36, referenceFrequency=440, bandPreset=True,
-                   bandSplitFrequency=500)
+    hpcp = es.HPCP(size=36, referenceFrequency=440.0 * (2.0 ** (tuning / 12.0)),
+                   bandPreset=True, bandSplitFrequency=500)
     pool = essentia.Pool()
     for frame in es.FrameGenerator(audio, frameSize=8192, hopSize=HOP,
                                    startFromZero=True):
@@ -743,7 +817,8 @@ def essentia_chords(path):
     if best_segs is None:
         return None
 
-    return (best_segs, confidence, best_key, audio, beat_period, best_kind)
+    return (best_segs, confidence, best_key, audio, beat_period, best_kind,
+            tuning)
 
 
 def _norm_cols(m):
@@ -891,14 +966,25 @@ def librosa_chords(C, B, silent_cols, duration, grid_start, grid_end, period,
     log-compressed sparsified chroma."""
     F, Bn = build_features(C, B)
     raw_corr = np.clip(TEMPLATES @ F, 0.0, 1.0)
-    # bass-root anchoring: boost templates whose root the bass supports
+    # bass-root anchoring, graded: pop bass lines are MELODIC — they sit on
+    # the root, but also walk the fifth and especially the third (a Db bass
+    # under Bbm is normal in Persian pop). Reward agreement with root >
+    # fifth > third instead of hard-boosting root-only matches, which
+    # warped inverted chords into wrong roots (Bbm -> Db …).
     bmax = Bn.max(axis=0, keepdims=True)
     bmax[bmax < 1e-9] = 1.0
     root_share = Bn / bmax                       # 12 x cells in [0, 1]
-    roots = np.array([chord_parse(l)[0] for l in LABELS], dtype=float)
-    has_root = roots >= 0
-    A = np.ones((len(LABELS), raw_corr.shape[1]))
-    A[has_root, :] = 0.55 + 0.45 * root_share[roots[has_root].astype(int), :]
+    n_cells = raw_corr.shape[1]
+    A = np.full((len(LABELS), n_cells), 0.55)
+    for i, lab in enumerate(LABELS):
+        pc, suf = chord_parse(lab)
+        if pc is None:
+            continue
+        hit = root_share[pc].copy()                          # root
+        fifth = 0.90 * root_share[(pc + 7) % 12]             # fifth
+        third_pc = (pc + 3) % 12 if suf[:1] == "m" else (pc + 4) % 12
+        third = 0.70 * root_share[third_pc]                  # third
+        A[i, :] = 0.55 + 0.45 * np.maximum(hit, np.maximum(fifth, third))
     emissions = np.clip(raw_corr * WEIGHTS[:, None] * A, 0.0, 1.0)
     N_IDX = LABELS.index("N")
     emissions[N_IDX, ~silent_cols] = 0.0      # music playing -> must be a chord
@@ -913,8 +999,11 @@ def librosa_chords(C, B, silent_cols, duration, grid_start, grid_end, period,
     if key1 is not None:
         mask = key_chord_mask(key1["tonic"], key1["mode"])
         em2 = emissions.copy()
-        chord_rows = np.arange(em2.shape[0]) != N_IDX
-        em2[np.ix_(~mask, chord_rows)] *= KEY_PENALTY
+        # penalize out-of-key CHORD STATES (rows) across all frames.
+        # NOTE: np.ix_ over rows here would build a square row-grid and
+        # crash on any song longer than one frame — emissions are
+        # (n_states, n_frames); the penalty is per state, not per cell.
+        em2[~mask, :] *= KEY_PENALTY
         segs2 = viterbi_segments(em2, duration, grid_start, grid_end, period)
         conf1 = match_confidence(segs1, raw_corr, grid_start, grid_end)
         conf2 = match_confidence(segs2, raw_corr, grid_start, grid_end)
@@ -930,6 +1019,218 @@ def librosa_chords(C, B, silent_cols, duration, grid_start, grid_end, period,
 
 
 # ----------------------------------------------------------------------
+# v4: candidate scoring + repeated-section harmonization
+# ----------------------------------------------------------------------
+
+def span_chroma(C, grid_start, grid_end, a, b):
+    """Normalized mean CQT chroma over the time span [a, b]."""
+    sel = np.array([(grid_end[i] > a and grid_start[i] < b)
+                    for i in range(C.shape[1])], dtype=bool)
+    if not sel.any():
+        return None
+    v = C[:, sel].mean(axis=1)
+    n = np.linalg.norm(v)
+    if n < 1e-9:
+        return None
+    return v / n
+
+
+_Tn_cache = None
+
+
+def _templates_norm():
+    global _Tn_cache
+    if _Tn_cache is None:
+        _Tn_cache = TEMPLATES / np.maximum(
+            np.linalg.norm(TEMPLATES, axis=1, keepdims=True), 1e-9)
+    return _Tn_cache
+
+
+def template_fit(v, lab):
+    """Cosine fit of a chroma vector against one chord label."""
+    try:
+        return float(_templates_norm()[LABELS.index(lab)] @ v)
+    except ValueError:
+        return -1.0
+
+
+def best_in_key_fit(v, key):
+    """Best diatonic chord for a chroma vector -> (label, cosine)."""
+    if not key or v is None:
+        return None, -1.0
+    try:
+        mask = key_chord_mask(key["tonic"], key["mode"])
+    except Exception:
+        return None, -1.0
+    Tn = _templates_norm()
+    best, best_c = None, -1.0
+    for i, lab in enumerate(LABELS):
+        if lab == "N" or not mask[i]:
+            continue
+        c = float(Tn[i] @ v)
+        if c > best_c:
+            best, best_c = lab, c
+    return best, best_c
+
+
+def bass_root_agreement(segments, Bn, grid_start, grid_end):
+    """Duration-weighted fraction of chord time whose strongest bass pitch
+    class is the chord root (or its fifth). Pop bass lines lock to the
+    chord root, so this is the single best 'did we get the root right'
+    proxy available without a ground-truth annotation."""
+    n_cells = Bn.shape[1]
+    total, hit = 0.0, 0.0
+    for s in segments:
+        if s["chord"] == "N":
+            continue
+        pc, _suf = chord_parse(s["chord"])
+        if pc is None:
+            continue
+        i0 = max(0, int(np.searchsorted(grid_start, s["start"], side="right") - 1))
+        i1 = int(np.searchsorted(grid_start, s["end"], side="left"))
+        i0, i1 = max(0, i0), min(n_cells, max(i1, i0 + 1))
+        v = Bn[:, i0:i1].mean(axis=1)
+        if v.max() < 1e-9:
+            continue
+        bass_pc = int(np.argmax(v))
+        total += s["end"] - s["start"]
+        if bass_pc == pc or bass_pc == (pc + 7) % 12:
+            hit += s["end"] - s["start"]
+    return (hit / total) if total > 1e-6 else 0.0
+
+
+def fit_margin_score(segments, C, grid_start, grid_end):
+    """Duration-weighted template-fit quality of the chosen labels."""
+    total, acc = 0.0, 0.0
+    for s in segments:
+        if s["chord"] == "N":
+            continue
+        v = span_chroma(C, grid_start, grid_end, s["start"], s["end"])
+        if v is None:
+            continue
+        acc += (s["end"] - s["start"]) * max(template_fit(v, s["chord"]), 0.0)
+        total += s["end"] - s["start"]
+    return (acc / total) if total > 1e-6 else 0.0
+
+
+def composite_score(segments, key, C, Bn, grid_start, grid_end):
+    """One number to arbitrate candidate decodings:
+    diatonic coverage (does the key explain the chords) + bass-root
+    agreement (does the bass line agree with the roots) + chroma fit."""
+    cov = 0.0
+    if key:
+        try:
+            cov = key_compatibility(segments, key["tonic"], key["mode"])
+        except Exception:
+            cov = 0.0
+    bass = bass_root_agreement(segments, Bn, grid_start, grid_end)
+    fit = fit_margin_score(segments, C, grid_start, grid_end)
+    return 0.50 * cov + 0.30 * bass + 0.20 * fit
+
+
+def relabel_span(segments, a, b, newlabel):
+    """Give the time span [a, b] a new chord label, clipping whatever
+    segments currently live there."""
+    out = []
+    for s in segments:
+        if s["end"] <= a + 1e-6 or s["start"] >= b - 1e-6:
+            out.append(s)
+            continue
+        if s["start"] < a - 1e-6:
+            out.append({"chord": s["chord"], "start": s["start"], "end": a})
+        out.append({"chord": newlabel,
+                    "start": max(s["start"], a), "end": min(s["end"], b)})
+        if s["end"] > b + 1e-6:
+            out.append({"chord": s["chord"], "start": b, "end": s["end"]})
+    return out
+
+
+def harmonize_repeats(sec_ranges, segments, C, grid_start, grid_end, key):
+    """Sections that repeat must carry the SAME chords.
+
+    The single most audible 'wrong chord' failure on pop mixes is one
+    occurrence of a repeated section decoding differently (the chorus over
+    a denser mix picks up melody notes). For every pair of harmonically
+    near-identical sections (mean-chroma cosine >= PAIR_SIM_THR), align
+    their chord spans by relative position; where the two occurrences
+    disagree, re-decide using the POOLED chroma of both spans (twice the
+    evidence) constrained to the key, and relabel both spans to the
+    pooled winner.
+    """
+    if len(sec_ranges) < 2 or not key:
+        return segments
+    segs = [dict(s) for s in segments]
+
+    def spans_in(sa, sb):
+        out = []
+        for s in segs:
+            if s["end"] <= sa + 1e-6 or s["start"] >= sb - 1e-6:
+                continue
+            out.append((max(s["start"], sa), min(s["end"], sb), s["chord"]))
+        return out
+
+    for i in range(len(sec_ranges)):
+        for j in range(i + 1, len(sec_ranges)):
+            sa, ea, ci = sec_ranges[i]
+            sb, eb, cj = sec_ranges[j]
+            if (ea - sa) < REPEAT_MIN_SPAN or (eb - sb) < REPEAT_MIN_SPAN:
+                continue
+            ni, nj = np.linalg.norm(ci), np.linalg.norm(cj)
+            if ni < 1e-9 or nj < 1e-9:
+                continue
+            sim = float(np.dot(ci / ni, cj / nj))
+            if sim < PAIR_SIM_THR:
+                continue
+            spa = spans_in(sa, ea)
+            spb = spans_in(sb, eb)
+            for (a0, a1, ca) in spa:
+                if a1 - a0 < 1.0 or ca == "N":
+                    continue
+                # relative position of this span inside section i
+                ra0 = (a0 - sa) / (ea - sa)
+                ra1 = (a1 - sa) / (ea - sa)
+                # find the overlapping span in section j
+                best_ov, best_span = 0.0, None
+                for (b0, b1, cb) in spb:
+                    if cb == "N":
+                        continue
+                    rb0 = (b0 - sb) / (eb - sb)
+                    rb1 = (b1 - sb) / (eb - sb)
+                    ov = min(ra1, rb1) - max(ra0, rb0)
+                    if ov > best_ov:
+                        best_ov, best_span = ov, (b0, b1, cb)
+                if best_span is None or best_ov < 0.4 * (ra1 - ra0):
+                    continue
+                b0, b1, cb = best_span
+                if cb == ca:
+                    continue
+                va = span_chroma(C, grid_start, grid_end, a0, a1)
+                vb = span_chroma(C, grid_start, grid_end, b0, b1)
+                if va is None or vb is None:
+                    continue
+                vp = (va + vb) / 2.0
+                np_ = np.linalg.norm(vp)
+                if np_ < 1e-9:
+                    continue
+                vp = vp / np_
+                fa = template_fit(va, ca)
+                fb = template_fit(vb, cb)
+                plab, pfit = best_in_key_fit(vp, key)
+                if plab is None:
+                    continue
+                # both occurrences are the same music: trust the pooled
+                # evidence when it clearly beats at least one of them
+                if pfit >= max(fa, fb) + 0.05:
+                    segs = relabel_span(segs, a0, a1, plab)
+                    segs = relabel_span(segs, b0, b1, plab)
+                elif fa - fb >= 0.08 and template_fit(vb, ca) > 0:
+                    segs = relabel_span(segs, b0, b1, ca)
+                elif fb - fa >= 0.08 and template_fit(va, cb) > 0:
+                    segs = relabel_span(segs, a0, a1, cb)
+    return segs
+
+
+# ----------------------------------------------------------------------
 # Main analysis
 # ----------------------------------------------------------------------
 
@@ -937,13 +1238,13 @@ def analyze(path):
     # ---------- 1. primary engine (Essentia) ----------
     ess = essentia_chords(path)
     if ess is not None:
-        segments, confidence, key, audio, beat_period, engine = ess
-        y = audio
+        ess_segments, ess_conf, ess_key, audio, beat_period, ess_engine, tuning = ess
         duration = float(len(audio) / SR)
     else:
-        segments = confidence = key = y = None
+        ess_segments = ess_conf = ess_key = None
         beat_period = 0.5
-        engine = "librosa-viterbi"
+        tuning = 0.0
+        duration = 0.0
 
     # ---------- 2. shared prep (librosa load for fallback features) ----------
     try:
@@ -957,13 +1258,21 @@ def analyze(path):
         y2 = y2[: int(900 * sr)]
         duration = 900.0
 
+    if tuning == 0.0:
+        try:
+            tuning = float(np.clip(librosa.estimate_tuning(y=y2, sr=sr),
+                                   -0.45, 0.45))
+        except Exception:
+            tuning = 0.0
+
     try:
         y2_h = librosa.effects.harmonic(y2, margin=3.0)
     except Exception:
         y2_h = y2
 
-    chroma = librosa.feature.chroma_cqt(y=y2_h, sr=sr, hop_length=HOP, n_octaves=5)
-    bc = bass_chroma(y2_h, sr)
+    chroma = librosa.feature.chroma_cqt(y=y2_h, sr=sr, hop_length=HOP,
+                                        n_octaves=5, tuning=tuning)
+    bc = bass_chroma(y2_h, sr, tuning)
 
     # ---------- 3. beat-anchored uniform grid (for tempo + sections) ----------
     try:
@@ -1047,54 +1356,48 @@ def analyze(path):
                 cov += hi - lo
         return cov / (b - a)
 
-    # ---------- 5. chords ----------
-    if ess is not None:
-        # relabel segments that mostly overlap true silence as N
-        for seg in segments:
-            if seg["chord"] != "N" and silent_fraction(seg["start"], seg["end"]) > 0.6:
-                seg["chord"] = "N"
-        segments = dedupe_and_cover(segments, duration)
-        # report the key that best explains the detected chords:
-        # KeyExtractor prior, chord-evidence key, then the best of all 24
-        # keys by diatonic coverage (fixes the v-chord-dominant trap where
-        # the minor dominant is played more often than the tonic)
-        chord_key = key_from_chords(segments)
-        key = pick_key([key, chord_key, best_key_overall(segments)], segments) or key
-    else:
-        grid_start = librosa.frames_to_time(grid_frames, sr=sr, hop_length=HOP)
-        grid_start[0] = 0.0
-        grid_end = np.append(grid_start[1:], duration)
-        segments, key, confidence, _raw = librosa_chords(
-            C, B, silent_cols, duration, grid_start, grid_end, period)
-        segments = dedupe_and_cover(segments, duration)
-        # arbitrate the chord-evidence key against the raw-chroma key
-        key = pick_key([key, detect_key(chroma.mean(axis=1)),
-                        best_key_overall(segments)], segments) or key
-        # final polish: non-diatonic chords -> diatonic (key + bass evidence)
-        Bn_log = _norm_cols(np.log1p(4.0 * np.maximum(B, 0.0)))
-        segments = dedupe_and_cover(
-            relabel_to_key(segments, key, Bn_log, grid_start, grid_end),
-            duration)
-
-    if confidence is None:
-        confidence = 0.0
-
+    # ---------- 5. chord candidates (ensemble with composite scoring) ----------
     grid_start = librosa.frames_to_time(grid_frames, sr=sr, hop_length=HOP)
     grid_start[0] = 0.0
     grid_end = np.append(grid_start[1:], duration)
+    Bn_log = _norm_cols(np.log1p(4.0 * np.maximum(B, 0.0)))
 
-    # ---------- 6b. chroma sanity pass (Essentia path) ----------
-    # re-check every label against the raw CQT chroma; fixes wrong chord
-    # qualities (Bb vs Bbm) and fade-in blips. Never moves boundaries.
-    if ess is not None:
-        try:
-            segments = chroma_sanity_relabel(segments, C, grid_start,
-                                             grid_end, key)
-            segments = dedupe_and_cover(segments, duration)
-        except Exception:
-            pass
+    cand = []  # (segments, key, engine-name, confidence)
+    if ess_segments is not None:
+        segs_e = [dict(s) for s in ess_segments]
+        for seg in segs_e:
+            if seg["chord"] != "N" and silent_fraction(seg["start"],
+                                                       seg["end"]) > 0.6:
+                seg["chord"] = "N"
+        segs_e = dedupe_and_cover(segs_e, duration)
+        ekey = (pick_key([ess_key, key_from_chords(segs_e),
+                          best_key_overall(segs_e)], segs_e) or ess_key)
+        ekey = refine_key(ekey, segs_e, chroma.mean(axis=1))
+        segs_e = dedupe_and_cover(chroma_sanity_relabel(
+            segs_e, C, grid_start, grid_end, ekey), duration)
+        segs_e = dedupe_and_cover(relabel_to_key(
+            segs_e, ekey, Bn_log, grid_start, grid_end), duration)
+        cand.append((segs_e, ekey, ess_engine, ess_conf))
 
-    # ---------- 6c. absorb short silence blips into their neighbours ----------
+    segs_v, key_v, conf_v, _raw = librosa_chords(
+        C, B, silent_cols, duration, grid_start, grid_end, period)
+    vkey = (pick_key([key_v, key_from_chords(segs_v),
+                      best_key_overall(segs_v)], segs_v) or key_v)
+    vkey = refine_key(vkey, segs_v, chroma.mean(axis=1))
+    segs_v = dedupe_and_cover(relabel_to_key(
+        segs_v, vkey, Bn_log, grid_start, grid_end), duration)
+    cand.append((segs_v, vkey, "viterbi-cqt-bass", conf_v))
+
+    best = None
+    for segs, k, kind, conf in cand:
+        sc = composite_score(segs, k, C, Bn_log, grid_start, grid_end)
+        if best is None or sc > best[0]:
+            best = (sc, segs, k, kind, conf)
+    _score, segments, key, engine, confidence = best
+    if confidence is None:
+        confidence = 0.0
+
+    # ---------- 5b. absorb short silence blips into their neighbours ----------
     try:
         segments = dedupe_and_cover(absorb_short_N(segments, duration),
                                     duration)
@@ -1126,6 +1429,24 @@ def analyze(path):
             break
         bnds.remove(drop)
     bnds = sorted(set([0] + bnds + [n_beats]))
+
+    # ---------- 6a. harmonize repeated sections ----------
+    # occurrences of the same section must carry the same chords: pool the
+    # chroma of aligned disagreeing spans and relabel both to the winner
+    try:
+        sec_ranges = []
+        for si in range(len(bnds) - 1):
+            a, b = bnds[si], bnds[si + 1]
+            if b - a < 2:
+                continue
+            sec_ranges.append((float(grid_start[a]), float(grid_end[b - 1]),
+                               C[:, a:b].mean(axis=1)))
+        if sec_ranges and key:
+            segments = dedupe_and_cover(
+                harmonize_repeats(sec_ranges, segments, C, grid_start,
+                                  grid_end, key), duration)
+    except Exception:
+        pass
 
     sections = []
     chromas_for_letters = []
@@ -1203,6 +1524,7 @@ def analyze(path):
     return {
         "ok": True,
         "engine": engine,
+        "tuning": round(float(tuning), 3),
         "duration": round(duration, 2),
         "tempo": tempo_out,
         "key": key,
