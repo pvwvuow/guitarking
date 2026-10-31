@@ -173,34 +173,38 @@ export function SongSheet({ song, onBack, onPlayDemo }: Props) {
         </div>
       </section>
 
-      {/* sheet */}
+      {/* sheet — one uniform flow, no section labels, rays + emblem behind */}
       <section className="mt-10">
         <SectionTitle>برگه‌ی اکورد</SectionTitle>
-        <div className="space-y-4">
-          {song.sections.map((sec) => (
-            <div key={sec.label} className="rounded-xl border bg-card p-5">
-              <p className="flex items-center gap-2.5 font-bold mb-3">
-                <i className="w-2 h-2 bg-primary rotate-45 inline-block" aria-hidden />
-                {sec.label}
-              </p>
-              <div className="space-y-3">
-                {sec.lines.map((line, li) => (
-                  <div key={li} className="flex flex-wrap gap-x-8 gap-y-3">
-                    {line.map((seg, si) => (
-                      <span key={si} className="inline-flex flex-col min-w-14">
-                        <b className="chord-latin text-lg font-black text-primary leading-6">
-                          {t(seg.chord)}
-                        </b>
-                        <span className="text-sm leading-6 text-foreground/90">
-                          {seg.text}
-                        </span>
-                      </span>
-                    ))}
-                  </div>
+        <div className="relative overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm">
+          {/* faint rotating light rays behind the text */}
+          <div
+            aria-hidden
+            className="gk-rays absolute inset-0 pointer-events-none"
+          />
+          {/* emblem watermark behind the text */}
+          <img
+            src="/emblem.png"
+            alt=""
+            aria-hidden
+            className="pointer-events-none absolute left-1/2 top-1/2 w-64 -translate-x-1/2 -translate-y-1/2 select-none opacity-[0.05] sm:w-80"
+          />
+          <div className="relative space-y-3 p-5 sm:p-8">
+            {song.sections.flatMap((sec) => sec.lines).map((line, li) => (
+              <div key={li} className="flex flex-wrap gap-x-8 gap-y-3">
+                {line.map((seg, si) => (
+                  <span key={si} className="inline-flex flex-col min-w-14">
+                    <b className="chord-latin text-lg font-black text-primary leading-6">
+                      {t(seg.chord)}
+                    </b>
+                    <span className="text-sm leading-6 text-foreground/90">
+                      {seg.text}
+                    </span>
+                  </span>
                 ))}
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
         <p className="text-[11px] text-muted-foreground mt-3 leading-6">
           {song.source === "bot"

@@ -2,7 +2,7 @@
 
 import { ArrowLeft, ArrowRight, Clock3 } from "lucide-react";
 import { POSTS, type Post } from "@/lib/posts";
-import { SONGS } from "@/lib/songs";
+import { SONGS, type SongEntry } from "@/lib/songs";
 import { groupByArtist } from "./artists-view";
 import { Ornament } from "./ornament";
 import { cn } from "@/lib/utils";
@@ -11,12 +11,24 @@ import { cn } from "@/lib/utils";
 
 export function BlogView({
   onOpen,
+  onOpenSong,
   onBack,
 }: {
   onOpen: (slug: string) => void;
+  onOpenSong?: (slug: string) => void;
   onBack: () => void;
 }) {
   const groups = groupByArtist(SONGS);
+
+  /* blog feed = chord sheets (category «اکوردها») + editorial posts,
+     chords first like the newest entries */
+  const items: Array<
+    | { kind: "song"; song: SongEntry }
+    | { kind: "post"; post: Post }
+  > = [
+    ...SONGS.map((song) => ({ kind: "song" as const, song })),
+    ...POSTS.map((post) => ({ kind: "post" as const, post })),
+  ];
 
   return (
     <div className="w-full max-w-5xl mx-auto px-4 pb-20">
@@ -43,16 +55,30 @@ export function BlogView({
       {/* posts + singers index — the list lives on the right, sticks while scrolling */}
       <div className="mt-10 flex flex-col gap-12 lg:flex-row-reverse lg:items-start lg:gap-10">
         <div className="min-w-0 flex-1 rv on">
-          {/* posts — modern cards, newest first */}
+          {/* feed — chord sheets + posts, newest first */}
           <div className="space-y-4">
-            {POSTS.map((p, i) => (
-              <PostRow
-                key={p.slug}
-                post={p}
-                index={i + 1}
-                onOpen={() => onOpen(p.slug)}
-              />
-            ))}
+            {items.map((it, i) =>
+              it.kind === "song" ? (
+                <SongPostRow
+                  key={it.song.slug}
+                  song={it.song}
+                  index={i + 1}
+                  onOpen={
+                    onOpenSong
+                      ? () => onOpenSong(it.song.slug)
+                      : () =>
+                          (window.location.hash = `#/song/${it.song.slug}`)
+                  }
+                />
+              ) : (
+                <PostRow
+                  key={it.post.slug}
+                  post={it.post}
+                  index={i + 1}
+                  onOpen={() => onOpen(it.post.slug)}
+                />
+              )
+            )}
           </div>
           <Ornament className="mt-10" />
         </div>
@@ -115,6 +141,65 @@ export function ArtistsSidebar({
         ))}
       </ul>
     </nav>
+  );
+}
+
+/* one chord-sheet card in the blog feed — category «اکوردها» */
+export function SongPostRow({
+  song,
+  onOpen,
+  index,
+}: {
+  song: SongEntry;
+  onOpen: () => void;
+  index?: number;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="group w-full text-start rounded-2xl border border-border/70 bg-card p-5 sm:p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-foreground/10 hover:border-primary/40"
+    >
+      <article className="flex gap-4 sm:gap-5">
+        {typeof index === "number" && (
+          <span
+            className="chord-latin shrink-0 w-10 h-10 rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground font-black text-sm flex items-center justify-center transition-colors duration-300"
+            aria-hidden
+          >
+            {String(index).padStart(2, "0")}
+          </span>
+        )}
+        <div className="min-w-0">
+          <p className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px] text-muted-foreground">
+            <span className="bg-primary text-primary-foreground rounded-full text-[10px] font-bold px-2.5 py-0.5">
+              اکوردها
+            </span>
+            {song.dateFa}
+            <i className="w-1 h-1 bg-[oklch(0.617_0.093_62)] rotate-45 inline-block" aria-hidden />
+            <span className="inline-flex items-center gap-1">
+              {song.artist}
+            </span>
+            <i className="w-1 h-1 bg-[oklch(0.617_0.093_62)] rotate-45 inline-block" aria-hidden />
+            <span className="inline-flex items-center gap-1">
+              گام <b className="chord-latin">{song.key}</b>
+            </span>
+          </p>
+          <h2 className="font-extrabold text-xl sm:text-[22px] leading-8 mt-2 group-hover:text-primary transition-colors">
+            اکورد «{song.title}»
+          </h2>
+          <p className="text-sm text-muted-foreground leading-7 mt-1 line-clamp-2">
+            {song.description}
+          </p>
+          <span className="inline-flex items-center gap-2 text-[13px] font-bold text-primary mt-3">
+            دیدن برگه‌ی اکورد
+            <ArrowLeft
+              className="w-4 h-4 transition-transform group-hover:-translate-x-1"
+              aria-hidden
+            />
+          </span>
+        </div>
+      </article>
+    </button>
   );
 }
 

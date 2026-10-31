@@ -68,6 +68,14 @@ export default function Home() {
         v = "/blog";
       }
       setView(v);
+      /* any explicit view link is an exit from the analyzer flow —
+         previously the results view trapped the user with no way back */
+      if (v) {
+        xhrRef.current?.abort();
+        setPhase("idle");
+        setResult(null);
+        setError("");
+      }
     };
     apply();
     window.addEventListener("hashchange", apply);
@@ -309,7 +317,7 @@ export default function Home() {
 
         {/* ── blog views ── */}
         {phase === "idle" && view === "/blog" && (
-          <BlogView onOpen={openPost} onBack={goHome} />
+          <BlogView onOpen={openPost} onOpenSong={openSong} onBack={goHome} />
         )}
         {phase === "idle" && view?.startsWith("post:") && (() => {
           const post = getPost(view.slice(5));

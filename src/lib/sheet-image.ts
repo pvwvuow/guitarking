@@ -285,15 +285,15 @@ function layoutSongRows(
   const t = (c: string) => transposeChord(c, semi);
   const chordFont = (k = 1) => `800 ${Math.max(13, (F + 2) * k)}px ${F_BODY}`;
   const textFont = (k = 1) => `400 ${Math.max(12, F * k)}px ${F_BODY}`;
-  /* vertical rhythm: chord hugs its own lyric (36px at F=27) while
-     rows breathe apart — a chord can never be misread as belonging
-     to the line above */
-  const chordOff = F * 1.12; // chord baseline from row top
-  const lyricOff = chordOff + F * 0.26 + F * 1.08; // lyric baseline
-  const rowH = lyricOff + F * 0.4; // room for descenders
-  const rowGap = F * 2.1; // air between rows
+  /* vertical rhythm: compact chord↔lyric pairing — the user asked to
+     kill the dead air between a chord and its word; rows still breathe
+     enough that a chord can't be misread as belonging to the line above */
+  const chordOff = F * 0.92; // chord baseline from row top
+  const lyricOff = chordOff + F * 0.2 + F * 0.95; // lyric baseline
+  const rowH = lyricOff + F * 0.3; // room for descenders
+  const rowGap = F * 1.35; // air between rows
   const segPad = 8;
-  const segGap = Math.max(24, F * 1.5);
+  const segGap = Math.max(20, F * 1.2);
 
   fa(ctx);
   ctx.font = textFont();
