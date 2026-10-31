@@ -15,6 +15,15 @@ import { UploadZone } from "@/components/gk/upload-zone";
 import { AnalyzingView } from "@/components/gk/analyzing-view";
 import { ResultsView } from "@/components/gk/results-view";
 import { SongSheet } from "@/components/gk/song-sheet";
+import { SongCard } from "@/components/gk/song-card";
+import { Ornament } from "@/components/gk/ornament";
+import { BlogView, PostView, PostCard } from "@/components/gk/blog-view";
+import {
+  ArtistsView,
+  ArtistView,
+  groupByArtist,
+} from "@/components/gk/artists-view";
+import { POSTS, getPost } from "@/lib/posts";
 import { Button } from "@/components/ui/button";
 import { SONGS, FEATURED_SLUG, getSong, type SongEntry } from "@/lib/songs";
 import { transposeChord } from "@/lib/transpose";
@@ -43,8 +52,24 @@ export default function Home() {
   /* ── hash-based view switching (single-route sandbox) ── */
   useEffect(() => {
     const apply = () => {
-      const m = window.location.hash.match(/^#\/song\/([\w-]+)$/);
-      setView(m && getSong(m[1]) ? m[1] : null);
+      const h = window.location.hash;
+      let v: string | null = null;
+      let m: RegExpMatchArray | null;
+      if ((m = h.match(/^#\/song\/([\w-]+)$/))) {
+        v = getSong(m[1]) ? `song:${m[1]}` : null;
+      } else if ((m = h.match(/^#\/post\/([\w-]+)$/))) {
+        v = getPost(m[1]) ? `post:${m[1]}` : null;
+      } else if ((m = h.match(/^#\/artist\/(.+)$/))) {
+        const name = decodeURIComponent(m[1]);
+        v = groupByArtist(SONGS).some((g) => g.name === name)
+          ? `artist:${name}`
+          : null;
+      } else if (h === "#/blog") {
+        v = "/blog";
+      } else if (h === "#/artists") {
+        v = "/artists";
+      }
+      setView(v);
     };
     apply();
     window.addEventListener("hashchange", apply);
@@ -57,7 +82,7 @@ export default function Home() {
 
   /* ── scroll reveal ── */
   useEffect(() => {
-    if (phase !== "idle" || view) return;
+    if (phase !== "idle") return;
     const els = document.querySelectorAll(".rv");
     if (!("IntersectionObserver" in window)) {
       els.forEach((el) => el.classList.add("on"));
@@ -175,6 +200,26 @@ export default function Home() {
     window.location.hash = `#/song/${slug}`;
   }, []);
 
+  const openPost = useCallback((slug: string) => {
+    window.location.hash = `#/post/${slug}`;
+  }, []);
+
+  const openArtist = useCallback((name: string) => {
+    window.location.hash = `#/artist/${encodeURIComponent(name)}`;
+  }, []);
+
+  const goHome = useCallback(() => {
+    window.location.hash = "#top";
+  }, []);
+
+  const goBlog = useCallback(() => {
+    window.location.hash = "#/blog";
+  }, []);
+
+  const goArtists = useCallback(() => {
+    window.location.hash = "#/artists";
+  }, []);
+
   const featured = getSong(FEATURED_SLUG);
   const filtered = genre === "همه" ? SONGS : SONGS.filter((s) => s.genre === genre);
 
@@ -190,11 +235,12 @@ export default function Home() {
               Guitar King
             </span>
           </a>
-          <nav className="hidden md:flex items-center gap-7 text-sm font-medium">
+          <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
             <NavLink href="#archive">اکوردها</NavLink>
             <NavLink href="#featured">اکورد ویژه</NavLink>
-            <NavLink href="#bot">ربات اکوردنویس</NavLink>
-            <NavLink href="#about">درباره</NavLink>
+            <NavLink href="#/artists">خواننده‌ها</NavLink>
+            <NavLink href="#/blog">وبلاگ</NavLink>
+            <NavLink href="#bot">ربات</NavLink>
           </nav>
           <a href="#bot" className="shrink-0">
             <Button size="sm" className="rounded-full gap-1.5">
@@ -250,8 +296,8 @@ export default function Home() {
         )}
 
         {/* ── song article view ── */}
-        {phase === "idle" && view && (() => {
-          const song = getSong(view);
+        {phase === "idle" && view?.startsWith("song:") && (() => {
+          const song = getSong(view.slice(5));
           return song ? (
             <SongSheet
               song={song}
@@ -260,6 +306,32 @@ export default function Home() {
               }}
               onPlayDemo={loadDemo}
             />
+          ) : null;
+        })()}
+
+        {/* ── blog views ── */}
+        {phase === "idle" && view === "/blog" && (
+          <BlogView onOpen={openPost} onBack={goHome} />
+        )}
+        {phase === "idle" && view?.startsWith("post:") && (() => {
+          const post = getPost(view.slice(5));
+          return post ? <PostView post={post} onBack={goBlog} /> : null;
+        })()}
+
+        {/* ── artist views ── */}
+        {phase === "idle" && view === "/artists" && (
+          <ArtistsView
+            songs={SONGS}
+            onOpenArtist={openArtist}
+            onOpenSong={openSong}
+            onBack={goHome}
+          />
+        )}
+        {phase === "idle" && view?.startsWith("artist:") && (() => {
+          const name = decodeURIComponent(view.slice(7));
+          const group = groupByArtist(SONGS).find((g) => g.name === name);
+          return group ? (
+            <ArtistView group={group} onOpenSong={openSong} onBack={goArtists} />
           ) : null;
         })()}
 
@@ -432,6 +504,33 @@ export default function Home() {
               </section>
             )}
 
+            {/* blog teaser */}
+            <section id="blog" className="max-w-6xl mx-auto px-4 pt-20">
+              <div className="text-center rv">
+                <h2 className="font-fantasy text-3xl sm:text-4xl font-bold">
+                  تازه‌های وبلاگ
+                </h2>
+                <p className="text-muted-foreground mt-2 max-w-xl mx-auto leading-7">
+                  آموزش‌های گیتار، خبرهای سایت و پشت‌صحنه‌ی ربات اکوردنویس.
+                </p>
+              </div>
+              <div className="grid sm:grid-cols-3 gap-x-5 gap-y-8 mt-9">
+                {POSTS.slice(0, 3).map((p) => (
+                  <PostCard key={p.slug} post={p} onOpen={() => openPost(p.slug)} />
+                ))}
+              </div>
+              <div className="text-center mt-9 rv">
+                <a href="#/blog">
+                  <Button
+                    variant="outline"
+                    className="rounded-full px-8 border-foreground/30"
+                  >
+                    همه‌ی مطالب وبلاگ
+                  </Button>
+                </a>
+              </div>
+            </section>
+
             {/* bot */}
             <section id="bot" className="max-w-6xl mx-auto px-4 pt-20">
               <div className="relative overflow-hidden rounded-3xl bg-primary text-primary-foreground p-7 sm:p-12 rv">
@@ -567,8 +666,10 @@ export default function Home() {
                   <ul className="space-y-1.5 text-muted-foreground">
                     <li><a href="#archive" className="hover:text-primary transition-colors">آرشیو اکوردها</a></li>
                     <li><a href="#featured" className="hover:text-primary transition-colors">اکورد ویژه</a></li>
+                    <li><a href="#/artists" className="hover:text-primary transition-colors">فهرست خواننده‌ها</a></li>
+                    <li><a href="#/blog" className="hover:text-primary transition-colors">وبلاگ</a></li>
                     <li><a href="#bot" className="hover:text-primary transition-colors">ربات اکوردنویس</a></li>
-                    <li><a href="#roadmap" className="hover:text-primary transition-colors">نقشه‌ی راه</a></li>
+                    <li><a href="#about" className="hover:text-primary transition-colors">درباره‌ی ما</a></li>
                   </ul>
                 </div>
                 <div>
@@ -631,16 +732,6 @@ function NavLink({ href, children }: { href: string; children: React.ReactNode }
   );
 }
 
-function Ornament() {
-  return (
-    <div aria-hidden className="flex items-center justify-center gap-4 pt-2">
-      <span className="h-px w-28 bg-gradient-to-l from-[oklch(0.617_0.093_62/0.6)] to-transparent" />
-      <span className="w-2 h-2 bg-primary rotate-45" />
-      <span className="h-px w-28 bg-gradient-to-r from-[oklch(0.617_0.093_62/0.6)] to-transparent" />
-    </div>
-  );
-}
-
 function Poster({ song, className }: { song: SongEntry; className?: string }) {
   const [err, setErr] = useState(false);
   if (err) {
@@ -669,72 +760,6 @@ function Poster({ song, className }: { song: SongEntry; className?: string }) {
   );
 }
 
-function SongCard({
-  song,
-  onOpen,
-  delay,
-}: {
-  song: SongEntry;
-  onOpen: () => void;
-  delay: number;
-}) {
-  const preview = song.sections
-    .flatMap((s) => s.lines)
-    .flat()
-    .map((l) => l.chord)
-    .filter((c, i, a) => a.indexOf(c) === i)
-    .slice(0, 3);
-
-  return (
-    <button
-      type="button"
-      onClick={onOpen}
-      style={{ transitionDelay: `${delay}s` }}
-      className="group text-start rv"
-      aria-label={`دیدن اکورد ${song.title} از ${song.artist}`}
-    >
-      <div className="relative rounded-xl overflow-hidden border bg-card gk-lift aspect-[3/4]">
-        <Poster
-          song={song}
-          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-        />
-        {song.isNew && (
-          <span className="absolute top-2.5 start-2.5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold px-2.5 py-1">
-            جدید
-          </span>
-        )}
-        {song.source === "bot" && (
-          <span className="absolute top-2.5 end-2.5 rounded-full bg-black/60 backdrop-blur text-white text-[10px] font-bold px-2.5 py-1 inline-flex items-center gap-1">
-            <Bot className="w-3 h-3" aria-hidden />
-            ربات
-          </span>
-        )}
-        <div className="absolute inset-x-0 bottom-0 p-2.5 flex gap-1.5 opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 bg-gradient-to-t from-black/75 to-transparent">
-          {preview.map((c) => (
-            <span
-              key={c}
-              className="chord-latin text-[11px] font-bold text-white border border-white/60 rounded px-2 py-0.5"
-            >
-              {c}
-            </span>
-          ))}
-        </div>
-      </div>
-      <div className="mt-3 flex items-center gap-2 text-[11px] text-muted-foreground">
-        <span>{song.genre}</span>
-        <i className="w-1 h-1 bg-[oklch(0.617_0.093_62)] rotate-45 inline-block" aria-hidden />
-        <span>{song.dateFa}</span>
-      </div>
-      <h3 className="font-extrabold mt-0.5 group-hover:text-primary transition-colors leading-7">
-        {song.title}
-      </h3>
-      <p className="text-xs text-muted-foreground">
-        {song.artist} · کلید <span className="chord-latin">{song.key}</span>
-      </p>
-    </button>
-  );
-}
-
 function FeaturedCard({ song, onOpen }: { song: SongEntry; onOpen: () => void }) {
   const [semi, setSemi] = useState(0);
   const t = (c: string) => transposeChord(c, semi);
@@ -745,7 +770,7 @@ function FeaturedCard({ song, onOpen }: { song: SongEntry; onOpen: () => void })
     <div className="gk-frame rounded-2xl mt-8 p-6 sm:p-9 grid md:grid-cols-[260px_1fr] gap-8 items-center rv">
       <div className="relative mx-auto w-56 md:w-full">
         <div className="gk-frame rounded-xl overflow-hidden">
-          <Poster song={song} className="w-full aspect-[3/4] object-cover" />
+          <Poster song={song} className="w-full aspect-square object-cover" />
         </div>
       </div>
       <div>

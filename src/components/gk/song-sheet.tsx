@@ -5,6 +5,8 @@ import {
   ArrowRight,
   Bot,
   BookOpen,
+  ImageDown,
+  Loader2,
   Minus,
   Plus,
   RotateCcw,
@@ -13,6 +15,7 @@ import {
 import type { SongEntry } from "@/lib/songs";
 import { songChords } from "@/lib/songs";
 import { transposeChord } from "@/lib/transpose";
+import { downloadSongSheetImage } from "@/lib/sheet-image";
 import { ChordDiagram } from "./chord-diagram";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -28,9 +31,23 @@ const SEG_NOTE =
 
 export function SongSheet({ song, onBack, onPlayDemo }: Props) {
   const [semi, setSemi] = useState(0);
+  const [exporting, setExporting] = useState(false);
+  const [exportErr, setExportErr] = useState(false);
   const t = useMemo(() => (c: string) => transposeChord(c, semi), [semi]);
   const currentKey = t(song.key);
   const diagrams = useMemo(() => songChords(song).map(t), [song, t]);
+
+  const handleExport = async () => {
+    setExporting(true);
+    setExportErr(false);
+    try {
+      await downloadSongSheetImage(song, semi);
+    } catch {
+      setExportErr(true);
+    } finally {
+      setExporting(false);
+    }
+  };
 
   return (
     <div className="w-full max-w-4xl mx-auto px-4 pb-16">
@@ -51,7 +68,7 @@ export function SongSheet({ song, onBack, onPlayDemo }: Props) {
           <img
             src={song.poster}
             alt={`پوستر ${song.title}`}
-            className="w-full aspect-[3/4] object-cover"
+            className="w-full aspect-square object-cover"
           />
         </div>
         <div>
@@ -125,8 +142,25 @@ export function SongSheet({ song, onBack, onPlayDemo }: Props) {
             </button>
           </>
         )}
-        <p className="text-[11px] text-muted-foreground sm:ms-auto">
-          با تغییر گام، همه‌ی اکوردها و دیاگرام‌ها هم عوض می‌شوند.
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={handleExport}
+          disabled={exporting}
+          className="gap-1.5 sm:ms-auto"
+        >
+          {exporting ? (
+            <Loader2 className="w-4 h-4 animate-spin" aria-hidden />
+          ) : (
+            <ImageDown className="w-4 h-4" aria-hidden />
+          )}
+          {exporting ? "در حال ساخت عکس…" : "خروجی عکس برگه"}
+        </Button>
+        {exportErr && (
+          <p className="text-xs text-destructive w-full">ساخت عکس ناموفق بود؛ دوباره تلاش کنید.</p>
+        )}
+        <p className="text-[11px] text-muted-foreground w-full sm:w-auto">
+          عکس با اکوردهای همین گام ساخته می‌شود — اول گام را عوض کن، بعد خروجی بگیر.
         </p>
       </div>
 

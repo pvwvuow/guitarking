@@ -9,6 +9,8 @@ import {
   RotateCcw,
   Download,
   Copy,
+  ImageDown,
+  Loader2,
   ListMusic,
   AudioLines,
   LayoutGrid,
@@ -23,6 +25,7 @@ import {
   keyLabelFa,
   keyLabelLatin,
 } from "@/lib/format";
+import { downloadAnalysisSheetImage } from "@/lib/sheet-image";
 import { PlayerCard } from "./player-card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -116,6 +119,19 @@ export function ResultsView({ result, audioUrl, fileName, onReset }: Props) {
     toast({ title: "دانلود شد", description: "برگه‌ی آکورد ذخیره شد." });
   };
 
+  const [exportingImg, setExportingImg] = useState(false);
+  const downloadImage = async () => {
+    setExportingImg(true);
+    try {
+      await downloadAnalysisSheetImage(fileName, result);
+      toast({ title: "عکس ساخته شد", description: "برگه‌ی اکورد به‌صورت تصویر ذخیره شد." });
+    } catch {
+      toast({ title: "ساخت عکس ناموفق بود", variant: "destructive" });
+    } finally {
+      setExportingImg(false);
+    }
+  };
+
   const stats = [
     {
       icon: KeyRound,
@@ -154,6 +170,14 @@ export function ResultsView({ result, audioUrl, fileName, onReset }: Props) {
           </p>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={downloadImage} disabled={exportingImg}>
+            {exportingImg ? (
+              <Loader2 className="w-4 h-4 animate-spin" aria-hidden />
+            ) : (
+              <ImageDown className="w-4 h-4" aria-hidden />
+            )}
+            خروجی عکس
+          </Button>
           <Button variant="outline" size="sm" onClick={downloadSheet}>
             <Download className="w-4 h-4" aria-hidden />
             دانلود برگه
