@@ -109,7 +109,10 @@ body {
   unicode-bidi: isolate;
 }
 .font-fantasy {
-  font-family: "Aref Ruqaa", "Vazirmatn", serif;
+  font-family: "Gulzar", "Vazirmatn", serif;
+  /* Nastaliq needs generous vertical room (deep cascading descenders) */
+  line-height: 2.1;
+  font-weight: 400;
 }
 
 /* Latin chord names inside RTL text stay LTR + tabular numerals */
@@ -262,6 +265,84 @@ body {
 .gk-lift:hover {
   transform: translateY(-6px);
   box-shadow: 0 34px 46px -28px oklch(0.545 0.212 26 / 0.45);
+}
+
+/* ── ornate fantasy buttons ───────────────────────────────────────────
+   layered royal buttons: gradient core + inner seal ring + sheen sweep */
+.gk-btn {
+  position: relative;
+  isolation: isolate;
+  transition: transform 0.35s cubic-bezier(0.2, 0.7, 0.2, 1),
+    box-shadow 0.35s ease, color 0.3s ease, border-color 0.3s ease;
+}
+.gk-btn::after {
+  /* sheen sweep on hover */
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    115deg,
+    transparent 32%,
+    var(--gk-sheen, oklch(1 0 0 / 0.25)) 48%,
+    transparent 62%
+  );
+  transform: translateX(130%);
+  pointer-events: none;
+}
+.gk-btn:hover::after {
+  transform: translateX(-130%);
+  transition: transform 0.9s ease;
+}
+.gk-btn-red {
+  --gk-sheen: oklch(1 0 0 / 0.3);
+  background: radial-gradient(
+    130% 170% at 50% -30%,
+    oklch(0.64 0.2 30) 0%,
+    oklch(0.545 0.212 26) 56%,
+    oklch(0.46 0.19 23) 100%
+  );
+  border: 1px solid oklch(0.395 0.165 24);
+  color: oklch(0.995 0.002 85);
+  box-shadow: 0 16px 32px -14px oklch(0.545 0.212 26 / 0.6),
+    inset 0 1px 0 oklch(1 0 0 / 0.35),
+    inset 0 -10px 18px -12px oklch(0.32 0.13 22 / 0.7);
+}
+.gk-btn-red::before {
+  /* inner dashed seal ring */
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border-radius: inherit;
+  border: 1px dashed oklch(0.995 0.002 85 / 0.42);
+  pointer-events: none;
+}
+.gk-btn-red:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 22px 44px -16px oklch(0.545 0.212 26 / 0.7),
+    inset 0 1px 0 oklch(1 0 0 / 0.35),
+    inset 0 -10px 18px -12px oklch(0.32 0.13 22 / 0.7);
+}
+.gk-btn-royal {
+  --gk-sheen: oklch(0.617 0.093 62 / 0.16);
+  background: linear-gradient(180deg, oklch(1 0 0), oklch(0.984 0.009 78));
+  border: 1px solid oklch(0.235 0.012 60 / 0.3);
+  color: oklch(0.235 0.012 60);
+  box-shadow: 0 12px 26px -16px oklch(0.617 0.093 62 / 0.55);
+}
+.gk-btn-royal::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border-radius: inherit;
+  border: 1px solid oklch(0.617 0.093 62 / 0.5);
+  pointer-events: none;
+}
+.gk-btn-royal:hover {
+  transform: translateY(-2px);
+  color: oklch(0.545 0.212 26);
+  border-color: oklch(0.545 0.212 26 / 0.55);
+  box-shadow: 0 20px 36px -16px oklch(0.545 0.212 26 / 0.45);
 }
 
 @media (prefers-reduced-motion: reduce) {

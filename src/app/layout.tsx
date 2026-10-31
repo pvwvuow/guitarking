@@ -37,7 +37,7 @@ export default function RootLayout({
         />
         <link
           rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Aref+Ruqaa:wght@400;700&family=Cinzel+Decorative:wght@400;700;900&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Gulzar&family=Cinzel+Decorative:wght@400;700;900&display=swap"
         />
       </head>
       <body className="antialiased bg-background text-foreground min-h-screen">

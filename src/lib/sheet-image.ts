@@ -1,8 +1,9 @@
 /* Renders Guitar King chord sheets as shareable PNG images on a canvas.
    Paper look: warm white, ink+wood double frame, watermark emblem,
-   chords above lyrics — the classic chord-sheet poster. */
+   chords above lyrics — the classic chord-sheet poster.
+   Long songs are split into several A4-ratio pages automatically. */
 
-import type { AnalysisResult } from "./types";
+import type { AnalysisResult, ChordSegment, SongSection } from "./types";
 import type { SongEntry } from "./songs";
 import { transposeChord } from "./transpose";
 import { fmtTime, keyLabelLatin } from "./format";
@@ -22,11 +23,17 @@ const M = 78; // page margin
 const CW = W - M * 2; // content width
 
 const F_BODY = 'Vazirmatn, "Segoe UI", Tahoma, sans-serif';
-const F_TITLE = '"Aref Ruqaa", Vazirmatn, serif';
+const F_TITLE = 'Gulzar, Vazirmatn, serif';
 const F_BRAND = '"Cinzel Decorative", Vazirmatn, serif';
 
-export const SHEET_CREDIT = "Chords By Pouria Askarshahi";
-const SITE = "guitarking.vcp.ir";
+const SITE = "guitarking.ir";
+export const SHEET_CREDIT = SITE;
+
+/* pagination: every page is a fixed A4-ish sheet; if the song fits,
+   a single free-flowing page is produced exactly like before. */
+const PAGE_H = 1560;
+const BODY_BOTTOM = PAGE_H - 172; // body must end above the pinned footer
+const CONT_BODY_TOP = 156; // body top on continuation pages
 
 type Ctx = CanvasRenderingContext2D;
 
@@ -55,7 +62,8 @@ async function ensureFonts(): Promise<void> {
     '500 30px Vazirmatn',
     '700 26px Vazirmatn',
     '800 30px Vazirmatn',
-    '700 60px "Aref Ruqaa"',
+    '400 56px Gulzar',
+    '400 26px Gulzar',
     '700 26px "Cinzel Decorative"',
   ];
   try {
@@ -128,7 +136,7 @@ function drawFrame(ctx: Ctx, h: number) {
 }
 
 function brandRow(ctx: Ctx, y: number): number {
-  // centered: ✦ GUITAR KING ✦  ·  site
+  // centered: ✦ GUITAR KING ✦
   latin(ctx);
   ctx.textAlign = "center";
   ctx.textBaseline = "alphabetic";
@@ -142,18 +150,10 @@ function brandRow(ctx: Ctx, y: number): number {
   ctx.fillStyle = INK;
   ctx.fillText("GUITAR KING", W / 2, y);
   ctx.restore();
-  const brandW = Math.max(
-    ctx.measureText("GUITAR KING").width,
-    190
-  );
-  // diamonds flanking the brand
+  const brandW = Math.max(ctx.measureText("GUITAR KING").width, 190);
   diamond(ctx, W / 2 - brandW / 2 - 22, y - 9, 4.5, RED);
   diamond(ctx, W / 2 + brandW / 2 + 22, y - 9, 4.5, RED);
-  fa(ctx);
-  ctx.font = `500 17px ${F_BODY}`;
-  ctx.fillStyle = MUTED;
-  ctx.fillText(SITE, W / 2, y + 30);
-  return y + 30;
+  return y;
 }
 
 function ornamentRule(ctx: Ctx, y: number): number {
@@ -189,7 +189,7 @@ function footer(ctx: Ctx, y: number, note: string): number {
   } catch {
     /* noop */
   }
-  ctx.font = `700 21px ${F_BRAND}`;
+  ctx.font = `700 22px ${F_BRAND}`;
   ctx.fillStyle = INK_SOFT;
   ctx.fillText(SHEET_CREDIT, W / 2, y + 44);
   ctx.restore();
@@ -235,6 +235,96 @@ function chipRow(ctx: Ctx, chips: Chip[], y: number): number {
   return y;
 }
 
+/* ── download helpers ───────────────────────────────────────────────── */
+
+async function saveBlob(blob: Blob, name: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+async function saveAll(pages: { canvas: HTMLCanvasElement; name: string }[]) {
+  for (let i = 0; i < pages.length; i++) {
+    const blob = await new Promise<Blob | null>((res) =>
+      pages[i].canvas.toBlob(res, "image/png")
+    );
+    if (!blob) throw new Error("export failed");
+    await saveBlob(blob, pages[i].name);
+    if (i < pages.length - 1)
+      await new Promise((r) => setTimeout(r, 450)); // browsers block rapid downloads
+  }
+}
+
+/* ── page furniture for paginated exports ───────────────────────────── */
+
+function paintContHeader(ctx: Ctx, titleText: string): number {
+  latin(ctx);
+  ctx.textAlign = "center";
+  ctx.save();
+  try {
+    (ctx as Ctx & { letterSpacing: string }).letterSpacing = "3px";
+  } catch {
+    /* noop */
+  }
+  ctx.font = `700 15px ${F_BRAND}`;
+  ctx.fillStyle = MUTED;
+  ctx.fillText("GUITAR KING", W / 2, 66);
+  ctx.restore();
+  diamond(ctx, W / 2 - 91, 60, 3.5, RED);
+  diamond(ctx, W / 2 + 91, 60, 3.5, RED);
+  fa(ctx);
+  ctx.font = `400 26px ${F_TITLE}`;
+  ctx.fillStyle = INK;
+  let t = titleText;
+  while (ctx.measureText(t).width > CW && t.length > 4) t = t.slice(0, -2);
+  ctx.fillText(t, W / 2, 110);
+  ornamentRule(ctx, 134);
+  return CONT_BODY_TOP;
+}
+
+function pinnedNote(note: string, idx: number, n: number): string {
+  return n > 1 ? `${note} · برگه ${idx + 1} از ${n}` : note;
+}
+
+/* ── flow items (shared pagination logic) ───────────────────────────── */
+
+interface FlowItem {
+  tag: "label" | "row";
+  h: number;
+}
+
+/** split flow items into pages; a section label always travels
+    together with its first row */
+export function chunkFlow<T extends FlowItem>(
+  items: T[],
+  firstCap: number,
+  restCap: number
+): T[][] {
+  const pages: T[][] = [];
+  let cur: T[] = [];
+  let used = 0;
+  let cap = firstCap;
+  for (let i = 0; i < items.length; i++) {
+    const it = items[i];
+    const next = items[i + 1];
+    const need =
+      it.h + (it.tag === "label" && next && next.tag !== "label" ? next.h : 0);
+    if (used + need > cap && cur.length) {
+      pages.push(cur);
+      cur = [];
+      used = 0;
+      cap = restCap;
+    }
+    cur.push(it);
+    used += it.h;
+  }
+  if (cur.length) pages.push(cur);
+  return pages;
+}
+
 /* ── song sheet (archive entries, with lyrics) ──────────────────────── */
 
 interface LaidSeg {
@@ -244,28 +334,38 @@ interface LaidSeg {
 }
 interface LaidRow {
   segs: LaidSeg[];
+  h: number;
+  tag: "row";
 }
-interface LaidSection {
+interface LaidLabel {
   label: string;
-  rows: LaidRow[];
+  h: number;
+  tag: "label";
 }
+type SongItem = LaidLabel | LaidRow;
 
 const SEG_GAP = 40;
 const COL_PAD = 12;
 const ROW_H = 88; // chord line + text line
 const ROW_GAP = 24;
+const LABEL_H = 86;
 
-function layoutSongSections(ctx: Ctx, song: SongEntry, semi: number): LaidSection[] {
+function layoutSongSections(
+  ctx: Ctx,
+  song: SongEntry,
+  semi: number
+): SongItem[] {
   fa(ctx);
   ctx.font = `400 27px ${F_BODY}`;
   latin(ctx);
   const chordFont = `800 29px ${F_BODY}`;
-  return song.sections.map((sec) => {
-    const rows: LaidRow[] = [];
+  const items: SongItem[] = [];
+  for (const sec of song.sections) {
+    items.push({ tag: "label", label: sec.label, h: LABEL_H });
     let cur: LaidSeg[] = [];
     let curW = 0;
     const flush = () => {
-      if (cur.length) rows.push({ segs: cur });
+      if (cur.length) items.push({ tag: "row", segs: cur, h: ROW_H + ROW_GAP });
       cur = [];
       curW = 0;
     };
@@ -285,55 +385,34 @@ function layoutSongSections(ctx: Ctx, song: SongEntry, semi: number): LaidSectio
       flush(); // each source line starts a new row
     }
     flush();
-    return { label: sec.label, rows };
-  });
+  }
+  return items;
 }
 
-function measureSongHeight(sections: LaidSection[]): number {
-  const labelH = 52;
-  const labelGap = 26;
-  const secGap = 40;
-  let h = 0;
-  sections.forEach((s, i) => {
-    h += labelH + labelGap + s.rows.length * ROW_H + (s.rows.length - 1) * ROW_GAP;
-    if (i < sections.length - 1) h += secGap;
-  });
-  return h;
-}
-
-function paintSongSheet(
-  ctx: Ctx,
-  song: SongEntry,
-  semi: number,
-  emblem: HTMLImageElement | null
-): number {
-  const t = (c: string) => transposeChord(c, semi);
-  let y = 0;
-
-  // ── brand ──
-  y = brandRow(ctx, 108) + 26;
+function paintSongHeader(ctx: Ctx, song: SongEntry, semi: number): number {
+  let y = brandRow(ctx, 92) + 20;
   ornamentRule(ctx, y);
   y += 66;
 
-  // ── title / artist ──
+  // ── title / artist (Gulzar Nastaliq descends deep — extra room) ──
   fa(ctx);
   ctx.textAlign = "center";
-  ctx.font = `700 58px ${F_TITLE}`;
+  ctx.font = `400 56px ${F_TITLE}`;
   ctx.fillStyle = INK;
   let title = song.title;
   while (ctx.measureText(title).width > CW && title.length > 4)
     title = title.slice(0, -2);
   ctx.fillText(title, W / 2, y);
-  y += 52;
+  y += 78;
   ctx.font = `500 29px ${F_BODY}`;
   ctx.fillStyle = MUTED;
   ctx.fillText(song.artist, W / 2, y);
-  y += 56;
+  y += 54;
 
   // ── meta chips ──
   const chips: Chip[] = [
     { label: song.genre },
-    { label: "گام", value: t(song.key) },
+    { label: "گام", value: transposeChord(song.key, semi) },
   ];
   if (song.tempo) chips.push({ label: "تمپو", value: String(song.tempo) });
   chips.push({ label: "سطح", value: song.difficulty });
@@ -345,33 +424,36 @@ function paintSongSheet(
   chipRow(ctx, chips, y);
   y += 34;
   ornamentRule(ctx, y);
-  y += 58;
+  y += 56;
+  return y;
+}
 
-  // ── body ──
-  const sections = layoutSongSections(ctx, song, semi);
-  const bodyH = measureSongHeight(sections);
-  drawWatermark(ctx, emblem, y + bodyH / 2);
-
-  const bodyTop = y;
-  sections.forEach((sec, si) => {
-    // section label row: diamond at right margin, label, rule to the left
-    fa(ctx);
-    ctx.textAlign = "right";
-    ctx.font = `700 27px ${F_BODY}`;
-    ctx.fillStyle = INK;
-    const lw = ctx.measureText(sec.label).width;
-    ctx.fillText(sec.label, W - M - 34, y);
-    diamond(ctx, W - M, y - 9, 5.5, RED);
-    ctx.strokeStyle = LINE;
-    ctx.lineWidth = 1.2;
-    ctx.beginPath();
-    ctx.moveTo(M, y - 3);
-    ctx.lineTo(W - M - 34 - lw - 20, y - 3);
-    ctx.stroke();
-    y += 52 + 26;
-
-    sec.rows.forEach((row, ri) => {
-      row.segs.forEach((seg) => {
+function paintSongItems(
+  ctx: Ctx,
+  items: SongItem[],
+  y0: number,
+  semi: number
+): void {
+  const t = (c: string) => transposeChord(c, semi);
+  let y = y0;
+  for (const it of items) {
+    if (it.tag === "label") {
+      fa(ctx);
+      ctx.textAlign = "right";
+      ctx.font = `700 27px ${F_BODY}`;
+      ctx.fillStyle = INK;
+      const lw = ctx.measureText(it.label).width;
+      ctx.fillText(it.label, W - M - 34, y);
+      diamond(ctx, W - M, y - 9, 5.5, RED);
+      ctx.strokeStyle = LINE;
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(M, y - 3);
+      ctx.lineTo(W - M - 34 - lw - 20, y - 3);
+      ctx.stroke();
+      y += it.h;
+    } else {
+      it.segs.forEach((seg) => {
         // chord
         latin(ctx);
         ctx.textAlign = "center";
@@ -384,19 +466,9 @@ function paintSongSheet(
         ctx.fillStyle = INK_SOFT;
         ctx.fillText(seg.text, seg.cx, y + 44);
       });
-      y += ROW_H + (ri < sec.rows.length - 1 ? ROW_GAP : 0);
-    });
-    if (si < sections.length - 1) y += 40;
-  });
-  void bodyTop;
-
-  y += 44;
-  const note =
-    song.source === "bot"
-      ? "اکوردها بر پایه‌ی شنیده‌ی ربات گیتارکینگ نوشته شده است"
-      : "اکوردها توسط تحریریه‌ی گیتارکینگ نوشته شده است";
-  y = footer(ctx, y, note) + 58;
-  return y;
+      y += it.h;
+    }
+  }
 }
 
 export async function downloadSongSheetImage(
@@ -410,48 +482,113 @@ export async function downloadSongSheetImage(
   const scratch = document.createElement("canvas");
   const sctx = scratch.getContext("2d");
   if (!sctx) throw new Error("canvas unavailable");
-  const contentH = paintSongSheet(sctx, song, semi, emblem);
+  const bodyTop = paintSongHeader(sctx, song, semi);
+  const items = layoutSongSections(sctx, song, semi);
+  const itemsH = items.reduce((a, b) => a + b.h, 0);
 
-  const H = Math.ceil(contentH);
-  const canvas = document.createElement("canvas");
-  canvas.width = W;
-  canvas.height = H;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("canvas unavailable");
-  drawFrame(ctx, H);
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(40, 40, W - 80, H - 80);
-  ctx.clip();
-  paintSongSheet(ctx, song, semi, emblem);
-  ctx.restore();
+  const note =
+    song.source === "bot"
+      ? "اکوردها بر پایه‌ی شنیده‌ی ربات گیتارکینگ نوشته شده است"
+      : "اکوردها توسط تحریریه‌ی گیتارکینگ نوشته شده است";
 
-  const blob = await new Promise<Blob | null>((res) =>
-    canvas.toBlob(res, "image/png")
-  );
-  if (!blob) throw new Error("export failed");
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `guitarking-${song.slug}-chords.png`;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 5000);
+  /* single page keeps the free-flowing layout (page height = content) */
+  const singleH = bodyTop + itemsH + 154;
+  const multi = singleH > PAGE_H;
+  const pages: { canvas: HTMLCanvasElement; name: string }[] = [];
+  const base = `guitarking-${song.slug}-chords`;
+
+  if (!multi) {
+    const H = Math.ceil(singleH);
+    const canvas = document.createElement("canvas");
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("canvas unavailable");
+    drawFrame(ctx, H);
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(40, 40, W - 80, H - 80);
+    ctx.clip();
+    paintSongHeader(ctx, song, semi);
+    drawWatermark(ctx, emblem, bodyTop + itemsH / 2);
+    paintSongItems(ctx, items, bodyTop, semi);
+    footer(ctx, bodyTop + itemsH + 20, note);
+    ctx.restore();
+    pages.push({ canvas, name: `${base}.png` });
+  } else {
+    /* paginate: fixed A4-ish sheets, header + footer on every page */
+    const chunks = chunkFlow(
+      items,
+      BODY_BOTTOM - bodyTop,
+      BODY_BOTTOM - CONT_BODY_TOP
+    );
+    const n = chunks.length;
+    for (let i = 0; i < n; i++) {
+      const canvas = document.createElement("canvas");
+      canvas.width = W;
+      canvas.height = PAGE_H;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("canvas unavailable");
+      drawFrame(ctx, PAGE_H);
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(40, 40, W - 80, PAGE_H - 80);
+      ctx.clip();
+      const top =
+        i === 0 ? paintSongHeader(ctx, song, semi) : paintContHeader(ctx, song.title);
+      drawWatermark(ctx, emblem, (top + BODY_BOTTOM) / 2);
+      paintSongItems(ctx, chunks[i], top, semi);
+      footer(ctx, PAGE_H - 150, pinnedNote(note, i, n));
+      ctx.restore();
+      pages.push({ canvas, name: `${base}-p${i + 1}.png` });
+    }
+  }
+
+  await saveAll(pages);
 }
 
 /* ── bot analysis sheet (uploaded songs, no lyrics) ─────────────────── */
 
 const BOT_ROW_H = 52;
 
-function paintAnalysisSheet(
+interface AnItem extends FlowItem {
+  kind: "sec" | "chips";
+  sec?: SongSection;
+  segs?: ChordSegment[];
+  pad: number; // extra lead-in when not first on page
+}
+
+function buildAnalysisFlow(r: AnalysisResult): AnItem[] {
+  const items: AnItem[] = [];
+  r.sections.forEach((sec, i) => {
+    items.push({
+      kind: "sec",
+      tag: "label",
+      sec,
+      h: 66,
+      pad: i === 0 ? 0 : 30,
+    });
+    for (let j = 0; j < sec.segments.length; j += 6) {
+      items.push({
+        kind: "chips",
+        tag: "row",
+        segs: sec.segments.slice(j, j + 6),
+        h: BOT_ROW_H,
+        pad: 0,
+      });
+    }
+  });
+  return items;
+}
+
+function paintAnalysisHeader(
   ctx: Ctx,
   fileName: string,
-  r: AnalysisResult,
-  emblem: HTMLImageElement | null
+  r: AnalysisResult
 ): number {
-  let y = 0;
-  y = brandRow(ctx, 108) + 26;
+  let y = brandRow(ctx, 92) + 20;
   ornamentRule(ctx, y);
-  y += 62;
+  y += 58;
 
   // title (file name, LTR, shrink to fit)
   latin(ctx);
@@ -480,44 +617,44 @@ function paintAnalysisSheet(
   y += 34;
   ornamentRule(ctx, y);
   y += 56;
+  return y;
+}
 
-  // watermark behind the body
-  const rowsEstimate =
-    r.sections.reduce((acc, s) => {
-      const chipRows = Math.max(1, Math.ceil(s.segments.length / 6));
-      return acc + 40 + 26 + chipRows * BOT_ROW_H + 36;
-    }, 0);
-  drawWatermark(ctx, emblem, y + rowsEstimate / 2);
-
-  r.sections.forEach((sec, si) => {
-    fa(ctx);
-    ctx.textAlign = "right";
-    ctx.font = `700 26px ${F_BODY}`;
-    ctx.fillStyle = INK;
-    const label = `بخش ${sec.label}`;
-    const lw = ctx.measureText(label).width;
-    ctx.fillText(label, W - M - 34, y);
-    diamond(ctx, W - M, y - 9, 5.5, RED);
-    latin(ctx);
-    ctx.font = `500 19px ${F_BODY}`;
-    ctx.fillStyle = MUTED;
-    ctx.textAlign = "left";
-    ctx.fillText(`${fmtTime(sec.start)} – ${fmtTime(sec.end)}`, M, y);
-    ctx.strokeStyle = LINE;
-    ctx.lineWidth = 1.2;
-    ctx.beginPath();
-    ctx.moveTo(M + 120, y - 3);
-    ctx.lineTo(W - M - 34 - lw - 20, y - 3);
-    ctx.stroke();
-    y += 40 + 26;
-
-    // chord chips, wrapped 6 per row
-    const perRow = 6;
-    const gap = 12;
-    const chipW = (CW - gap * (perRow - 1)) / perRow;
-    for (let i = 0; i < sec.segments.length; i += perRow) {
-      const row = sec.segments.slice(i, i + perRow);
-      row.forEach((sg, j) => {
+function paintAnalysisItems(
+  ctx: Ctx,
+  items: AnItem[],
+  y0: number
+): void {
+  let y = y0;
+  let first = true;
+  for (const it of items) {
+    if (!first && it.pad) y += it.pad;
+    if (it.kind === "sec" && it.sec) {
+      const sec = it.sec;
+      fa(ctx);
+      ctx.textAlign = "right";
+      ctx.font = `700 26px ${F_BODY}`;
+      ctx.fillStyle = INK;
+      const label = `بخش ${sec.label}`;
+      const lw = ctx.measureText(label).width;
+      ctx.fillText(label, W - M - 34, y);
+      diamond(ctx, W - M, y - 9, 5.5, RED);
+      latin(ctx);
+      ctx.font = `500 19px ${F_BODY}`;
+      ctx.fillStyle = MUTED;
+      ctx.textAlign = "left";
+      ctx.fillText(`${fmtTime(sec.start)} – ${fmtTime(sec.end)}`, M, y);
+      ctx.strokeStyle = LINE;
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(M + 120, y - 3);
+      ctx.lineTo(W - M - 34 - lw - 20, y - 3);
+      ctx.stroke();
+    } else if (it.kind === "chips" && it.segs) {
+      // chord chips, wrapped 6 per row
+      const gap = 12;
+      const chipW = (CW - gap * 5) / 6;
+      it.segs.forEach((sg, j) => {
         const x = W - M - chipW - j * (chipW + gap); // RTL flow
         rr(ctx, x, y - 34, chipW, 44, 10);
         ctx.fillStyle = sg.chord === "N" ? "#f5f1e8" : CHIP_BG;
@@ -531,14 +668,9 @@ function paintAnalysisSheet(
         ctx.fillStyle = sg.chord === "N" ? MUTED : RED;
         ctx.fillText(sg.chord === "N" ? "—" : sg.chord, x + chipW / 2, y - 5);
       });
-      y += BOT_ROW_H;
     }
-    if (si < r.sections.length - 1) y += 36;
-  });
-
-  y += 40;
-  y = footer(ctx, y, "خروجی ربات اکوردنویس گیتارکینگ") + 58;
-  return y;
+    y += it.h;
+  }
 }
 
 export async function downloadAnalysisSheetImage(
@@ -551,31 +683,66 @@ export async function downloadAnalysisSheetImage(
   const scratch = document.createElement("canvas");
   const sctx = scratch.getContext("2d");
   if (!sctx) throw new Error("canvas unavailable");
-  const contentH = paintAnalysisSheet(sctx, fileName, r, emblem);
+  const bodyTop = paintAnalysisHeader(sctx, fileName, r);
+  const items = buildAnalysisFlow(r);
+  const itemsH = items.reduce((a, b) => a + b.pad + b.h, 0);
 
-  const H = Math.ceil(contentH);
-  const canvas = document.createElement("canvas");
-  canvas.width = W;
-  canvas.height = H;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("canvas unavailable");
-  drawFrame(ctx, H);
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(40, 40, W - 80, H - 80);
-  ctx.clip();
-  paintAnalysisSheet(ctx, fileName, r, emblem);
-  ctx.restore();
+  const note = "خروجی ربات اکوردنویس گیتارکینگ";
+  const singleH = bodyTop + itemsH + 154;
+  const multi = singleH > PAGE_H;
+  const pages: { canvas: HTMLCanvasElement; name: string }[] = [];
+  const safe =
+    fileName.replace(/[^\w-]+/g, "-").replace(/-+/g, "-").slice(0, 40) ||
+    "chords";
+  const base = `guitarking-${safe}`;
 
-  const blob = await new Promise<Blob | null>((res) =>
-    canvas.toBlob(res, "image/png")
-  );
-  if (!blob) throw new Error("export failed");
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  const safe = fileName.replace(/[^\w-]+/g, "-").replace(/-+/g, "-").slice(0, 40) || "chords";
-  a.download = `guitarking-${safe}.png`;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 5000);
+  if (!multi) {
+    const H = Math.ceil(singleH);
+    const canvas = document.createElement("canvas");
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("canvas unavailable");
+    drawFrame(ctx, H);
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(40, 40, W - 80, H - 80);
+    ctx.clip();
+    paintAnalysisHeader(ctx, fileName, r);
+    drawWatermark(ctx, emblem, bodyTop + itemsH / 2);
+    paintAnalysisItems(ctx, items, bodyTop);
+    footer(ctx, bodyTop + itemsH + 20, note);
+    ctx.restore();
+    pages.push({ canvas, name: `${base}.png` });
+  } else {
+    const chunks = chunkFlow(
+      items,
+      BODY_BOTTOM - bodyTop,
+      BODY_BOTTOM - CONT_BODY_TOP
+    );
+    const n = chunks.length;
+    for (let i = 0; i < n; i++) {
+      const canvas = document.createElement("canvas");
+      canvas.width = W;
+      canvas.height = PAGE_H;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("canvas unavailable");
+      drawFrame(ctx, PAGE_H);
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(40, 40, W - 80, PAGE_H - 80);
+      ctx.clip();
+      const top =
+        i === 0
+          ? paintAnalysisHeader(ctx, fileName, r)
+          : paintContHeader(ctx, fileName.replace(/\.[^.]+$/, "") || "Untitled");
+      drawWatermark(ctx, emblem, (top + BODY_BOTTOM) / 2);
+      paintAnalysisItems(ctx, chunks[i], top);
+      footer(ctx, PAGE_H - 150, pinnedNote(note, i, n));
+      ctx.restore();
+      pages.push({ canvas, name: `${base}-p${i + 1}.png` });
+    }
+  }
+
+  await saveAll(pages);
 }

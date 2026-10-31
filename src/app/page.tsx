@@ -17,7 +17,7 @@ import { ResultsView } from "@/components/gk/results-view";
 import { SongSheet } from "@/components/gk/song-sheet";
 import { SongCard } from "@/components/gk/song-card";
 import { Ornament } from "@/components/gk/ornament";
-import { BlogView, PostView, PostCard } from "@/components/gk/blog-view";
+import { BlogView, PostView, PostRow } from "@/components/gk/blog-view";
 import {
   ArtistsView,
   ArtistView,
@@ -243,7 +243,7 @@ export default function Home() {
             <NavLink href="#bot">ربات</NavLink>
           </nav>
           <a href="#bot" className="shrink-0">
-            <Button size="sm" className="rounded-full gap-1.5">
+            <Button size="sm" className="gk-btn gk-btn-red rounded-full gap-1.5">
               <Music2 className="w-4 h-4" aria-hidden />
               آپلود آهنگ
             </Button>
@@ -320,12 +320,7 @@ export default function Home() {
 
         {/* ── artist views ── */}
         {phase === "idle" && view === "/artists" && (
-          <ArtistsView
-            songs={SONGS}
-            onOpenArtist={openArtist}
-            onOpenSong={openSong}
-            onBack={goHome}
-          />
+          <ArtistsView songs={SONGS} onOpenArtist={openArtist} onBack={goHome} />
         )}
         {phase === "idle" && view?.startsWith("artist:") && (() => {
           const name = decodeURIComponent(view.slice(7));
@@ -405,7 +400,7 @@ export default function Home() {
                 <h1 className="font-display font-black text-[clamp(44px,9vw,84px)] leading-[1.15] mt-4">
                   Guitar King
                 </h1>
-                <p className="font-fantasy text-2xl sm:text-3xl text-primary mt-2">
+                <p className="font-fantasy text-3xl sm:text-4xl text-primary mt-2 pb-1">
                   پادشاهِ اکوردها در دستان تو
                 </p>
                 <p className="text-muted-foreground max-w-xl mx-auto mt-4 leading-8">
@@ -413,9 +408,9 @@ export default function Home() {
                   عوض کن، یا آهنگ خودت را برای ربات بفرست تا اکورد تک‌تک بخش‌هایش را
                   بنویسد.
                 </p>
-                <div className="flex flex-wrap gap-3 justify-center mt-8">
+                <div className="flex flex-wrap gap-4 justify-center mt-8">
                   <a href="#archive">
-                    <Button size="lg" className="rounded-full px-8">
+                    <Button size="lg" className="gk-btn gk-btn-red rounded-full px-9">
                       دیدن اکوردها
                     </Button>
                   </a>
@@ -423,7 +418,7 @@ export default function Home() {
                     <Button
                       size="lg"
                       variant="outline"
-                      className="rounded-full px-8 border-foreground/30"
+                      className="gk-btn gk-btn-royal rounded-full px-9"
                     >
                       آپلود آهنگ برای ربات
                     </Button>
@@ -514,17 +509,14 @@ export default function Home() {
                   آموزش‌های گیتار، خبرهای سایت و پشت‌صحنه‌ی ربات اکوردنویس.
                 </p>
               </div>
-              <div className="grid sm:grid-cols-3 gap-x-5 gap-y-8 mt-9">
+              <div className="max-w-3xl mx-auto mt-8 rv">
                 {POSTS.slice(0, 3).map((p) => (
-                  <PostCard key={p.slug} post={p} onOpen={() => openPost(p.slug)} />
+                  <PostRow key={p.slug} post={p} onOpen={() => openPost(p.slug)} />
                 ))}
               </div>
-              <div className="text-center mt-9 rv">
+              <div className="text-center mt-8 rv">
                 <a href="#/blog">
-                  <Button
-                    variant="outline"
-                    className="rounded-full px-8 border-foreground/30"
-                  >
+                  <Button variant="outline" className="gk-btn gk-btn-royal rounded-full px-8">
                     همه‌ی مطالب وبلاگ
                   </Button>
                 </a>
@@ -701,14 +693,24 @@ export default function Home() {
                     <Sparkles className="w-3.5 h-3.5 text-primary" aria-hidden />
                     حقوق آهنگ‌ها و پوسترها متعلق به صاحبان آن‌هاست.
                   </p>
-                  <a
-                    href="https://github.com/pvwvuow/guitarking"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="hover:text-foreground transition-colors chord-latin"
-                  >
-                    github.com/pvwvuow/guitarking
-                  </a>
+                  <p className="flex items-center gap-3">
+                    <a
+                      href="https://guitarking.ir"
+                      className="font-bold text-foreground/80 hover:text-primary transition-colors chord-latin"
+                      dir="ltr"
+                    >
+                      guitarking.ir
+                    </a>
+                    <i className="w-1 h-1 bg-muted-foreground rotate-45 inline-block" aria-hidden />
+                    <a
+                      href="https://github.com/pvwvuow/guitarking"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="hover:text-foreground transition-colors chord-latin"
+                    >
+                      github.com/pvwvuow/guitarking
+                    </a>
+                  </p>
                 </div>
               </div>
             </footer>
@@ -833,7 +835,7 @@ function FeaturedCard({ song, onOpen }: { song: SongEntry; onOpen: () => void })
               بازگشت به گام اصلی
             </button>
           )}
-          <Button size="sm" className="rounded-full ms-auto" onClick={onOpen}>
+          <Button size="sm" className="gk-btn gk-btn-red rounded-full ms-auto" onClick={onOpen}>
             دیدن برگه‌ی کامل
           </Button>
         </div>
