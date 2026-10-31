@@ -1,12 +1,17 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { Guitar, TriangleAlert } from "lucide-react";
+import { Guitar, Music2, TriangleAlert } from "lucide-react";
 import type { AnalysisResult } from "@/lib/types";
 import { UploadZone } from "@/components/gk/upload-zone";
 import { AnalyzingView } from "@/components/gk/analyzing-view";
 import { ResultsView } from "@/components/gk/results-view";
 import { Button } from "@/components/ui/button";
+import demoAnalysis from "@/data/demo-song.json";
+
+const DEMO_SONG = demoAnalysis as unknown as AnalysisResult;
+const DEMO_NAME = "Amin Ghobad - Koo Beheshtemoon.mp3";
+const DEMO_URL = "/demo/koo-beheshtemoon.mp3";
 
 type Phase = "idle" | "uploading" | "analyzing" | "done" | "error";
 
@@ -85,6 +90,20 @@ export default function Home() {
     setPhase("idle");
   }, []);
 
+  const loadDemo = useCallback(() => {
+    setError("");
+    setResult(null);
+    setUploadPct(0);
+    setFile(null);
+    setFileName(DEMO_NAME);
+    setAudioUrl((old) => {
+      if (old) URL.revokeObjectURL(old);
+      return DEMO_URL;
+    });
+    setResult(DEMO_SONG);
+    setPhase("done");
+  }, []);
+
   const reset = useCallback(() => {
     xhrRef.current?.abort();
     setAudioUrl((old) => {
@@ -130,6 +149,24 @@ export default function Home() {
               </p>
             </div>
             <UploadZone onFile={handleFile} />
+
+            {/* featured demo song */}
+            <div className="rounded-2xl border bg-card/70 p-4 sm:p-5 flex items-center gap-4">
+              <div className="w-12 h-12 shrink-0 rounded-xl bg-gradient-to-br from-rose-400 to-pink-600 flex items-center justify-center shadow-lg shadow-pink-500/20">
+                <Music2 className="w-6 h-6 text-white" aria-hidden />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold">
+                  نمونه‌ی آماده: امین قباد — «کو بهشتمون»
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  آکوردهای این آهنگ از قبل تحلیل شده؛ بدون آپلود همین‌جا ببین و پخش کن
+                </p>
+              </div>
+              <Button size="sm" variant="outline" onClick={loadDemo}>
+                نمایش آکوردها
+              </Button>
+            </div>
           </div>
         )}
 

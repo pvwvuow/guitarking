@@ -309,7 +309,7 @@ def analyze(path):
 
     # enforce a minimum section length by iteratively dropping the boundary
     # that creates the smallest section
-    min_sec = max(6.0, duration / 12.0)
+    min_sec = max(8.0, duration / 24.0)
     min_cells = max(2, int(round(min_sec / period)))
     while bnds:
         ext = [0] + bnds + [n_beats]
@@ -360,23 +360,12 @@ def analyze(path):
         sec["label"] = chr(ord("A") + li % 26)
         sec["color"] = SECTION_COLORS[li % len(SECTION_COLORS)]
 
-    # merge adjacent sections that received the same letter (spurious boundary)
-    merged_secs = []
-    for sec in sections:
-        if merged_secs and merged_secs[-1]["label"] == sec["label"]:
-            prev = merged_secs[-1]
-            prev["end"] = sec["end"]
-            prev["segments"] = prev["segments"] + sec["segments"]
-            prog = []
-            for s in prev["segments"]:
-                if s["chord"] != "N" and (not prog or prog[-1] != s["chord"]):
-                    prog.append(s["chord"])
-            prev["progression"] = prog
-        else:
-            merged_secs.append(sec)
-    for i, sec in enumerate(merged_secs):
+    # NOTE: adjacent sections sharing a letter are kept separate on purpose —
+    # songs with a looped progression have near-identical mean chromas across
+    # all sections, and merging them would erase the real structure found by
+    # the agglomerative segmentation.
+    for i, sec in enumerate(sections):
         sec["id"] = i + 1
-    sections = merged_secs
 
     # ---------- chord usage ----------
     usage = {}
