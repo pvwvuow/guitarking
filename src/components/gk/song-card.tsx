@@ -41,9 +41,8 @@ export function Poster({
   );
 }
 
-/* Archive card — a classic magazine plate: square photo mounted in a
-   white gutter, editorial caption block underneath with an overline,
-   Markazi headline and a hairline-ruled meta row. */
+/* Archive card — modern minimal: a soft white tile with a square
+   photo, floating key chip, gentle hover lift and red accents. */
 export function SongCard({
   song,
   onOpen,
@@ -61,69 +60,71 @@ export function SongCard({
       className="group text-start rv"
       aria-label={`دیدن اکورد ${song.title} از ${song.artist}`}
     >
-      <div className="gk-lift">
-        {/* mounted photo */}
-        <div className="gk-photo">
-          <div className="relative aspect-square overflow-hidden gk-photo-fill">
-            <Poster
-              song={song}
-              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.05]"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+      <div className="rounded-2xl border border-border/70 bg-card overflow-hidden shadow-sm transition-all duration-300 group-hover:-translate-y-1.5 group-hover:shadow-xl group-hover:shadow-foreground/10 group-hover:border-primary/40">
+        {/* square photo */}
+        <div className="relative aspect-square overflow-hidden">
+          <Poster
+            song={song}
+            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.06]"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
-            {song.isNew && (
-              <span className="absolute top-2.5 start-2.5 bg-primary text-primary-foreground text-[10px] font-black px-2 py-0.5 rounded-[3px]">
-                جدید
-              </span>
-            )}
-
-            {/* hover CTA */}
-            <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
-              <span className="rounded-[4px] bg-white/95 text-foreground text-xs font-bold px-4 py-2 shadow-lg inline-flex items-center gap-1.5 translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
-                <BookOpen className="w-3.5 h-3.5 text-primary" aria-hidden />
-                دیدن برگه‌ی اکورد
-              </span>
+          {song.isNew && (
+            <span className="absolute top-3 start-3 bg-primary text-primary-foreground text-[10px] font-bold px-2.5 py-1 rounded-full shadow-lg shadow-primary/40">
+              جدید
             </span>
-          </div>
+          )}
+
+          {/* key chip — always visible, glassy */}
+          <span className="absolute bottom-3 end-3 rounded-lg bg-black/35 backdrop-blur-md text-white chord-latin text-xs font-black px-2.5 py-1 ring-1 ring-white/25">
+            {song.key}
+          </span>
+
+          {/* hover CTA — floating round play/read button */}
+          <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
+            <span className="w-12 h-12 rounded-full bg-white/95 shadow-xl flex items-center justify-center scale-75 group-hover:scale-100 transition-transform duration-300">
+              <BookOpen className="w-5 h-5 text-primary" aria-hidden />
+            </span>
+          </span>
         </div>
 
-        {/* caption block */}
-        <div className="pt-3.5">
-          <p className="flex items-center gap-2 text-[10px] font-bold tracking-wide">
-            <span className="text-[oklch(0.617_0.093_62)]">{song.genre}</span>
-            <i
-              className="w-1 h-1 bg-[oklch(0.617_0.093_62)] rotate-45 inline-block"
-              aria-hidden
-            />
-            <span className="text-muted-foreground font-medium">
-              {song.dateFa}
+        {/* body */}
+        <div className="p-4">
+          <p className="flex items-center gap-2 text-[11px]">
+            <span className="rounded-full bg-secondary px-2.5 py-0.5 font-bold text-[oklch(0.45_0.07_62)]">
+              {song.genre}
             </span>
+            <span className="text-muted-foreground">{song.dateFa}</span>
           </p>
-          <h3 className="font-fantasy text-[23px] leading-8 mt-0.5 line-clamp-1 group-hover:text-primary transition-colors">
+          <h3 className="font-extrabold text-[17px] leading-7 mt-2 line-clamp-1 group-hover:text-primary transition-colors">
             {song.title}
           </h3>
           <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
             {song.artist}
           </p>
 
-          {/* hairline meta row */}
-          <div className="mt-2.5 pt-2.5 border-t border-border/70 flex items-center justify-between">
-            <span className="chord-latin text-[13px] font-black text-foreground/85">
-              {song.key}
-            </span>
-            <span className="text-[10px] text-muted-foreground inline-flex items-center gap-1">
+          <div className="mt-3 pt-3 border-t border-border/60 flex items-center justify-between">
+            <span className="text-[10px] text-muted-foreground inline-flex items-center gap-1.5">
               {song.source === "bot" ? (
                 <>
-                  <Bot className="w-3 h-3" aria-hidden />
+                  <span className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+                    <Bot className="w-3 h-3" aria-hidden />
+                  </span>
                   ربات
                 </>
               ) : (
                 <>
-                  <BookOpen className="w-3 h-3" aria-hidden />
+                  <span className="w-5 h-5 rounded-full bg-secondary flex items-center justify-center text-[oklch(0.45_0.07_62)]">
+                    <BookOpen className="w-3 h-3" aria-hidden />
+                  </span>
                   تحریریه
                 </>
               )}
             </span>
+            <i
+              aria-hidden
+              className="w-1.5 h-1.5 bg-primary rotate-45 inline-block opacity-0 group-hover:opacity-100 transition-opacity"
+            />
           </div>
         </div>
       </div>

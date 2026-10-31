@@ -102,38 +102,18 @@ body {
   line-height: 1.9;
 }
 
-/* ── Markazi Text · self-hosted editorial Persian face ─────────────
-   variable 400–700, classic Iranian-magazine typography vibe */
-@font-face {
-  font-family: "Markazi Text";
-  font-style: normal;
-  font-weight: 400 700;
-  font-display: swap;
-  src: url("/fonts/markazi-arabic.woff2") format("woff2");
-  unicode-range: U+0600-06FF, U+0750-077F, U+FB50-FDFF, U+FE70-FEFC, U+200C-200E,
-    U+2010-2011;
-}
-@font-face {
-  font-family: "Markazi Text";
-  font-style: normal;
-  font-weight: 400 700;
-  font-display: swap;
-  src: url("/fonts/markazi-latin.woff2") format("woff2");
-  unicode-range: U+0000-00FF, U+2000-206F;
-}
-
 /* display typefaces */
 .font-display {
   font-family: "Cinzel Decorative", "Vazirmatn", serif;
   direction: ltr;
   unicode-bidi: isolate;
 }
-/* editorial display face for Persian headlines (classic magazine) */
+/* Nastaliq display face — only for the site's important Persian titles
+   (hero tagline, section headings). Deep descenders need room. */
 .font-fantasy {
-  font-family: "Markazi Text", "Vazirmatn", serif;
-  line-height: 1.5;
-  font-weight: 600;
-  letter-spacing: 0;
+  font-family: "Gulzar", "Vazirmatn", serif;
+  line-height: 2.1;
+  font-weight: 400;
 }
 /* small letterspaced Latin overline labels */
 .gk-overline {
@@ -263,134 +243,82 @@ body {
   transform: none;
 }
 
-/* classic frame: outer ink line + inner wood line (kept minimal) */
-.gk-frame {
-  position: relative;
-  border: 1px solid oklch(0.235 0.012 60);
-  background: linear-gradient(180deg, oklch(1 0 0), oklch(0.988 0.006 78));
-  box-shadow: 0 24px 48px -40px oklch(0.617 0.093 62 / 0.5);
-}
-.gk-frame::before {
-  content: "";
-  position: absolute;
-  inset: 6px;
-  border: 1px solid oklch(0.617 0.093 62 / 0.4);
-  pointer-events: none;
-}
-.gk-corner {
-  position: absolute;
-  width: 34px;
-  height: 34px;
-  color: oklch(0.617 0.093 62);
-  pointer-events: none;
-}
-
-/* hover: quiet lift + red offset like a misregistered print pass */
+/* ── modern soft lift for cards ───────────────────────────────────── */
 .gk-lift {
   transition: transform 0.35s cubic-bezier(0.2, 0.7, 0.2, 1),
     box-shadow 0.35s ease, border-color 0.35s ease;
 }
 .gk-lift:hover {
-  transform: translate(-2px, -3px);
-  box-shadow: 6px 7px 0 -1px oklch(0.545 0.212 26 / 0.16),
-    0 24px 38px -30px oklch(0.235 0.012 60 / 0.5);
+  transform: translateY(-6px);
+  box-shadow: 0 26px 48px -26px oklch(0.235 0.012 60 / 0.3),
+    0 8px 20px -14px oklch(0.545 0.212 26 / 0.25);
 }
 
-/* ── classic-print buttons ──────────────────────────────────────────
-   two-ink letterpress feel: solid red with an ink offset shadow,
-   or paper with a red one; they press into the sheet on click. */
+/* ── modern buttons · pill, gradient red, soft glow ─────────────── */
 .gk-btn {
-  border-radius: 10px;
+  border-radius: 999px;
   font-weight: 700;
   letter-spacing: 0.01em;
-  transition: transform 0.22s cubic-bezier(0.2, 0.7, 0.2, 1),
-    box-shadow 0.22s ease, background-color 0.25s ease, color 0.25s ease,
-    border-color 0.25s ease;
+  transition: transform 0.25s cubic-bezier(0.2, 0.7, 0.2, 1),
+    box-shadow 0.25s ease, filter 0.25s ease, background-color 0.25s ease,
+    color 0.25s ease, border-color 0.25s ease;
 }
 .gk-btn-red {
-  background: linear-gradient(
-    180deg,
-    oklch(0.575 0.2 27),
-    oklch(0.545 0.212 26)
-  );
-  border: 1px solid oklch(0.4 0.17 24);
+  background: linear-gradient(135deg, oklch(0.6 0.215 27), oklch(0.535 0.21 26));
+  border: 1px solid oklch(0.5 0.19 25);
   color: oklch(0.995 0.002 85);
-  box-shadow: 3px 3px 0 0 oklch(0.235 0.012 60);
+  box-shadow: 0 10px 26px -10px oklch(0.545 0.212 26 / 0.55),
+    inset 0 1px 0 oklch(1 0 0 / 0.2);
 }
 .gk-btn-red:hover {
-  transform: translate(-1px, -1px);
-  box-shadow: 5px 5px 0 0 oklch(0.235 0.012 60);
+  transform: translateY(-2px);
+  filter: brightness(1.07);
+  box-shadow: 0 16px 34px -12px oklch(0.545 0.212 26 / 0.62),
+    inset 0 1px 0 oklch(1 0 0 / 0.22);
 }
 .gk-btn-red:active {
-  transform: translate(2px, 2px);
-  box-shadow: 0 0 0 0 oklch(0.235 0.012 60);
+  transform: translateY(0) scale(0.97);
+  filter: brightness(0.98);
+  box-shadow: 0 6px 16px -8px oklch(0.545 0.212 26 / 0.5);
 }
 .gk-btn-royal {
-  background: oklch(0.995 0.002 85);
-  border: 1px solid oklch(0.235 0.012 60 / 0.75);
+  background: oklch(1 0 0);
+  border: 1px solid oklch(0.235 0.012 60 / 0.16);
   color: oklch(0.235 0.012 60);
-  box-shadow: 3px 3px 0 0 oklch(0.545 0.212 26 / 0.75);
+  box-shadow: 0 4px 14px -6px oklch(0.235 0.012 60 / 0.14);
 }
 .gk-btn-royal:hover {
-  transform: translate(-1px, -1px);
-  background: oklch(0.97 0.008 75);
-  box-shadow: 5px 5px 0 0 oklch(0.545 0.212 26 / 0.75);
+  transform: translateY(-2px);
+  border-color: oklch(0.545 0.212 26 / 0.55);
+  color: oklch(0.545 0.212 26);
+  box-shadow: 0 12px 26px -12px oklch(0.545 0.212 26 / 0.35);
 }
 .gk-btn-royal:active {
-  transform: translate(2px, 2px);
-  box-shadow: 0 0 0 0 oklch(0.545 0.212 26 / 0.75);
+  transform: translateY(0) scale(0.97);
 }
 
-/* ── magazine helpers ───────────────────────────────────────────────── */
-/* thick-over-thin editorial rule (classic magazine section breaks) */
-.gk-double-rule {
-  border-top: 2px solid oklch(0.235 0.012 60 / 0.8);
-}
-.gk-double-rule::after {
-  content: "";
-  display: block;
+/* ── modern section rule · hairline fading out with a red head ────── */
+.gk-rule {
   height: 1px;
-  margin-top: 2px;
-  background: oklch(0.235 0.012 60 / 0.35);
+  background: linear-gradient(
+    to left,
+    oklch(0.545 0.212 26 / 0.6),
+    oklch(0.617 0.093 62 / 0.32) 34%,
+    oklch(0.905 0.013 70) 78%,
+    transparent
+  );
 }
 
-/* mounted-photo frame: white gutter + hairline, like print photo plates */
-.gk-photo {
-  background: oklch(1 0 0);
-  border: 1px solid oklch(0.235 0.012 60 / 0.22);
-  padding: 7px;
-  box-shadow: 0 2px 0 oklch(0.235 0.012 60 / 0.05);
-}
-.gk-photo > img,
-.gk-photo > .gk-photo-fill {
-  border: 1px solid oklch(0.235 0.012 60 / 0.12);
-}
-
-/* red editorial stamp, slightly askew like a hand stamp */
-.gk-stamp {
-  color: oklch(0.545 0.212 26);
-  border: 1.5px solid currentColor;
-  box-shadow: 0 0 0 3px oklch(0.995 0.002 85), 0 0 0 4px oklch(0.545 0.212 26 / 0.85);
-  transform: rotate(-7deg);
-  background: oklch(0.995 0.002 85 / 0.92);
-}
-
-/* dotted leader for index rows (magazine TOC) */
-.gk-leader {
-  flex: 1 1 auto;
-  min-width: 24px;
-  border-bottom: 2px dotted oklch(0.235 0.012 60 / 0.3);
-  margin: 0 12px;
-  transform: translateY(-5px);
-}
-
-/* editorial issue/figure number */
-.gk-figure {
-  font-family: "Markazi Text", "Vazirmatn", serif;
-  direction: ltr;
-  unicode-bidi: isolate;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
+/* gradient text accent for Nastaliq headings' underline bar */
+.gk-titlebar {
+  height: 4px;
+  width: 56px;
+  border-radius: 999px;
+  background: linear-gradient(
+    to left,
+    oklch(0.545 0.212 26),
+    oklch(0.617 0.093 62 / 0.35)
+  );
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -63,8 +63,7 @@ export function SongSheet({ song, onBack, onPlayDemo }: Props) {
 
       {/* header */}
       <div className="mt-5 grid sm:grid-cols-[220px_1fr] gap-6 sm:gap-8 items-start">
-        <div className="gk-frame rounded-xl overflow-hidden mx-auto w-52 sm:w-full">
-          { }
+        <div className="rounded-2xl overflow-hidden ring-1 ring-foreground/10 shadow-xl shadow-foreground/15 mx-auto w-52 sm:w-full">
           <img
             src={song.poster}
             alt={`پوستر ${song.title}`}
@@ -75,7 +74,7 @@ export function SongSheet({ song, onBack, onPlayDemo }: Props) {
           <p className="font-display text-[11px] tracking-[0.35em] text-[oklch(0.617_0.093_62)] mb-1">
             {song.genre.toUpperCase()}
           </p>
-          <h1 className="font-fantasy text-4xl sm:text-5xl font-bold leading-snug">
+          <h1 className="font-fantasy text-4xl sm:text-5xl leading-[1.9]">
             {song.title}
           </h1>
           <p className="text-lg text-muted-foreground mt-1">{song.artist}</p>
@@ -104,7 +103,7 @@ export function SongSheet({ song, onBack, onPlayDemo }: Props) {
       </div>
 
       {/* transpose toolbar */}
-      <div className="gk-frame rounded-xl mt-8 p-4 sm:px-6 flex flex-wrap items-center gap-3">
+      <div className="rounded-2xl border border-border/70 bg-card shadow-sm mt-8 p-4 sm:px-6 flex flex-wrap items-center gap-3">
         <p className="font-bold text-sm">تغییر گام:</p>
         <div className="flex items-center gap-2" dir="ltr">
           <Button

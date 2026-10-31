@@ -454,7 +454,7 @@ export default function Home() {
                     روی هر برگه بزن تا اکورد کامل، دیاگرام‌ها و تغییر گام را ببینی.
                   </p>
                 </div>
-                <div className="gk-double-rule mt-5" aria-hidden />
+                <div className="gk-rule mt-5" aria-hidden />
               </div>
               <div className="flex flex-wrap gap-2 justify-center mt-6 rv">
                 {GENRES.map((g) => (
@@ -464,10 +464,10 @@ export default function Home() {
                     onClick={() => setGenre(g)}
                     aria-pressed={genre === g}
                     className={cn(
-                      "rounded-lg px-5 py-1.5 text-sm border transition-colors",
+                      "rounded-full px-5 py-2 text-sm border transition-all duration-300",
                       genre === g
-                        ? "bg-primary text-primary-foreground border-primary"
-                        : "border-border bg-card hover:border-primary/50 hover:text-primary"
+                        ? "bg-gradient-to-l from-[oklch(0.6_0.215_27)] to-primary text-primary-foreground border-transparent shadow-lg shadow-primary/30 -translate-y-0.5"
+                        : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-primary hover:-translate-y-0.5"
                     )}
                   >
                     {g}
@@ -503,7 +503,7 @@ export default function Home() {
                       برگه‌ای که ربات شنیده و تحریریه چک کرده؛ با تغییر گام زنده.
                     </p>
                   </div>
-                  <div className="gk-double-rule mt-5" aria-hidden />
+                  <div className="gk-rule mt-5" aria-hidden />
                 </div>
                 <FeaturedCard song={featured} onOpen={() => openSong(featured.slug)} />
               </section>
@@ -525,7 +525,7 @@ export default function Home() {
                     آموزش‌های گیتار، خبرهای سایت و پشت‌صحنه‌ی ربات اکوردنویس.
                   </p>
                 </div>
-                <div className="gk-double-rule mt-5" aria-hidden />
+                <div className="gk-rule mt-5" aria-hidden />
               </div>
               <div className="max-w-3xl mx-auto mt-4 rv">
                 {POSTS.slice(0, 3).map((p) => (
@@ -548,7 +548,7 @@ export default function Home() {
                 <i aria-hidden className="absolute -left-16 -bottom-20 w-56 h-56 rounded-full border border-dashed border-white/25 pointer-events-none" />
                 <div className="grid lg:grid-cols-2 gap-10 items-center relative">
                   <div>
-                    <h2 className="font-fantasy text-3xl sm:text-4xl font-bold flex items-center gap-3">
+                    <h2 className="font-fantasy text-3xl sm:text-4xl flex items-center gap-3">
                       <Bot className="w-8 h-8" aria-hidden />
                       آهنگ خودت را بفرست
                     </h2>
@@ -598,7 +598,7 @@ export default function Home() {
             {/* roadmap */}
             <section id="roadmap" className="max-w-6xl mx-auto px-4 pt-20">
               <div className="text-center rv">
-                <h2 className="font-fantasy text-3xl sm:text-4xl font-bold">نقشه‌ی راه</h2>
+                <h2 className="font-fantasy text-3xl sm:text-4xl">نقشه‌ی راه</h2>
                 <p className="text-muted-foreground mt-2 leading-7">
                   چه چیزهایی آماده است و چه چیزهایی در راه است.
                 </p>
@@ -627,12 +627,12 @@ export default function Home() {
                     done: false,
                   },
                 ].map((r) => (
-                  <div key={r.title} className="rounded-xl border bg-card p-5 rv">
+                  <div key={r.title} className="rounded-2xl border border-border/70 bg-card p-6 rv transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl hover:shadow-foreground/10 hover:border-primary/30">
                     <span
                       className={cn(
                         "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold",
                         r.done
-                          ? "bg-primary text-primary-foreground"
+                          ? "bg-primary text-primary-foreground shadow-md shadow-primary/30"
                           : "border border-dashed text-muted-foreground"
                       )}
                     >
@@ -650,7 +650,7 @@ export default function Home() {
 
             {/* about */}
             <section id="about" className="max-w-3xl mx-auto px-4 pt-20 text-center rv">
-              <h2 className="font-fantasy text-3xl sm:text-4xl font-bold">درباره‌ی گیتار کینگ</h2>
+              <h2 className="font-fantasy text-3xl sm:text-4xl">درباره‌ی گیتار کینگ</h2>
               <p className="text-muted-foreground mt-4 leading-8">
                 ما برای گیتاریست‌ها اکورد می‌نویسیم. هر آهنگی که منتشر شود، اکوردش را
                 با گوشِ ربات و چشمِ تحریریه اینجا پیدا می‌کنی؛ و اگر آهنگ خودت را داری،
@@ -787,52 +787,56 @@ function FeaturedCard({ song, onOpen }: { song: SongEntry; onOpen: () => void })
 
   return (
     <div className="relative mt-9 rv">
-      {/* classic double-rule frame */}
-      <div className="border border-foreground/75 p-[3px]">
-        <div className="border border-foreground/20 bg-card grid md:grid-cols-[290px_1fr] gap-8 lg:gap-10 p-6 sm:p-9 items-center">
-          {/* mounted photo plate + red stamp */}
-          <div className="relative mx-auto w-56 md:w-full max-w-[290px]">
-            <div className="gk-photo">
+      {/* soft red aura behind the card */}
+      <div
+        aria-hidden
+        className="absolute -inset-8 rounded-[48px] pointer-events-none"
+        style={{
+          background:
+            "radial-gradient(55% 55% at 72% 18%, oklch(0.545 0.212 26 / 0.1), transparent 72%)",
+        }}
+      />
+
+      {/* the card */}
+      <div className="relative rounded-3xl border border-border/70 bg-card overflow-hidden shadow-[0_34px_70px_-42px_oklch(0.235_0.012_60/0.45)]">
+        <div className="grid md:grid-cols-[300px_1fr] gap-8 lg:gap-12 p-6 sm:p-9 items-center">
+          {/* square poster + floating badge */}
+          <div className="relative mx-auto w-60 md:w-full max-w-[300px]">
+            <div className="rounded-2xl overflow-hidden ring-1 ring-foreground/10 shadow-xl shadow-foreground/20 transition-transform duration-500 hover:scale-[1.02]">
               <Poster song={song} className="w-full aspect-square object-cover block" />
             </div>
-            <span className="gk-stamp absolute -top-4 -end-3 px-3.5 py-1.5 text-[11px] font-black">
+            <span className="absolute -top-3 -end-3 inline-flex items-center gap-1.5 rounded-full bg-primary text-primary-foreground text-[11px] font-bold px-3.5 py-1.5 shadow-lg shadow-primary/40">
+              <Sparkles className="w-3.5 h-3.5" aria-hidden />
               ویژه
             </span>
-            <i
-              aria-hidden
-              className="absolute -bottom-3 -start-2 w-2 h-2 bg-primary rotate-45"
-            />
           </div>
 
           <div>
             <p className="gk-overline text-[10px] text-primary">Chord of the Week</p>
-            <h3 className="font-fantasy text-4xl sm:text-[42px] leading-[1.25] mt-2">
+            <h3 className="font-fantasy text-3xl sm:text-[40px] leading-[1.9] mt-1">
               {song.title}
             </h3>
 
-            {/* editorial meta line — no pills, just ink and diamonds */}
-            <p className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-sm text-muted-foreground mt-2.5">
-              <span className="text-foreground/85 font-medium">{song.artist}</span>
-              <i className="w-1.5 h-1.5 bg-[oklch(0.617_0.093_62)] rotate-45 inline-block" aria-hidden />
-              <span>
+            {/* meta chips */}
+            <div className="flex flex-wrap items-center gap-2 mt-3 text-xs">
+              <span className="rounded-full bg-primary/10 text-primary font-bold px-3 py-1.5">
+                {song.artist}
+              </span>
+              <span className="rounded-full border border-border bg-card px-3 py-1.5 text-muted-foreground">
                 کلید <b className="chord-latin text-primary">{key}</b>
               </span>
               {song.tempo && (
-                <>
-                  <i className="w-1.5 h-1.5 bg-[oklch(0.617_0.093_62)] rotate-45 inline-block" aria-hidden />
-                  <span>
-                    تمپو <b className="chord-latin">{song.tempo}</b>
-                  </span>
-                </>
+                <span className="rounded-full border border-border bg-card px-3 py-1.5 text-muted-foreground">
+                  تمپو <b className="chord-latin">{song.tempo}</b>
+                </span>
               )}
-              <i className="w-1.5 h-1.5 bg-[oklch(0.617_0.093_62)] rotate-45 inline-block" aria-hidden />
-              <span>{song.source === "bot" ? "شنیده‌ی ربات" : "برگه‌ی تحریریه"}</span>
-            </p>
-
-            <div className="h-px bg-border mt-4" aria-hidden />
+              <span className="rounded-full border border-border bg-card px-3 py-1.5 text-muted-foreground">
+                {song.source === "bot" ? "شنیده‌ی ربات" : "برگه‌ی تحریریه"}
+              </span>
+            </div>
 
             {/* live chord preview */}
-            <div className="mt-4 space-y-3" dir="rtl">
+            <div className="mt-5 space-y-3" dir="rtl">
               {previewLines.map((line, li) => (
                 <div key={li} className="flex flex-wrap gap-x-7 gap-y-2">
                   {line.map((seg, si) => (
@@ -847,12 +851,16 @@ function FeaturedCard({ song, onOpen }: { song: SongEntry; onOpen: () => void })
               ))}
             </div>
 
-            <div className="flex flex-wrap items-center gap-3 mt-6 pt-4 border-t border-border/70">
-              <div className="flex items-center gap-1.5" dir="ltr">
+            {/* controls */}
+            <div className="flex flex-wrap items-center gap-3 mt-6 pt-5 border-t border-border/70">
+              <div
+                className="flex items-center gap-1 rounded-full border border-border bg-background p-1 shadow-sm"
+                dir="ltr"
+              >
                 <Button
                   size="icon"
-                  variant="outline"
-                  className="w-8 h-8 rounded-lg"
+                  variant="ghost"
+                  className="w-8 h-8 rounded-full hover:bg-primary/10 hover:text-primary"
                   aria-label="گام پایین"
                   onClick={() => setSemi((s) => Math.max(s - 1, -6))}
                 >
@@ -861,8 +869,8 @@ function FeaturedCard({ song, onOpen }: { song: SongEntry; onOpen: () => void })
                 <span className="chord-latin font-black text-primary w-14 text-center">{key}</span>
                 <Button
                   size="icon"
-                  variant="outline"
-                  className="w-8 h-8 rounded-lg"
+                  variant="ghost"
+                  className="w-8 h-8 rounded-full hover:bg-primary/10 hover:text-primary"
                   aria-label="گام بالا"
                   onClick={() => setSemi((s) => Math.min(s + 1, 6))}
                 >
@@ -873,19 +881,20 @@ function FeaturedCard({ song, onOpen }: { song: SongEntry; onOpen: () => void })
                 <button
                   type="button"
                   onClick={() => setSemi(0)}
-                  className="text-xs text-muted-foreground hover:text-primary"
+                  className="text-xs text-muted-foreground hover:text-primary transition-colors"
                 >
                   بازگشت به گام اصلی
                 </button>
               )}
-              <Button size="sm" className="gk-btn gk-btn-red ms-auto" onClick={onOpen}>
+              <Button size="sm" className="gk-btn gk-btn-red ms-auto px-6" onClick={onOpen}>
                 دیدن برگه‌ی کامل
               </Button>
             </div>
           </div>
         </div>
       </div>
-      {/* faint fantasy sparkles on the frame */}
+
+      {/* faint sparkles around the card */}
       <Sparkles
         aria-hidden
         className="absolute -top-5 start-10 w-4 h-4 text-[oklch(0.617_0.093_62)] opacity-70"

@@ -51,17 +51,13 @@ export function ArtistView({
       </button>
 
       <header className="mt-8 flex items-center gap-5 rv on">
-        <span className="relative w-20 h-20 sm:w-24 sm:h-24 shrink-0 rounded-full border-2 border-primary/60 bg-primary/5 flex items-center justify-center">
-          <span className="font-fantasy text-3xl sm:text-4xl text-primary">
+        <span className="relative w-20 h-20 sm:w-24 sm:h-24 shrink-0 rounded-full bg-gradient-to-br from-primary/15 via-primary/5 to-[oklch(0.617_0.093_62/0.15)] ring-2 ring-primary/25 flex items-center justify-center shadow-lg shadow-primary/10">
+          <span className="font-fantasy text-3xl sm:text-4xl text-primary leading-none pb-3">
             {group.name.slice(0, 1)}
           </span>
-          <i
-            aria-hidden
-            className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-primary rotate-45 border-2 border-background"
-          />
         </span>
         <div>
-          <h1 className="font-fantasy text-3xl sm:text-4xl leading-snug">
+          <h1 className="font-fantasy text-3xl sm:text-4xl leading-[1.9]">
             {group.name}
           </h1>
           <div className="flex flex-wrap gap-2 mt-2 text-xs">

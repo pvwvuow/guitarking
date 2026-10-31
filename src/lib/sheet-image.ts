@@ -27,7 +27,7 @@ const M = 88; // page margin
 const CW = W - M * 2; // content width
 
 const F_BODY = 'Vazirmatn, "Segoe UI", Tahoma, sans-serif';
-const F_TITLE = '"Markazi Text", Vazirmatn, serif';
+const F_TITLE = 'Vazirmatn, "Segoe UI", Tahoma, sans-serif';
 const F_BRAND = '"Cinzel Decorative", Vazirmatn, serif';
 
 export const SHEET_CREDIT = "guitarking.ir";
@@ -59,8 +59,6 @@ async function ensureFonts(): Promise<void> {
     '500 28px Vazirmatn',
     '700 22px Vazirmatn',
     '800 29px Vazirmatn',
-    '700 54px "Markazi Text"',
-    '700 24px "Markazi Text"',
     '700 24px "Cinzel Decorative"',
   ];
   try {
