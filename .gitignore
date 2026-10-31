@@ -1,0 +1,41 @@
+# deps
+node_modules/
+.pnp
+.pnp.js
+
+# next.js
+.next/
+out/
+build/
+
+# env & secrets
+.env
+.env*.local
+
+# databases / runtime artifacts
+db/*.db
+db/*.db-journal
+*.log
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+
+# misc
+.DS_Store
+*.pem
+.vercel
+*.tsbuildinfo
+next-env.d.ts
+
+# sandbox/dev tooling (not part of the app)
+.zscripts/
+dev.log
+server.log
+Caddyfile
+examples/
+tests/
+mini-services/
+download/
+upload/
