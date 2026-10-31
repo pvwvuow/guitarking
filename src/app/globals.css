@@ -169,6 +169,56 @@ body {
   animation: gk-float 6s ease-in-out infinite;
 }
 
+/* rotating light rays behind the hero emblem */
+@keyframes gk-rays {
+  to {
+    transform: rotate(1turn);
+  }
+}
+.gk-rays {
+  background: repeating-conic-gradient(
+    from 0deg at 50% 50%,
+    oklch(0.545 0.212 26 / 0.075) 0deg 3.5deg,
+    transparent 3.5deg 13deg
+  );
+  -webkit-mask-image: radial-gradient(
+    circle at 50% 50%,
+    transparent 30%,
+    #000 44%,
+    transparent 78%
+  );
+  mask-image: radial-gradient(
+    circle at 50% 50%,
+    transparent 30%,
+    #000 44%,
+    transparent 78%
+  );
+  animation: gk-rays 110s linear infinite;
+}
+
+/* minimal guitar strings behind the emblem, fading out to both sides */
+.gk-string {
+  display: block;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    oklch(0.42 0.03 60 / 0.4) 16%,
+    oklch(0.42 0.03 60 / 0.4) 84%,
+    transparent 100%
+  );
+}
+
+/* slow-rotating dashed seal ring around the emblem */
+@keyframes gk-spin-slow {
+  to {
+    transform: rotate(1turn);
+  }
+}
+.gk-spin-slow {
+  animation: gk-spin-slow 90s linear infinite;
+}
+
 /* scroll reveal (activated by IntersectionObserver) */
 .rv {
   opacity: 0;

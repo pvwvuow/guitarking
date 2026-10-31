@@ -283,11 +283,53 @@ export default function Home() {
                   <i className="w-1.5 h-1.5 bg-primary rotate-45 inline-block" aria-hidden />
                 </p>
                 { }
-                <img
-                  src="/emblem.png"
-                  alt="نشان گیتار کینگ: تاج و گیتار"
-                  className="gk-float w-28 sm:w-32 h-auto mx-auto mt-6 drop-shadow-[0_18px_28px_oklch(0.235_0.012_60/0.25)]"
-                />
+                <div className="relative mx-auto mt-8 flex h-56 w-full items-center justify-center sm:h-64">
+                  {/* rotating light rays */}
+                  <div
+                    aria-hidden
+                    className="absolute left-1/2 top-1/2 h-[440px] w-[440px] -translate-x-1/2 -translate-y-1/2 sm:h-[500px] sm:w-[500px]"
+                  >
+                    <div className="gk-rays absolute inset-0 rounded-full" />
+                  </div>
+                  {/* guitar strings behind the emblem */}
+                  <div
+                    aria-hidden
+                    className="absolute left-1/2 top-1/2 w-[min(640px,88vw)] -translate-x-1/2 -translate-y-1/2"
+                  >
+                    <div className="flex h-14 flex-col justify-between">
+                      <i className="gk-string h-px opacity-45" />
+                      <i className="gk-string h-px opacity-55" />
+                      <i className="gk-string h-[1.5px] opacity-65" />
+                      <i className="gk-string h-[1.5px] opacity-75" />
+                      <i className="gk-string h-0.5 opacity-85" />
+                      <i className="gk-string h-0.5" />
+                    </div>
+                  </div>
+                  {/* emblem inside its seal rings */}
+                  <div className="gk-float relative z-10">
+                    <div
+                      aria-hidden
+                      className="absolute left-1/2 top-1/2 h-48 w-48 -translate-x-1/2 -translate-y-1/2 rounded-full sm:h-56 sm:w-56"
+                      style={{
+                        background:
+                          "radial-gradient(circle, oklch(0.995 0.002 85 / 0.9) 52%, transparent 74%)",
+                      }}
+                    />
+                    <div
+                      aria-hidden
+                      className="absolute left-1/2 top-1/2 h-48 w-48 -translate-x-1/2 -translate-y-1/2 rounded-full border border-foreground/20 sm:h-56 sm:w-56"
+                    />
+                    <div
+                      aria-hidden
+                      className="gk-spin-slow absolute left-1/2 top-1/2 h-[172px] w-[172px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-dashed border-[oklch(0.617_0.093_62/0.55)] sm:h-[204px] sm:w-[204px]"
+                    />
+                    <img
+                      src="/emblem.png"
+                      alt="نشان گیتار کینگ: تاج و گیتار"
+                      className="relative h-auto w-36 drop-shadow-[0_18px_28px_oklch(0.235_0.012_60/0.25)] sm:w-44"
+                    />
+                  </div>
+                </div>
                 <h1 className="font-display font-black text-[clamp(44px,9vw,84px)] leading-[1.15] mt-4">
                   Guitar King
                 </h1>
