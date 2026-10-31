@@ -3,13 +3,18 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
-  title: "گیتارکینگ | تشخیص هوشمند آکورد آهنگ",
+  title: "Guitar King | پادشاه اکوردها",
   description:
-    "فایل MP3 آهنگ را بده و آکورد تمام بخش‌ها را بگیر: اینترو، ورس، کورس و... به‌همراه کلید و تمپو.",
-  keywords: ["گیتار", "آکورد", "chord detection", "guitar", "mp3"],
-  icons: {
-    icon: "/logo.svg",
-  },
+    "آرشیو اکورد آهنگ‌های تازه برای گیتاریست‌ها + ربات اکوردنویس آنلاین: آهنگت را آپلود کن، اکورد تمام بخش‌ها را با تغییر گام بگیر.",
+  keywords: [
+    "گیتار",
+    "اکورد",
+    "آکورد",
+    "guitar chords",
+    "chord detection",
+    "guitar king",
+    "گیتارکینگ",
+  ],
 };
 
 export default function RootLayout({
@@ -18,11 +23,21 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="fa" dir="rtl" className="dark" suppressHydrationWarning>
+    <html lang="fa" dir="rtl" suppressHydrationWarning>
       <head>
         <link
           rel="stylesheet"
           href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css"
+        />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link
+          rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossOrigin="anonymous"
+        />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Aref+Ruqaa:wght@400;700&family=Cinzel+Decorative:wght@400;700;900&display=swap"
         />
       </head>
       <body className="antialiased bg-background text-foreground min-h-screen">

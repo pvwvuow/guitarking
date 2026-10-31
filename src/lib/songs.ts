@@ -1,0 +1,505 @@
+/* Archive data — real songs with demo chord sheets.
+   «کو بهشتمون» is fully analyzed by the Guitar King bot (real data);
+   the other sheets are editorial demo placements written for the layout
+   and will be replaced by verified transcriptions. Sample lyric lines are
+   original placeholder poetry, not the official lyrics. */
+
+export interface SheetSeg {
+  chord: string;
+  text: string;
+}
+export interface SheetSection {
+  label: string;
+  lines: SheetSeg[][];
+}
+export interface BotSection {
+  label: string;
+  time: string;
+  chords: string[];
+}
+export interface SongEntry {
+  slug: string;
+  title: string;
+  artist: string;
+  genre: "پاپ" | "راک" | "فولک";
+  dateFa: string;
+  isNew?: boolean;
+  key: string;
+  tempo?: number;
+  difficulty: "آسان" | "متوسط" | "سخت";
+  poster: string;
+  source: "bot" | "editorial";
+  description: string;
+  sections: SheetSection[];
+  bot?: {
+    duration: string;
+    tempo: number;
+    key: string;
+    confidence: number;
+    sections: BotSection[];
+  };
+}
+
+export const SONGS: SongEntry[] = [
+  {
+    slug: "koo-beheshtemoon",
+    title: "کو بهشتمون",
+    artist: "امین قباد",
+    genre: "پاپ",
+    dateFa: "امروز",
+    isNew: true,
+    key: "Am",
+    tempo: 112,
+    difficulty: "متوسط",
+    poster: "/posters/koo-beheshtemoon.jpg",
+    source: "bot",
+    description:
+      "آهنگی پاپ و دلنشین از امین قباد. برگه‌ی اکورد این ترانه کاملاً با ربات گیتارکینگ شنیده و نوشته شده: کلید لا مینور، تمپوی ۱۱۲ و چهار بخش ساختاری.",
+    sections: [
+      {
+        label: "اینترو",
+        lines: [
+          [
+            { chord: "Am", text: "بداهه‌ی گیتار" },
+            { chord: "Am", text: "۰:۰۰ تا ۰:۰۹" },
+          ],
+        ],
+      },
+      {
+        label: "بند اول",
+        lines: [
+          [
+            { chord: "Am", text: "شب از نیمه گذشت" },
+            { chord: "Dm", text: "و تو هنوز" },
+            { chord: "G", text: "تو راهی" },
+          ],
+          [
+            { chord: "Em", text: "می‌گم برگرد" },
+            { chord: "Am", text: "به اولِ خاطره‌ها" },
+          ],
+        ],
+      },
+      {
+        label: "همخوان",
+        lines: [
+          [
+            { chord: "F", text: "کو بهشتمون" },
+            { chord: "G", text: "تو کوچه‌های این شهر" },
+          ],
+          [
+            { chord: "C", text: "جایی میان" },
+            { chord: "Am", text: "غم‌های بی‌بهانه" },
+          ],
+        ],
+      },
+      {
+        label: "بند دوم",
+        lines: [
+          [
+            { chord: "F", text: "باز این کوچه" },
+            { chord: "Dm", text: "پر از صدای" },
+            { chord: "G", text: "قدم‌های تو شد" },
+          ],
+          [
+            { chord: "F", text: "و گیتار من" },
+            { chord: "Em", text: "باز نام تو را" },
+            { chord: "Am", text: "می‌خواند" },
+          ],
+        ],
+      },
+    ],
+    bot: {
+      duration: "3:31",
+      tempo: 112,
+      key: "Am",
+      confidence: 57.4,
+      sections: [
+        { label: "A", time: "0:00 – 0:09", chords: ["Am"] },
+        {
+          label: "B",
+          time: "0:09 – 1:51",
+          chords: ["Am", "Dm", "G", "Em", "A", "F", "C"],
+        },
+        { label: "B", time: "1:51 – 2:21", chords: ["Am", "F", "G", "Em", "C"] },
+        { label: "B", time: "2:21 – 3:31", chords: ["F", "G", "Dm", "Am", "Em"] },
+      ],
+    },
+  },
+  {
+    slug: "behet-ghol-midam",
+    title: "بهت قول میدم",
+    artist: "محسن یگانه",
+    genre: "پاپ",
+    dateFa: "دیروز",
+    isNew: true,
+    key: "Em",
+    difficulty: "آسان",
+    poster: "/posters/behet-ghol-midam.jpg",
+    source: "editorial",
+    description:
+      "یکی از ماندگارترین ترانه‌های محسن یگانه. با گام می مینور و ریتم آرام، انتخابی عالی برای تمرین آرپژ و انگشت‌گذاری نرم.",
+    sections: [
+      {
+        label: "اینترو",
+        lines: [
+          [
+            { chord: "Em", text: "بداهه‌ی گیتار" },
+            { chord: "C", text: "دو میزان" },
+          ],
+        ],
+      },
+      {
+        label: "بند اول",
+        lines: [
+          [
+            { chord: "Em", text: "باز شب شد" },
+            { chord: "C", text: "و حالم دوباره" },
+            { chord: "G", text: "هوایی شد" },
+          ],
+          [
+            { chord: "D", text: "به یاد چشم‌هایی" },
+            { chord: "Em", text: "که دیگر نیست" },
+          ],
+        ],
+      },
+      {
+        label: "همخوان",
+        lines: [
+          [
+            { chord: "C", text: "بهت قول می‌دم" },
+            { chord: "G", text: "از این شهر برم" },
+          ],
+          [
+            { chord: "Am", text: "جایی که باد" },
+            { chord: "Em", text: "نامِ تو را کم کم" },
+            { chord: "D", text: "فراموش کند" },
+          ],
+        ],
+      },
+      {
+        label: "بند دوم",
+        lines: [
+          [
+            { chord: "Am", text: "سال‌ها رفت" },
+            { chord: "C", text: "و من همان" },
+            { chord: "G", text: "قدم‌های اولم" },
+          ],
+          [
+            { chord: "D", text: "با همین گیتار" },
+            { chord: "Em", text: "و همین قصه" },
+          ],
+        ],
+      },
+    ],
+  },
+  {
+    slug: "setare-baroon",
+    title: "ستاره بارون",
+    artist: "مرتضی پاشایی",
+    genre: "پاپ",
+    dateFa: "۳ روز پیش",
+    key: "Em",
+    difficulty: "آسان",
+    poster: "/posters/setare-baroon.jpg",
+    source: "editorial",
+    description:
+      "ترانه‌ای خاطره‌ساز از مرتضی پاشایی. پیشروی آکوردی ساده در می مینور که روی گیتار آکوستیک بسیار خوب می‌نشیند.",
+    sections: [
+      {
+        label: "بند اول",
+        lines: [
+          [
+            { chord: "Em", text: "شب از ابر" },
+            { chord: "C", text: "پر شده و" },
+            { chord: "G", text: "ستاره‌ها" },
+          ],
+          [
+            { chord: "D", text: "یه بهونه" },
+            { chord: "Em", text: "برای موندن می‌خوان" },
+          ],
+        ],
+      },
+      {
+        label: "همخوان",
+        lines: [
+          [
+            { chord: "C", text: "ستاره بارون" },
+            { chord: "G", text: "همه‌ی شهر رو تر کرده" },
+          ],
+          [
+            { chord: "Am", text: "و من بی‌قرار" },
+            { chord: "D", text: "تا صبح" },
+            { chord: "Em", text: "موندم" },
+          ],
+        ],
+      },
+      {
+        label: "پل",
+        lines: [
+          [
+            { chord: "Am", text: "باز این قصه" },
+            { chord: "C", text: "تکرار می‌شه" },
+            { chord: "B7", text: "و من می‌مونم" },
+          ],
+        ],
+      },
+    ],
+  },
+  {
+    slug: "cheshm-e-siah",
+    title: "چشم سیاه",
+    artist: "حمید عسکری",
+    genre: "پاپ",
+    dateFa: "این هفته",
+    key: "Dm",
+    difficulty: "آسان",
+    poster: "/posters/cheshm-e-siah.jpg",
+    source: "editorial",
+    description:
+      "قطعه‌ای عاشقانه از حمید عسکری در رِ مینور؛ مناسب تمرین تغییر آکورد سریع بین پوزسیون‌های باز.",
+    sections: [
+      {
+        label: "بند اول",
+        lines: [
+          [
+            { chord: "Dm", text: "چشم سیاه تو" },
+            { chord: "Bb", text: "شبِ من را" },
+            { chord: "F", text: "سپید کرد" },
+          ],
+          [
+            { chord: "C", text: "و قلب من" },
+            { chord: "Dm", text: "در همین نگاه ماند" },
+          ],
+        ],
+      },
+      {
+        label: "همخوان",
+        lines: [
+          [
+            { chord: "Bb", text: "بمان کنارم" },
+            { chord: "C", text: "تا صبحِ این قصه" },
+          ],
+          [
+            { chord: "F", text: "که بی تو" },
+            { chord: "Dm", text: "هیچ آفتابی" },
+            { chord: "A7", text: "طلوع نمی‌کند" },
+          ],
+        ],
+      },
+      {
+        label: "بند دوم",
+        lines: [
+          [
+            { chord: "Gm", text: "باز هم شب" },
+            { chord: "Bb", text: "و حسرتی" },
+            { chord: "F", text: "به اندازه‌ی دریا" },
+          ],
+        ],
+      },
+    ],
+  },
+  {
+    slug: "dehati",
+    title: "دهاتی",
+    artist: "شادمهر عقیلی",
+    genre: "پاپ",
+    dateFa: "هفته‌ی پیش",
+    key: "C",
+    difficulty: "آسان",
+    poster: "/posters/dehati.jpg",
+    source: "editorial",
+    description:
+      "قطعه‌ای شاد و پرانرژی از شادمهر عقیلی. با گام دو ماژور و آکوردهای باز، عالی برای گرم‌کردن انگشت‌ها و تمرین ریتم.",
+    sections: [
+      {
+        label: "بند اول",
+        lines: [
+          [
+            { chord: "C", text: "یه روزی بود" },
+            { chord: "G", text: "که همه‌چی" },
+            { chord: "Am", text: "ساده بود" },
+          ],
+          [
+            { chord: "F", text: "و دل‌ها" },
+            { chord: "C", text: "مثل سنگ" },
+            { chord: "G", text: "سخت نبودن" },
+          ],
+        ],
+      },
+      {
+        label: "همخوان",
+        lines: [
+          [
+            { chord: "F", text: "دهاتی بودم" },
+            { chord: "G", text: "و ساده و" },
+            { chord: "C", text: "خوشبخت" },
+          ],
+          [
+            { chord: "Am", text: "تا که تو اومدی" },
+            { chord: "G", text: "و همه‌چی" },
+            { chord: "C", text: "عوض شد" },
+          ],
+        ],
+      },
+    ],
+  },
+  {
+    slug: "jadeh-haraz",
+    title: "جاده هراز",
+    artist: "آرون افشار",
+    genre: "فولک",
+    dateFa: "۲ هفته پیش",
+    key: "Am",
+    difficulty: "متوسط",
+    poster: "/posters/jadeh-haraz.jpg",
+    source: "editorial",
+    description:
+      "ترانه‌ای فولک و پرکشش از آرون افشار با بویی از موسیقی شمال. ترکیبی از ریتم‌های محلی و آکوردهای مینور که روی گیتار جان می‌گیرد.",
+    sections: [
+      {
+        label: "بند اول",
+        lines: [
+          [
+            { chord: "Am", text: "جاده‌ی هراز" },
+            { chord: "Dm", text: "پر از مه" },
+            { chord: "G", text: "و سفر بود" },
+          ],
+          [
+            { chord: "C", text: "و من به یاد" },
+            { chord: "F", text: "چشم‌های تو" },
+            { chord: "E7", text: "مانده‌ام" },
+          ],
+        ],
+      },
+      {
+        label: "همخوان",
+        lines: [
+          [
+            { chord: "F", text: "بزن گلی" },
+            { chord: "G", text: "به پاکنه‌ی هراز" },
+          ],
+          [
+            { chord: "Am", text: "که بوی سفر" },
+            { chord: "E7", text: "بده این" },
+            { chord: "Am", text: "خانه را" },
+          ],
+        ],
+      },
+    ],
+  },
+  {
+    slug: "gol-e-yakh",
+    title: "گل یخ",
+    artist: "کوروش یغمایی",
+    genre: "فولک",
+    dateFa: "۲ هفته پیش",
+    key: "Em",
+    difficulty: "متوسط",
+    poster: "/posters/gol-e-yakh.jpg",
+    source: "editorial",
+    description:
+      "شاهکار کوروش یغمایی از دهه‌ی چهل؛ آمیزه‌ای از فولک و سایکدلیک با یکی از مشهورترین ریف‌های می مینور موسیقی ایران.",
+    sections: [
+      {
+        label: "ریف",
+        lines: [
+          [
+            { chord: "Em", text: "ریف مشهور" },
+            { chord: "D", text: "دو میزان" },
+            { chord: "Em", text: "تکرار" },
+          ],
+        ],
+      },
+      {
+        label: "بند اول",
+        lines: [
+          [
+            { chord: "Em", text: "گل یخ بدم" },
+            { chord: "D", text: "به سفره‌ی جانت" },
+            { chord: "G", text: "ای یار" },
+          ],
+          [
+            { chord: "Am", text: "تا که نلرزد" },
+            { chord: "B7", text: "دلِ" },
+            { chord: "Em", text: "سردت" },
+          ],
+        ],
+      },
+      {
+        label: "همخوان",
+        lines: [
+          [
+            { chord: "G", text: "بوی نان و" },
+            { chord: "D", text: "شب‌های بی‌ستاره" },
+          ],
+          [
+            { chord: "Am", text: "و همین" },
+            { chord: "B7", text: "همه‌ی دار و" },
+            { chord: "Em", text: "دسته‌ی من است" },
+          ],
+        ],
+      },
+    ],
+  },
+  {
+    slug: "ashegh-kosh",
+    title: "عاشق کش",
+    artist: "آرون افشار",
+    genre: "راک",
+    dateFa: "۲ هفته پیش",
+    key: "Am",
+    difficulty: "سخت",
+    poster: "/posters/ashegh-kosh.jpg",
+    source: "editorial",
+    description:
+      "قطعه‌ای پرانرژی از آرون در سبک پاپ-راک؛ برای تمرین آکوردهای بَر و ریتم‌های راک عالی است.",
+    sections: [
+      {
+        label: "بند اول",
+        lines: [
+          [
+            { chord: "Am", text: "با نگاهت" },
+            { chord: "Dm", text: "دلم را" },
+            { chord: "E7", text: "شکاری کردی" },
+          ],
+          [
+            { chord: "Am", text: "و رفتی و گذاشتی" },
+            { chord: "F", text: "این دلِ" },
+            { chord: "E7", text: "بی‌قرار را" },
+          ],
+        ],
+      },
+      {
+        label: "همخوان",
+        lines: [
+          [
+            { chord: "F", text: "عاشق کشِ من" },
+            { chord: "G", text: "تو دیگری را" },
+            { chord: "Am", text: "داری" },
+          ],
+          [
+            { chord: "F", text: "و من ماندم" },
+            { chord: "G", text: "با این گیتار" },
+            { chord: "Am", text: "و این غم" },
+          ],
+        ],
+      },
+    ],
+  },
+];
+
+export const FEATURED_SLUG = "koo-beheshtemoon";
+
+export function getSong(slug: string): SongEntry | undefined {
+  return SONGS.find((s) => s.slug === slug);
+}
+
+/** unique chords of a song, in order of appearance (cap 12) */
+export function songChords(song: SongEntry): string[] {
+  const out: string[] = [];
+  for (const sec of song.sections)
+    for (const line of sec.lines)
+      for (const seg of line)
+        if (!out.includes(seg.chord)) out.push(seg.chord);
+  return out.slice(0, 12);
+}

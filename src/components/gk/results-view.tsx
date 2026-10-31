@@ -439,7 +439,7 @@ export function ResultsView({ result, audioUrl, fileName, onReset }: Props) {
                   </span>
                   <div className="flex-1 h-3 rounded-full bg-secondary overflow-hidden">
                     <div
-                      className="h-full rounded-full bg-gradient-to-r from-amber-400 to-orange-500"
+                      className="h-full rounded-full bg-primary"
                       style={{
                         width: `${
                           100 *

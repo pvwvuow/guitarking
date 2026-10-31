@@ -41,12 +41,12 @@ export function AnalyzingView({ fileName, uploadPct, phase, onCancel }: Props) {
       <div className="rounded-2xl border bg-card p-8 text-center">
         <div className="relative mx-auto w-20 h-20 mb-6">
           <div
-            className="gk-pick absolute inset-0 bg-gradient-to-br from-amber-400 to-orange-500"
+            className="gk-pick absolute inset-0 bg-gradient-to-br from-primary to-[oklch(0.42_0.19_26)]"
             style={{ borderRadius: "50% 50% 50% 12%" }}
             aria-hidden
           />
           <div className="absolute inset-0 flex items-center justify-center">
-            <LoaderCircle className="w-7 h-7 text-amber-950/80 animate-none" aria-hidden />
+            <LoaderCircle className="w-7 h-7 text-primary-foreground/90 animate-none" aria-hidden />
           </div>
         </div>
 
@@ -69,7 +69,7 @@ export function AnalyzingView({ fileName, uploadPct, phase, onCancel }: Props) {
             </div>
             <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
               <div
-                className="h-full w-1/3 rounded-full bg-gradient-to-l from-amber-400 to-orange-500"
+                className="h-full w-1/3 rounded-full bg-gradient-to-l from-primary to-[oklch(0.62_0.19_30)]"
                 style={{ animation: "gk-slide 2.6s ease-in-out infinite" }}
               />
             </div>

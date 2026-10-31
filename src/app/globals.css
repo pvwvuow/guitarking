@@ -37,115 +37,79 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-wood: var(--wood);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
 }
 
+/* ── Guitar King · 70% white, 20% red, 5% ink, 5% wood ───────────────── */
 :root {
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  --background: oklch(0.995 0.002 85);
+  --foreground: oklch(0.235 0.012 60);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: oklch(0.235 0.012 60);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.235 0.012 60);
+  --primary: oklch(0.545 0.212 26);
+  --primary-foreground: oklch(0.995 0.002 85);
+  --secondary: oklch(0.968 0.009 75);
+  --secondary-foreground: oklch(0.27 0.02 55);
+  --muted: oklch(0.968 0.007 75);
+  --muted-foreground: oklch(0.51 0.02 60);
+  --accent: oklch(0.955 0.014 75);
+  --accent-foreground: oklch(0.3 0.04 50);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
+  --border: oklch(0.905 0.013 70);
+  --input: oklch(0.905 0.013 70);
+  --ring: oklch(0.545 0.212 26);
+  --chart-1: oklch(0.545 0.212 26);
+  --chart-2: oklch(0.617 0.093 62);
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-}
-
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --sidebar: oklch(0.985 0.004 80);
+  --sidebar-foreground: oklch(0.235 0.012 60);
+  --sidebar-primary: oklch(0.545 0.212 26);
+  --sidebar-primary-foreground: oklch(0.995 0.002 85);
+  --sidebar-accent: oklch(0.955 0.014 75);
+  --sidebar-accent-foreground: oklch(0.3 0.04 50);
+  --sidebar-border: oklch(0.905 0.013 70);
+  --sidebar-ring: oklch(0.545 0.212 26);
+  --wood: oklch(0.617 0.093 62);
+  --ink: oklch(0.205 0.008 60);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 96px;
+  }
   body {
     @apply bg-background text-foreground;
   }
 }
 
-/* ── GuitarKing theme (warm dark + Persian font) ─────────────────────── */
-.dark {
-  --background: oklch(0.165 0.012 60);
-  --foreground: oklch(0.955 0.008 90);
-  --card: oklch(0.212 0.016 65);
-  --card-foreground: oklch(0.955 0.008 90);
-  --popover: oklch(0.212 0.016 65);
-  --popover-foreground: oklch(0.955 0.008 90);
-  --primary: oklch(0.795 0.158 75);
-  --primary-foreground: oklch(0.22 0.06 70);
-  --secondary: oklch(0.272 0.02 65);
-  --secondary-foreground: oklch(0.955 0.008 90);
-  --muted: oklch(0.272 0.02 65);
-  --muted-foreground: oklch(0.72 0.015 80);
-  --accent: oklch(0.28 0.03 70);
-  --accent-foreground: oklch(0.955 0.008 90);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 14%);
-  --ring: oklch(0.795 0.158 75);
-}
-
 html,
 body {
-  font-family: Vazirmatn, ui-sans-serif, system-ui, "Segoe UI", Tahoma, sans-serif;
+  font-family: Vazirmatn, ui-sans-serif, system-ui, "Segoe UI", Tahoma,
+    sans-serif;
+  line-height: 1.9;
+}
+
+/* display typefaces */
+.font-display {
+  font-family: "Cinzel Decorative", "Vazirmatn", serif;
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+.font-fantasy {
+  font-family: "Aref Ruqaa", "Vazirmatn", serif;
 }
 
 /* Latin chord names inside RTL text stay LTR + tabular numerals */
@@ -155,7 +119,7 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-/* thin custom scrollbar for long chord lists */
+/* thin custom scrollbar */
 .gk-scroll::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -164,11 +128,11 @@ body {
   background: transparent;
 }
 .gk-scroll::-webkit-scrollbar-thumb {
-  background: oklch(1 0 0 / 15%);
+  background: oklch(0.235 0.012 60 / 15%);
   border-radius: 999px;
 }
 .gk-scroll::-webkit-scrollbar-thumb:hover {
-  background: oklch(1 0 0 / 25%);
+  background: oklch(0.235 0.012 60 / 28%);
 }
 
 /* guitar-pick spinner */
@@ -185,12 +149,81 @@ body {
 @keyframes gk-glow {
   0%,
   100% {
-    box-shadow: 0 0 0 0 oklch(0.795 0.158 75 / 35%);
+    box-shadow: 0 0 0 0 oklch(0.545 0.212 26 / 30%);
   }
   50% {
-    box-shadow: 0 0 24px 4px oklch(0.795 0.158 75 / 30%);
+    box-shadow: 0 0 24px 4px oklch(0.545 0.212 26 / 25%);
   }
 }
 .gk-glow {
   animation: gk-glow 2s ease-in-out infinite;
+}
+
+/* gentle float for the hero emblem */
+@keyframes gk-float {
+  50% {
+    transform: translateY(-8px);
+  }
+}
+.gk-float {
+  animation: gk-float 6s ease-in-out infinite;
+}
+
+/* scroll reveal (activated by IntersectionObserver) */
+.rv {
+  opacity: 0;
+  transform: translateY(22px);
+  transition: opacity 0.9s cubic-bezier(0.2, 0.7, 0.2, 1),
+    transform 0.9s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.rv.on {
+  opacity: 1;
+  transform: none;
+}
+
+/* ornate frame: outer ink line + inner wood line + corner brackets */
+.gk-frame {
+  position: relative;
+  border: 1px solid oklch(0.235 0.012 60);
+  background: linear-gradient(180deg, oklch(1 0 0), oklch(0.985 0.008 78));
+  box-shadow: 0 30px 60px -42px oklch(0.617 0.093 62 / 0.55),
+    inset 0 0 60px oklch(0.617 0.093 62 / 0.06);
+}
+.gk-frame::before {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border: 1px solid oklch(0.617 0.093 62 / 0.45);
+  pointer-events: none;
+}
+.gk-corner {
+  position: absolute;
+  width: 34px;
+  height: 34px;
+  color: oklch(0.617 0.093 62);
+  pointer-events: none;
+}
+
+/* hover lift for archive cards */
+.gk-lift {
+  transition: transform 0.4s cubic-bezier(0.2, 0.7, 0.2, 1),
+    box-shadow 0.4s ease, border-color 0.4s ease;
+}
+.gk-lift:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 34px 46px -28px oklch(0.545 0.212 26 / 0.45);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+  .rv {
+    opacity: 1;
+    transform: none;
+  }
+  html {
+    scroll-behavior: auto;
+  }
 }
