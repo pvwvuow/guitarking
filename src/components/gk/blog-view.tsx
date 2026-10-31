@@ -72,39 +72,43 @@ export function BlogView({
         </div>
         <div className="gk-rule mt-4" aria-hidden />
 
-        <div className="grid sm:grid-cols-2 gap-3 mt-6">
-          {groups.map((g) => (
-            <button
-              key={g.name}
-              type="button"
-              onClick={() =>
-                (window.location.hash = `#/artist/${encodeURIComponent(g.name)}`)
-              }
-              aria-label={`دیدن برگه‌های ${g.name}`}
-              className="group w-full flex items-center gap-3.5 text-start rounded-2xl border border-border/70 bg-card px-4 py-3.5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-foreground/10 hover:border-primary/40"
-            >
-              <span className="relative w-11 h-11 shrink-0 rounded-full bg-gradient-to-br from-primary/15 via-primary/5 to-[oklch(0.617_0.093_62/0.15)] ring-1 ring-primary/20 flex items-center justify-center">
-                <span className="font-fantasy text-xl text-primary leading-none pb-2">
-                  {g.name.slice(0, 1)}
+        {/* one simple column · names only */}
+        <ul className="mt-5 divide-y divide-border/60 border-y border-border/60">
+          {groups.map((g, i) => (
+            <li key={g.name}>
+              <a
+                href={`#/artist/${encodeURIComponent(g.name)}`}
+                aria-label={`دیدن برگه‌های ${g.name}`}
+                className="group flex items-baseline gap-3 px-2 -mx-2 py-3 rounded-lg hover:bg-secondary/50 transition-colors"
+              >
+                <span
+                  className="chord-latin text-[11px] font-bold text-muted-foreground/50 tabular-nums w-6 shrink-0"
+                  aria-hidden
+                >
+                  {String(i + 1).padStart(2, "0")}
                 </span>
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block font-bold text-[15px] truncate group-hover:text-primary transition-colors">
+                <span className="flex-1 truncate font-extrabold text-[15px] sm:text-base leading-7 group-hover:text-primary transition-colors">
                   {g.name}
                 </span>
-                <span className="block text-[11px] text-muted-foreground mt-0.5">
-                  {g.songs.length > 1
-                    ? `${g.songs.length} برگه‌ی اکورد`
-                    : "۱ برگه‌ی اکورد"}
+                <span className="shrink-0 text-[11px] text-muted-foreground/70">
+                  {g.songs.length > 1 ? (
+                    <>
+                      <span className="chord-latin font-bold">{g.songs.length}</span> اکورد
+                    </>
+                  ) : (
+                    <>
+                      <span className="chord-latin font-bold">۱</span> اکورد
+                    </>
+                  )}
                 </span>
-              </span>
-              <ArrowLeft
-                className="w-4 h-4 shrink-0 text-muted-foreground/50 group-hover:text-primary group-hover:-translate-x-1 transition-all"
-                aria-hidden
-              />
-            </button>
+                <ArrowLeft
+                  className="w-3.5 h-3.5 shrink-0 self-center text-muted-foreground/30 group-hover:text-primary group-hover:-translate-x-0.5 transition-all"
+                  aria-hidden
+                />
+              </a>
+            </li>
           ))}
-        </div>
+        </ul>
       </section>
     </div>
   );
