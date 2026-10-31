@@ -19,7 +19,6 @@ import { SongCard } from "@/components/gk/song-card";
 import { Ornament } from "@/components/gk/ornament";
 import { BlogView, PostView, PostRow } from "@/components/gk/blog-view";
 import {
-  ArtistsView,
   ArtistView,
   groupByArtist,
 } from "@/components/gk/artists-view";
@@ -64,10 +63,9 @@ export default function Home() {
         v = groupByArtist(SONGS).some((g) => g.name === name)
           ? `artist:${name}`
           : null;
-      } else if (h === "#/blog") {
+      } else if (h === "#/blog" || h === "#/artists") {
+        /* artists are indexed inside the blog now — old links land there */
         v = "/blog";
-      } else if (h === "#/artists") {
-        v = "/artists";
       }
       setView(v);
     };
@@ -217,7 +215,8 @@ export default function Home() {
   }, []);
 
   const goArtists = useCallback(() => {
-    window.location.hash = "#/artists";
+    /* the artists index lives inside the blog now */
+    window.location.hash = "#/blog";
   }, []);
 
   const featured = getSong(FEATURED_SLUG);
@@ -236,14 +235,13 @@ export default function Home() {
             </span>
           </a>
           <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
-            <NavLink href="#archive">اکوردها</NavLink>
+            <NavLink href="#top">خانه</NavLink>
             <NavLink href="#featured">اکورد ویژه</NavLink>
-            <NavLink href="#/artists">خواننده‌ها</NavLink>
             <NavLink href="#/blog">وبلاگ</NavLink>
             <NavLink href="#bot">ربات</NavLink>
           </nav>
           <a href="#bot" className="shrink-0">
-            <Button size="sm" className="gk-btn gk-btn-red rounded-full gap-1.5">
+            <Button size="sm" className="gk-btn gk-btn-red gap-1.5">
               <Music2 className="w-4 h-4" aria-hidden />
               آپلود آهنگ
             </Button>
@@ -318,10 +316,7 @@ export default function Home() {
           return post ? <PostView post={post} onBack={goBlog} /> : null;
         })()}
 
-        {/* ── artist views ── */}
-        {phase === "idle" && view === "/artists" && (
-          <ArtistsView songs={SONGS} onOpenArtist={openArtist} onBack={goHome} />
-        )}
+        {/* ── artist views (opened from the blog index) ── */}
         {phase === "idle" && view?.startsWith("artist:") && (() => {
           const name = decodeURIComponent(view.slice(7));
           const group = groupByArtist(SONGS).find((g) => g.name === name);
@@ -410,7 +405,7 @@ export default function Home() {
                 </p>
                 <div className="flex flex-wrap gap-4 justify-center mt-8">
                   <a href="#archive">
-                    <Button size="lg" className="gk-btn gk-btn-red rounded-full px-9">
+                    <Button size="lg" className="gk-btn gk-btn-red px-9">
                       دیدن اکوردها
                     </Button>
                   </a>
@@ -418,7 +413,7 @@ export default function Home() {
                     <Button
                       size="lg"
                       variant="outline"
-                      className="gk-btn gk-btn-royal rounded-full px-9"
+                      className="gk-btn gk-btn-royal px-9"
                     >
                       آپلود آهنگ برای ربات
                     </Button>
@@ -444,15 +439,22 @@ export default function Home() {
             <Ornament />
 
             {/* archive */}
-            <section id="archive" className="max-w-6xl mx-auto px-4 pt-14">
-              <div className="text-center rv">
-                <h2 className="font-fantasy text-3xl sm:text-4xl font-bold">
-                  تازه‌ترین اکوردها
-                </h2>
-                <p className="text-muted-foreground mt-2 max-w-xl mx-auto leading-7">
-                  پوستر آهنگ‌هایی که تازه منتشر شده‌اند؛ روی هر کدام بزن تا برگه‌ی
-                  کامل اکورد، دیاگرام‌ها و تغییر گام را ببینی.
-                </p>
+            <section id="archive" className="max-w-6xl mx-auto px-4 pt-16">
+              <div className="rv">
+                <div className="flex items-end justify-between gap-4 flex-wrap">
+                  <div>
+                    <p className="gk-overline text-[10px] text-[oklch(0.617_0.093_62)]">
+                      Latest Chords
+                    </p>
+                    <h2 className="font-fantasy text-4xl sm:text-5xl mt-1.5">
+                      تازه‌ترین اکوردها
+                    </h2>
+                  </div>
+                  <p className="text-sm text-muted-foreground max-w-md leading-7 pb-1.5">
+                    روی هر برگه بزن تا اکورد کامل، دیاگرام‌ها و تغییر گام را ببینی.
+                  </p>
+                </div>
+                <div className="gk-double-rule mt-5" aria-hidden />
               </div>
               <div className="flex flex-wrap gap-2 justify-center mt-6 rv">
                 {GENRES.map((g) => (
@@ -462,7 +464,7 @@ export default function Home() {
                     onClick={() => setGenre(g)}
                     aria-pressed={genre === g}
                     className={cn(
-                      "rounded-full px-5 py-1.5 text-sm border transition-colors",
+                      "rounded-lg px-5 py-1.5 text-sm border transition-colors",
                       genre === g
                         ? "bg-primary text-primary-foreground border-primary"
                         : "border-border bg-card hover:border-primary/50 hover:text-primary"
@@ -487,13 +489,21 @@ export default function Home() {
             {/* featured */}
             {featured && (
               <section id="featured" className="max-w-6xl mx-auto px-4 pt-20">
-                <div className="text-center rv">
-                  <h2 className="font-fantasy text-3xl sm:text-4xl font-bold">
-                    اکورد ویژه‌ی این هفته
-                  </h2>
-                  <p className="text-muted-foreground mt-2 leading-7">
-                    برگه‌ای که ربات شنیده و تحریریه چک کرده؛ پیش‌نمایش با تغییر گام زنده.
-                  </p>
+                <div className="rv">
+                  <div className="flex items-end justify-between gap-4 flex-wrap">
+                    <div>
+                      <p className="gk-overline text-[10px] text-[oklch(0.617_0.093_62)]">
+                        Chord of the Week
+                      </p>
+                      <h2 className="font-fantasy text-4xl sm:text-5xl mt-1.5">
+                        اکورد ویژه‌ی این هفته
+                      </h2>
+                    </div>
+                    <p className="text-sm text-muted-foreground max-w-md leading-7 pb-1.5">
+                      برگه‌ای که ربات شنیده و تحریریه چک کرده؛ با تغییر گام زنده.
+                    </p>
+                  </div>
+                  <div className="gk-double-rule mt-5" aria-hidden />
                 </div>
                 <FeaturedCard song={featured} onOpen={() => openSong(featured.slug)} />
               </section>
@@ -501,23 +511,31 @@ export default function Home() {
 
             {/* blog teaser */}
             <section id="blog" className="max-w-6xl mx-auto px-4 pt-20">
-              <div className="text-center rv">
-                <h2 className="font-fantasy text-3xl sm:text-4xl font-bold">
-                  تازه‌های وبلاگ
-                </h2>
-                <p className="text-muted-foreground mt-2 max-w-xl mx-auto leading-7">
-                  آموزش‌های گیتار، خبرهای سایت و پشت‌صحنه‌ی ربات اکوردنویس.
-                </p>
+              <div className="rv">
+                <div className="flex items-end justify-between gap-4 flex-wrap">
+                  <div>
+                    <p className="gk-overline text-[10px] text-[oklch(0.617_0.093_62)]">
+                      From the Blog
+                    </p>
+                    <h2 className="font-fantasy text-4xl sm:text-5xl mt-1.5">
+                      تازه‌های وبلاگ
+                    </h2>
+                  </div>
+                  <p className="text-sm text-muted-foreground max-w-md leading-7 pb-1.5">
+                    آموزش‌های گیتار، خبرهای سایت و پشت‌صحنه‌ی ربات اکوردنویس.
+                  </p>
+                </div>
+                <div className="gk-double-rule mt-5" aria-hidden />
               </div>
-              <div className="max-w-3xl mx-auto mt-8 rv">
+              <div className="max-w-3xl mx-auto mt-4 rv">
                 {POSTS.slice(0, 3).map((p) => (
                   <PostRow key={p.slug} post={p} onOpen={() => openPost(p.slug)} />
                 ))}
               </div>
               <div className="text-center mt-8 rv">
                 <a href="#/blog">
-                  <Button variant="outline" className="gk-btn gk-btn-royal rounded-full px-8">
-                    همه‌ی مطالب وبلاگ
+                  <Button variant="outline" className="gk-btn gk-btn-royal px-8">
+                    همه‌ی مطالب و فهرست خواننده‌ها
                   </Button>
                 </a>
               </div>
@@ -658,8 +676,7 @@ export default function Home() {
                   <ul className="space-y-1.5 text-muted-foreground">
                     <li><a href="#archive" className="hover:text-primary transition-colors">آرشیو اکوردها</a></li>
                     <li><a href="#featured" className="hover:text-primary transition-colors">اکورد ویژه</a></li>
-                    <li><a href="#/artists" className="hover:text-primary transition-colors">فهرست خواننده‌ها</a></li>
-                    <li><a href="#/blog" className="hover:text-primary transition-colors">وبلاگ</a></li>
+                    <li><a href="#/blog" className="hover:text-primary transition-colors">وبلاگ و فهرست خواننده‌ها</a></li>
                     <li><a href="#bot" className="hover:text-primary transition-colors">ربات اکوردنویس</a></li>
                     <li><a href="#about" className="hover:text-primary transition-colors">درباره‌ی ما</a></li>
                   </ul>
@@ -769,77 +786,114 @@ function FeaturedCard({ song, onOpen }: { song: SongEntry; onOpen: () => void })
   const previewLines = song.sections[1]?.lines ?? song.sections[0].lines;
 
   return (
-    <div className="gk-frame rounded-2xl mt-8 p-6 sm:p-9 grid md:grid-cols-[260px_1fr] gap-8 items-center rv">
-      <div className="relative mx-auto w-56 md:w-full">
-        <div className="gk-frame rounded-xl overflow-hidden">
-          <Poster song={song} className="w-full aspect-square object-cover" />
-        </div>
-      </div>
-      <div>
-        <p className="inline-flex items-center gap-2 font-display text-[11px] tracking-[0.35em] text-[oklch(0.617_0.093_62)]">
-          <Sparkles className="w-3.5 h-3.5" aria-hidden />
-          CHORD OF THE WEEK
-        </p>
-        <h3 className="font-fantasy text-3xl font-bold mt-1.5">{song.title}</h3>
-        <div className="flex flex-wrap gap-2 mt-3 text-xs">
-          {[song.artist, `کلید ${key}`, song.tempo ? `تمپو ${song.tempo}` : null, song.source === "bot" ? "تحلیل ربات" : "برگه‌ی تحریریه"]
-            .filter(Boolean)
-            .map((c) => (
-              <span key={c as string} className="rounded-full border border-border bg-card px-3 py-1 text-muted-foreground">
-                {c}
+    <div className="relative mt-9 rv">
+      {/* classic double-rule frame */}
+      <div className="border border-foreground/75 p-[3px]">
+        <div className="border border-foreground/20 bg-card grid md:grid-cols-[290px_1fr] gap-8 lg:gap-10 p-6 sm:p-9 items-center">
+          {/* mounted photo plate + red stamp */}
+          <div className="relative mx-auto w-56 md:w-full max-w-[290px]">
+            <div className="gk-photo">
+              <Poster song={song} className="w-full aspect-square object-cover block" />
+            </div>
+            <span className="gk-stamp absolute -top-4 -end-3 px-3.5 py-1.5 text-[11px] font-black">
+              ویژه
+            </span>
+            <i
+              aria-hidden
+              className="absolute -bottom-3 -start-2 w-2 h-2 bg-primary rotate-45"
+            />
+          </div>
+
+          <div>
+            <p className="gk-overline text-[10px] text-primary">Chord of the Week</p>
+            <h3 className="font-fantasy text-4xl sm:text-[42px] leading-[1.25] mt-2">
+              {song.title}
+            </h3>
+
+            {/* editorial meta line — no pills, just ink and diamonds */}
+            <p className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-sm text-muted-foreground mt-2.5">
+              <span className="text-foreground/85 font-medium">{song.artist}</span>
+              <i className="w-1.5 h-1.5 bg-[oklch(0.617_0.093_62)] rotate-45 inline-block" aria-hidden />
+              <span>
+                کلید <b className="chord-latin text-primary">{key}</b>
               </span>
-            ))}
-        </div>
-        <div className="mt-4 space-y-2.5" dir="rtl">
-          {previewLines.map((line, li) => (
-            <div key={li} className="flex flex-wrap gap-x-7 gap-y-2">
-              {line.map((seg, si) => (
-                <span key={si} className="inline-flex flex-col">
-                  <b className="chord-latin text-base font-black text-primary leading-5">
-                    {t(seg.chord)}
-                  </b>
-                  <span className="text-sm text-foreground/85 leading-6">{seg.text}</span>
-                </span>
+              {song.tempo && (
+                <>
+                  <i className="w-1.5 h-1.5 bg-[oklch(0.617_0.093_62)] rotate-45 inline-block" aria-hidden />
+                  <span>
+                    تمپو <b className="chord-latin">{song.tempo}</b>
+                  </span>
+                </>
+              )}
+              <i className="w-1.5 h-1.5 bg-[oklch(0.617_0.093_62)] rotate-45 inline-block" aria-hidden />
+              <span>{song.source === "bot" ? "شنیده‌ی ربات" : "برگه‌ی تحریریه"}</span>
+            </p>
+
+            <div className="h-px bg-border mt-4" aria-hidden />
+
+            {/* live chord preview */}
+            <div className="mt-4 space-y-3" dir="rtl">
+              {previewLines.map((line, li) => (
+                <div key={li} className="flex flex-wrap gap-x-7 gap-y-2">
+                  {line.map((seg, si) => (
+                    <span key={si} className="inline-flex flex-col">
+                      <b className="chord-latin text-base font-black text-primary leading-5">
+                        {t(seg.chord)}
+                      </b>
+                      <span className="text-sm text-foreground/85 leading-6">{seg.text}</span>
+                    </span>
+                  ))}
+                </div>
               ))}
             </div>
-          ))}
-        </div>
-        <div className="flex flex-wrap items-center gap-3 mt-5">
-          <div className="flex items-center gap-1.5" dir="ltr">
-            <Button
-              size="icon"
-              variant="outline"
-              className="w-8 h-8"
-              aria-label="گام پایین"
-              onClick={() => setSemi((s) => Math.max(s - 1, -6))}
-            >
-              −
-            </Button>
-            <span className="chord-latin font-black text-primary w-14 text-center">{key}</span>
-            <Button
-              size="icon"
-              variant="outline"
-              className="w-8 h-8"
-              aria-label="گام بالا"
-              onClick={() => setSemi((s) => Math.min(s + 1, 6))}
-            >
-              +
-            </Button>
+
+            <div className="flex flex-wrap items-center gap-3 mt-6 pt-4 border-t border-border/70">
+              <div className="flex items-center gap-1.5" dir="ltr">
+                <Button
+                  size="icon"
+                  variant="outline"
+                  className="w-8 h-8 rounded-lg"
+                  aria-label="گام پایین"
+                  onClick={() => setSemi((s) => Math.max(s - 1, -6))}
+                >
+                  −
+                </Button>
+                <span className="chord-latin font-black text-primary w-14 text-center">{key}</span>
+                <Button
+                  size="icon"
+                  variant="outline"
+                  className="w-8 h-8 rounded-lg"
+                  aria-label="گام بالا"
+                  onClick={() => setSemi((s) => Math.min(s + 1, 6))}
+                >
+                  +
+                </Button>
+              </div>
+              {semi !== 0 && (
+                <button
+                  type="button"
+                  onClick={() => setSemi(0)}
+                  className="text-xs text-muted-foreground hover:text-primary"
+                >
+                  بازگشت به گام اصلی
+                </button>
+              )}
+              <Button size="sm" className="gk-btn gk-btn-red ms-auto" onClick={onOpen}>
+                دیدن برگه‌ی کامل
+              </Button>
+            </div>
           </div>
-          {semi !== 0 && (
-            <button
-              type="button"
-              onClick={() => setSemi(0)}
-              className="text-xs text-muted-foreground hover:text-primary"
-            >
-              بازگشت به گام اصلی
-            </button>
-          )}
-          <Button size="sm" className="gk-btn gk-btn-red rounded-full ms-auto" onClick={onOpen}>
-            دیدن برگه‌ی کامل
-          </Button>
         </div>
       </div>
+      {/* faint fantasy sparkles on the frame */}
+      <Sparkles
+        aria-hidden
+        className="absolute -top-5 start-10 w-4 h-4 text-[oklch(0.617_0.093_62)] opacity-70"
+      />
+      <Sparkles
+        aria-hidden
+        className="absolute -bottom-4 end-14 w-3 h-3 text-primary opacity-60"
+      />
     </div>
   );
 }

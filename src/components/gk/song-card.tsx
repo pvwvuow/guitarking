@@ -41,8 +41,9 @@ export function Poster({
   );
 }
 
-/* Archive card: the square cover stays uncropped on top and a deep ink
-   band with title / artist / key composes it into a portrait poster. */
+/* Archive card — a classic magazine plate: square photo mounted in a
+   white gutter, editorial caption block underneath with an overline,
+   Markazi headline and a hairline-ruled meta row. */
 export function SongCard({
   song,
   onOpen,
@@ -52,13 +53,6 @@ export function SongCard({
   onOpen: () => void;
   delay: number;
 }) {
-  const preview = song.sections
-    .flatMap((s) => s.lines)
-    .flat()
-    .map((l) => l.chord)
-    .filter((c, i, a) => a.indexOf(c) === i)
-    .slice(0, 3);
-
   return (
     <button
       type="button"
@@ -67,78 +61,68 @@ export function SongCard({
       className="group text-start rv"
       aria-label={`دیدن اکورد ${song.title} از ${song.artist}`}
     >
-      <div className="rounded-xl overflow-hidden border bg-card gk-lift flex flex-col h-full shadow-[0_14px_30px_-22px_oklch(0.235_0.012_60/0.5)]">
-        {/* cover — keeps the square art intact */}
-        <div className="relative aspect-square overflow-hidden">
-          <Poster
-            song={song}
-            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.06]"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+      <div className="gk-lift">
+        {/* mounted photo */}
+        <div className="gk-photo">
+          <div className="relative aspect-square overflow-hidden gk-photo-fill">
+            <Poster
+              song={song}
+              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.05]"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
-          {song.isNew && (
-            <span className="absolute top-2.5 start-2.5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold px-2.5 py-1 shadow-sm">
-              جدید
-            </span>
-          )}
-          {song.source === "bot" ? (
-            <span className="absolute top-2.5 end-2.5 rounded-full bg-black/60 backdrop-blur text-white text-[10px] font-bold px-2.5 py-1 inline-flex items-center gap-1">
-              <Bot className="w-3 h-3" aria-hidden />
-              ربات
-            </span>
-          ) : (
-            <span className="absolute top-2.5 end-2.5 rounded-full bg-white/85 backdrop-blur text-foreground/80 text-[10px] font-bold px-2.5 py-1 inline-flex items-center gap-1">
-              <BookOpen className="w-3 h-3" aria-hidden />
-              تحریریه
-            </span>
-          )}
-
-          {/* hover CTA */}
-          <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
-            <span className="rounded-full bg-white/95 text-foreground text-xs font-bold px-4 py-2 shadow-lg inline-flex items-center gap-1.5 translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
-              <BookOpen className="w-3.5 h-3.5 text-primary" aria-hidden />
-              دیدن برگه‌ی اکورد
-            </span>
-          </span>
-
-          {/* hover chord chips */}
-          <div className="absolute inset-x-0 bottom-0 p-2.5 flex gap-1.5 opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300">
-            {preview.map((c) => (
-              <span
-                key={c}
-                className="chord-latin text-[11px] font-bold text-white border border-white/50 rounded bg-black/35 backdrop-blur px-2 py-0.5"
-              >
-                {c}
+            {song.isNew && (
+              <span className="absolute top-2.5 start-2.5 bg-primary text-primary-foreground text-[10px] font-black px-2 py-0.5 rounded-[3px]">
+                جدید
               </span>
-            ))}
+            )}
+
+            {/* hover CTA */}
+            <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
+              <span className="rounded-[4px] bg-white/95 text-foreground text-xs font-bold px-4 py-2 shadow-lg inline-flex items-center gap-1.5 translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
+                <BookOpen className="w-3.5 h-3.5 text-primary" aria-hidden />
+                دیدن برگه‌ی اکورد
+              </span>
+            </span>
           </div>
         </div>
 
-        {/* ink band */}
-        <div className="relative bg-[oklch(0.235_0.012_60)] text-white p-3.5 flex-1 flex flex-col justify-center gap-1.5">
-          <i
-            aria-hidden
-            className="absolute inset-x-0 top-0 h-[2.5px] bg-primary origin-right scale-x-0 group-hover:scale-x-100 transition-transform duration-500"
-          />
-          <h3 className="font-extrabold leading-6 line-clamp-1 group-hover:text-white">
+        {/* caption block */}
+        <div className="pt-3.5">
+          <p className="flex items-center gap-2 text-[10px] font-bold tracking-wide">
+            <span className="text-[oklch(0.617_0.093_62)]">{song.genre}</span>
             <i
+              className="w-1 h-1 bg-[oklch(0.617_0.093_62)] rotate-45 inline-block"
               aria-hidden
-              className="w-1.5 h-1.5 bg-primary rotate-45 inline-block me-2 mb-0.5"
             />
+            <span className="text-muted-foreground font-medium">
+              {song.dateFa}
+            </span>
+          </p>
+          <h3 className="font-fantasy text-[23px] leading-8 mt-0.5 line-clamp-1 group-hover:text-primary transition-colors">
             {song.title}
           </h3>
-          <p className="text-[11px] text-white/65 line-clamp-1">{song.artist}</p>
-          <div className="flex items-center justify-between gap-2 mt-1">
-            <span className="chord-latin rounded-full bg-primary text-primary-foreground text-[10px] font-black px-2.5 py-0.5 leading-5">
+          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+            {song.artist}
+          </p>
+
+          {/* hairline meta row */}
+          <div className="mt-2.5 pt-2.5 border-t border-border/70 flex items-center justify-between">
+            <span className="chord-latin text-[13px] font-black text-foreground/85">
               {song.key}
             </span>
-            <span className="text-[10px] text-white/50">
-              {song.genre}
-              <i
-                aria-hidden
-                className="w-1 h-1 bg-white/40 rotate-45 inline-block mx-1.5 mb-px"
-              />
-              {song.dateFa}
+            <span className="text-[10px] text-muted-foreground inline-flex items-center gap-1">
+              {song.source === "bot" ? (
+                <>
+                  <Bot className="w-3 h-3" aria-hidden />
+                  ربات
+                </>
+              ) : (
+                <>
+                  <BookOpen className="w-3 h-3" aria-hidden />
+                  تحریریه
+                </>
+              )}
             </span>
           </div>
         </div>

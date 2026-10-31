@@ -1,10 +1,9 @@
 "use client";
 
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import type { SongEntry } from "@/lib/songs";
 import { SongCard } from "./song-card";
 import { Ornament } from "./ornament";
-import { cn } from "@/lib/utils";
 
 export interface ArtistGroup {
   name: string;
@@ -29,90 +28,7 @@ export function groupByArtist(songs: SongEntry[]): ArtistGroup[] {
     .sort((a, b) => a.name.localeCompare(b.name, "fa"));
 }
 
-/* ── artists index · classic one-column list ────────────────────────── */
-
-export function ArtistsView({
-  songs,
-  onOpenArtist,
-  onBack,
-}: {
-  songs: SongEntry[];
-  onOpenArtist: (name: string) => void;
-  onBack: () => void;
-}) {
-  const groups = groupByArtist(songs);
-
-  return (
-    <div className="w-full max-w-3xl mx-auto px-4 pb-20">
-      <button
-        type="button"
-        onClick={onBack}
-        className="mt-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
-      >
-        <ArrowRight className="w-4 h-4" aria-hidden />
-        بازگشت به خانه
-      </button>
-
-      <header className="mt-8 text-center rv on">
-        <p className="font-display text-[11px] tracking-[0.35em] text-[oklch(0.617_0.093_62)]">
-          ARTISTS INDEX
-        </p>
-        <h1 className="font-fantasy text-4xl sm:text-5xl mt-2">فهرست خواننده‌ها</h1>
-        <p className="text-muted-foreground mt-3 max-w-xl mx-auto leading-8">
-          همه‌ی خواننده‌هایی که برگه‌ی اکوردشان در گیتارکینگ هست؛ مرتب، به ترتیب
-          حروف الفبا.
-        </p>
-      </header>
-
-      <Ornament className="mt-8" />
-
-      <div className="mt-2 rv on">
-        {groups.map((g, i) => (
-          <button
-            key={g.name}
-            type="button"
-            onClick={() => onOpenArtist(g.name)}
-            aria-label={`دیدن برگه‌های ${g.name}`}
-            className={cn(
-              "group w-full flex items-center gap-4 text-start py-5 border-b border-border/80 transition-colors",
-              i === groups.length - 1 && "border-b-0"
-            )}
-          >
-            {/* initial seal */}
-            <span className="relative shrink-0 w-11 h-11 rounded-full border border-primary/50 bg-primary/5 flex items-center justify-center">
-              <span className="font-fantasy text-xl text-primary">
-                {g.name.slice(0, 1)}
-              </span>
-            </span>
-
-            <span className="flex-1 min-w-0">
-              <span className="font-extrabold text-lg group-hover:text-primary transition-colors">
-                {g.name}
-              </span>
-              <span className="block text-xs text-muted-foreground mt-0.5 line-clamp-1">
-                {g.songs
-                  .slice(0, 2)
-                  .map((s) => s.title)
-                  .join("، ")}
-                {g.songs.length > 2 ? " و …" : ""}
-              </span>
-            </span>
-
-            <span className="chord-latin shrink-0 text-[11px] font-bold text-muted-foreground rounded-full border px-3 py-1 group-hover:border-primary/50 group-hover:text-primary transition-colors">
-              {g.songs.length} برگه
-            </span>
-            <ArrowLeft
-              className="w-4 h-4 shrink-0 text-primary opacity-0 -translate-x-1.5 group-hover:opacity-100 group-hover:translate-x-0 transition-all"
-              aria-hidden
-            />
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/* ── single artist ──────────────────────────────────────────────────── */
+/* ── single artist page (opened from the blog's artists index) ──────── */
 
 export function ArtistView({
   group,

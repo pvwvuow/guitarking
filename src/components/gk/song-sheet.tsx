@@ -160,7 +160,7 @@ export function SongSheet({ song, onBack, onPlayDemo }: Props) {
           <p className="text-xs text-destructive w-full">ساخت عکس ناموفق بود؛ دوباره تلاش کنید.</p>
         )}
         <p className="text-[11px] text-muted-foreground w-full sm:w-auto">
-          عکس با اکوردهای همین گام ساخته می‌شود — اول گام را عوض کن، بعد خروجی بگیر.
+          خروجی یک عکس A4 است؛ اگر برگه بلند باشد، متن خودکار ستون‌بندی می‌شود. اول گام را عوض کن، بعد خروجی بگیر.
         </p>
       </div>
 

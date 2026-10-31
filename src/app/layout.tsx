@@ -29,15 +29,9 @@ export default function RootLayout({
           rel="stylesheet"
           href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css"
         />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link
-          rel="preconnect"
-          href="https://fonts.gstatic.com"
-          crossOrigin="anonymous"
-        />
         <link
           rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Gulzar&family=Cinzel+Decorative:wght@400;700;900&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&display=swap"
         />
       </head>
       <body className="antialiased bg-background text-foreground min-h-screen">
