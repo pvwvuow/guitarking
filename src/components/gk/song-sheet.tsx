@@ -402,9 +402,9 @@ export function SongSheet({ song, onBack, onPlayDemo }: Props) {
                   {bs.time}
                 </span>
                 <span className="flex flex-wrap gap-1.5" dir="ltr">
-                  {bs.chords.map((c) => (
+                  {bs.chords.map((c, ci) => (
                     <span
-                      key={c}
+                      key={`${c}-${ci}`}
                       className="chord-latin text-xs font-bold rounded-md bg-secondary px-2 py-0.5 border"
                     >
                       {t(c)}

@@ -60,6 +60,124 @@ export interface SongEntry {
 
 export const SONGS: SongEntry[] = [
   {
+    slug: "sad-gozashtam",
+    title: "صد گذاشتم",
+    artist: "رامین بی باک",
+    genre: "پاپ",
+    dateFa: "امروز",
+    isNew: true,
+    key: "Fm",
+    tempo: 123,
+    difficulty: "متوسط",
+    poster: "/posters/sad-gozashtam.jpg",
+    source: "bot",
+    audio:
+      "https://dl.rozmusic.com/Music/1405/08/08/Ramin%20Bibak%20-%20Sad%20Gozashtam%20%28128%29.mp3",
+    sourceRef: {
+      name: "رزمیوزیک (rozmusic.com)",
+      url: "https://rozmusic.com/رامین-بی-باک-صد-گذاشتم.html",
+    },
+    officialLyrics: true,
+    description:
+      "ترانه‌ی تازه‌ی رامین بی باک. برگه‌ی اکورد را گیتارکینگ از روی خودِ آهنگ شنیده و نوشته: گام فا مینور، تمپوی ۱۲۳ و چرخه‌ی همیشگی Fm – Cm – Bbm – Cm. متن و فایل صوتی از رزمیوزیک آمده (با ذکر منبع).",
+    sections: [
+      {
+        label: "اینترو",
+        lines: [
+          [
+            { chord: "Fm", text: "بداهه‌ی گیتار", t: 1.5 },
+            { chord: "Cm", text: "چرخه‌ی اصلی", t: 6.1 },
+            { chord: "Bbm", text: "تا ورود صدا", t: 11.2 },
+            { chord: "Cm", text: "تکرار چرخه", t: 16.1 },
+          ],
+        ],
+      },
+      {
+        label: "بند اول",
+        lines: [
+          [
+            { chord: "Eb", text: "یهو شدم واست غریبه", t: 29.6 },
+            { chord: "Bbm", text: "کارای تو واقعا عجیبه", t: 31.9 },
+          ],
+          [
+            { chord: "Gm", text: "اون چشای آدم فریبت", t: 37.1 },
+            { chord: "Eb", text: "انگار مارو اصلا ندیده", t: 41.5 },
+          ],
+          [
+            { chord: "Fm7", text: "اونکه بدون من شبو یه لحظه", t: 45.1 },
+            { chord: "Cm", text: "خوابش نمیرفت", t: 47.6 },
+          ],
+          [
+            { chord: "Bbm", text: "حالا دیگه کنار من نیست", t: 51.5 },
+            { chord: "Ab", text: "میگن پیش آدم جدیده", t: 58.9 },
+          ],
+        ],
+      },
+      {
+        label: "همخوان",
+        lines: [
+          [
+            { chord: "Fm", text: "واست چیو کم گذاشتم", t: 62.7 },
+            { chord: "Cm", text: "من که واست صد گذاشتم", t: 66.8 },
+          ],
+          [
+            { chord: "Bbm", text: "زیاد من کم بود برات", t: 72.3 },
+            { chord: "Ab", text: "رو بود آخه هرچی داشتم", t: 78.8 },
+          ],
+        ],
+      },
+      {
+        label: "بند دوم",
+        lines: [
+          [
+            { chord: "Fm", text: "گفتم بمون درست میشه", t: 104.5 },
+            { chord: "Cm", text: "فکر نمیکردم که بغض میشه", t: 108.3 },
+          ],
+          [
+            { chord: "Bbm", text: "همه حرفام میمونه تو گلوم", t: 113.6 },
+            { chord: "Cm", text: "اون میاد میشینه درست پیشت", t: 118.7 },
+          ],
+        ],
+      },
+      {
+        label: "پل",
+        lines: [
+          [
+            { chord: "Bbm", text: "شاید نرسه کوه به کوه", t: 133.7 },
+            { chord: "Cm", text: "میرسه به آدم به آدم", t: 139.6 },
+          ],
+          [
+            { chord: "Bbm", text: "چیزایی یادت میدم که یادت ندادن", t: 154.1 },
+            { chord: "Eb", text: "تو گل بودی ولی اون خارت برا من", t: 159.4 },
+          ],
+        ],
+      },
+      {
+        label: "پایان",
+        lines: [
+          [
+            { chord: "Fm", text: "فید اوت پایانی", t: 185.3 },
+            { chord: "Cm", text: "تا آخر", t: 190.7 },
+          ],
+        ],
+      },
+    ],
+    bot: {
+      duration: "3:19",
+      tempo: 123,
+      key: "Fm",
+      confidence: 57.8,
+      sections: [
+        { label: "A", time: "0:00 – 0:29", chords: ["Fm", "Cm", "Bbm", "Cm"] },
+        { label: "A", time: "0:29 – 0:48", chords: ["Eb", "Bbm", "Gm", "Fm7"] },
+        { label: "A", time: "0:48 – 1:02", chords: ["Fm7", "Cm", "Bbm", "Ab"] },
+        { label: "A", time: "1:02 – 2:02", chords: ["Fm", "Cm", "Bbm", "Ab", "Eb"] },
+        { label: "A", time: "2:02 – 3:05", chords: ["Eb", "Fm", "Ab", "Cm", "Bbm"] },
+        { label: "A", time: "3:05 – 3:19", chords: ["Fm", "Cm"] },
+      ],
+    },
+  },
+  {
     slug: "koo-beheshtemoon",
     title: "کو بهشتمون",
     artist: "امین قباد",

@@ -53,7 +53,26 @@ NOTE_FA = {
     "C": "دو", "C#": "دو دیز", "D": "ر", "D#": "ر دیز", "E": "می",
     "F": "فا", "F#": "فا دیز", "G": "سل", "G#": "سل دیز",
     "A": "لا", "A#": "لا دیز", "B": "سی",
+    "Db": "ر بمل", "Eb": "می بمل", "Gb": "سل بمل",
+    "Ab": "لا بمل", "Bb": "سی بمل",
 }
+
+_SHARP_TO_FLAT = {"C#": "Db", "D#": "Eb", "F#": "Gb", "G#": "Ab", "A#": "Bb"}
+
+# keys conventionally written with flat key signatures
+_FLAT_KEY_MINOR = {"D", "G", "C", "F", "Bb", "Eb", "Ab", "Db"}
+_FLAT_KEY_MAJOR = {"F", "Bb", "Eb", "Ab", "Db", "Gb"}
+
+
+def respell_for_key(label, use_flats):
+    """Re-spell a chord root for readability ('A#m' -> 'Bbm' in flat keys)."""
+    if not use_flats or not label or label == "N":
+        return label
+    m = _CHORD_RE.match(label)
+    if not m:
+        return label
+    root, suffix = m.group(1), m.group(2)
+    return _SHARP_TO_FLAT.get(root, root) + suffix
 
 # Krumhansl-Kessler key profiles
 KMAJ = np.array([6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88])
@@ -89,6 +108,23 @@ def chord_parse(label):
     if len(root) > 1:
         pc = (pc + (1 if root[1] == "#" else -1)) % 12
     return pc, suffix
+
+
+_FLAT_TO_SHARP = {"Ab": "G#", "Bb": "A#", "Db": "C#", "Eb": "D#", "Gb": "F#"}
+
+
+def normalize_label(label):
+    """Flat spellings (Essentia emits Bb/Eb/Ab/...) -> sharp spellings so
+    every lookup against LABELS / key masks works. 'Bbm' -> 'A#m'."""
+    if not label or label == "N":
+        return label
+    m = _CHORD_RE.match(label)
+    if not m:
+        return label
+    root, suffix = m.group(1), m.group(2)
+    if len(root) == 2 and root[1] == "b":
+        root = _FLAT_TO_SHARP.get(root, root)
+    return root + suffix
 
 
 def _ks_key(weights):
@@ -175,6 +211,69 @@ def pick_key(candidates, segments):
         if score > best_score:
             best, best_score = k, score
     return best
+
+
+def tonic_chord_share(segments, tonic, mode):
+    """Fraction of chord-time spent on the tonic chord itself
+    (major key -> I / I7, minor key -> im / im7). Used as a tie-break
+    between keys that share the same scale (relative major/minor)."""
+    tot, hit = 0.0, 0.0
+    for s in segments:
+        c = s["chord"] if isinstance(s, dict) else s
+        if c == "N":
+            continue
+        dur = max(float(s["end"]) - float(s["start"]), 0.05) if isinstance(s, dict) else 1.0
+        tot += dur
+        if mode == "minor":
+            if c in (tonic + "m", tonic + "m7"):
+                hit += dur
+        else:
+            if c in (tonic, tonic + "7"):
+                hit += dur
+    return (hit / tot) if tot > 1e-6 else 0.0
+
+
+def best_key_overall(segments):
+    """Scan all 24 keys and return the one that explains the detected
+    chords best (diatonic chord-time coverage, tonic-chord share as the
+    relative-major/minor tie-break).
+
+    Fixes the classic 'v-chord trap': when the minor dominant is played
+    more often than the tonic (very common in pop), the Krumhansl
+    root-weight vote goes to the dominant and the key lands a fourth or
+    fifth away. Coverage over the actual chord set is immune to that.
+    Guards: the winner must reach 0.55 coverage and its tonic must
+    appear among the chord roots for >= 6% of chord time.
+    """
+    total = 0.0
+    roots = {}
+    for s in segments:
+        c = s["chord"] if isinstance(s, dict) else s
+        if c == "N":
+            continue
+        dur = max(float(s["end"]) - float(s["start"]), 0.05) if isinstance(s, dict) else 1.0
+        total += dur
+        pc, _sfx = chord_parse(c)
+        if pc is not None:
+            roots[pc] = roots.get(pc, 0.0) + dur
+    if total < 4.0:
+        return None
+    best, best_cov, best_share = None, -1.0, -1.0
+    for r in range(12):
+        for mode in ("major", "minor"):
+            cov = key_compatibility(segments, NOTES[r], mode)
+            share = tonic_chord_share(segments, NOTES[r], mode)
+            if (cov, share) > (best_cov, best_share):
+                best, best_cov, best_share = (NOTES[r], mode), cov, share
+    if best is None or best_cov < 0.55:
+        return None
+    tonic_pc = NOTES.index(best[0])
+    if roots.get(tonic_pc, 0.0) / total < 0.06:
+        return None
+    tonic, mode = best
+    return {"tonic": tonic, "mode": mode, "confidence": round(best_cov, 3),
+            "tonicFa": NOTE_FA[tonic],
+            "modeFa": "ماژور" if mode == "major" else "مینور"}
 
 
 def key_chord_mask(tonic, mode):
@@ -366,6 +465,119 @@ def dedupe_and_cover(segments, duration):
     return out
 
 
+def chroma_sanity_relabel(segments, C, grid_start, grid_end, key,
+                          min_margin=0.12):
+    """Second look at every segment using the raw CQT chroma.
+
+    The beat-synchronous estimator occasionally locks onto a wrong chord
+    quality (Bb vs Bbm) or mislabels a fade-in blip (an intro "F" that is
+    really Cm). This pass compares each segment's mean chroma against
+    every chord template and relabels ONLY when
+      * a clearly better alternative exists (cosine margin >= min_margin),
+      * the alternative is diatonic in the chosen key, and
+      * the assigned label is out-of-key OR its own fit is weak (< 0.55).
+    Conservative by design: it never moves boundaries.
+    """
+    if not key or C is None or not len(segments):
+        return segments
+    try:
+        mask = key_chord_mask(key["tonic"], key["mode"])
+    except Exception:
+        return segments
+    Tn = TEMPLATES / np.maximum(
+        np.linalg.norm(TEMPLATES, axis=1, keepdims=True), 1e-9)
+    lab_in_key = {}
+    for i, lab in enumerate(LABELS):
+        lab_in_key[lab] = bool(mask[i])
+    # the "N" template is all-ones: it out-correlates real chords on
+    # diffuse vocal chroma, so it must never be a relabel candidate
+    cand_idx = [i for i, lab in enumerate(LABELS) if lab != "N"]
+    cand_T = Tn[cand_idx]
+    n_cells = C.shape[1]
+    out = []
+    for s in segments:
+        lab = s["chord"]
+        if lab == "N":                     # silence handled elsewhere
+            out.append(s)
+            continue
+        sel = np.array([(grid_end[i] > s["start"] and grid_start[i] < s["end"])
+                        for i in range(n_cells)], dtype=bool)
+        if not sel.any():
+            mid = 0.5 * (float(s["start"]) + float(s["end"]))
+            idx = int(np.searchsorted(grid_start, mid)) - 1
+            idx = max(0, min(idx, n_cells - 1))
+            sel[idx] = True
+        v = C[:, sel].mean(axis=1)
+        nv = np.linalg.norm(v)
+        if nv < 1e-9:
+            out.append(s)
+            continue
+        v = v / nv
+        corr = cand_T @ v
+        j = int(np.argmax(corr))
+        corr_i = cand_idx[j]
+        best_lab, best_c = LABELS[corr_i], float(corr[j])
+        if best_c < 0.30:                  # nothing fits: keep the label
+            out.append(s)
+            continue
+        try:
+            cur_c = float(Tn[LABELS.index(lab)] @ v)
+        except ValueError:
+            cur_c = -1.0
+        new_lab = lab
+        if best_lab != lab and best_c - cur_c >= min_margin:
+            if lab_in_key.get(best_lab) and not lab_in_key.get(lab, True):
+                new_lab = best_lab        # out-of-key label chroma rejects
+            elif lab_in_key.get(best_lab) and cur_c < 0.55:
+                new_lab = best_lab        # weak assignment (fade-in blip)
+        if new_lab != lab:
+            out.append({"chord": new_lab, "start": s["start"], "end": s["end"]})
+        else:
+            out.append(s)
+    return out
+
+
+def absorb_short_N(segments, duration, max_n=3.0):
+    """Fold short silence ('N') spans into their longer musical neighbour.
+
+    True silence only exists as fade-in/out and the occasional transition;
+    a chord sheet reads much better when a 1-2 s 'N' blip is absorbed by
+    the surrounding chord. Long silence (> max_n, interior) is kept.
+    """
+    segs = [dict(s) for s in segments if s["end"] > s["start"]]
+    changed = True
+    while changed:
+        changed = False
+        for i, s in enumerate(segs):
+            if s["chord"] != "N":
+                continue
+            prev = segs[i - 1] if i > 0 else None
+            nxt = segs[i + 1] if i + 1 < len(segs) else None
+            if prev is None and nxt is not None:
+                nxt["start"] = s["start"]          # leading fade-in
+                del segs[i]
+                changed = True
+                break
+            if nxt is None and prev is not None:
+                prev["end"] = s["end"]             # trailing fade-out
+                del segs[i]
+                changed = True
+                break
+            if prev is not None and nxt is not None:
+                if (s["end"] - s["start"]) > max_n:
+                    continue                       # real interior silence
+                dp = s["start"] - prev["start"]
+                dn = nxt["end"] - nxt["start"]
+                if dp >= dn:
+                    prev["end"] = s["end"]
+                else:
+                    nxt["start"] = s["start"]
+                del segs[i]
+                changed = True
+                break
+    return segs
+
+
 # ----------------------------------------------------------------------
 # Chord engines
 # ----------------------------------------------------------------------
@@ -470,7 +682,8 @@ def essentia_chords(path):
                     end = duration
                 else:
                     end = det[i + 1]
-                segs_b.append({"chord": str(c), "start": det[i], "end": end})
+                segs_b.append({"chord": normalize_label(str(c)),
+                               "start": det[i], "end": end})
             if segs_b:
                 cand.append((fold_short(segs_b, min_len), strengths_b,
                              "essentia-hpcp-beats"))
@@ -484,10 +697,11 @@ def essentia_chords(path):
         dt = HOP / SR
         segs_f = []
         for i, c in enumerate(chords_f):
-            if segs_f and segs_f[-1]["chord"] == str(c):
+            lab = normalize_label(str(c))
+            if segs_f and segs_f[-1]["chord"] == lab:
                 segs_f[-1]["end"] = min((i + 1) * dt, duration)
             else:
-                segs_f.append({"chord": str(c), "start": i * dt,
+                segs_f.append({"chord": lab, "start": i * dt,
                                "end": min((i + 1) * dt, duration)})
         if segs_f:
             cand.append((fold_short(segs_f, min_len), strengths_f,
@@ -515,7 +729,7 @@ def essentia_chords(path):
     best_segs, best_key, best_kind, best_score = None, key_info, None, -1.0
     for segs, strengths, kind in cand:
         chord_key = key_from_chords(segs)
-        k = pick_key([key_info, chord_key], segs)
+        k = pick_key([key_info, chord_key, best_key_overall(segs)], segs)
         score = key_compatibility(segs, k["tonic"], k["mode"]) if k else 0.0
         if score > best_score:
             best_segs, best_key, best_kind, best_score = segs, k, kind, score
@@ -841,9 +1055,11 @@ def analyze(path):
                 seg["chord"] = "N"
         segments = dedupe_and_cover(segments, duration)
         # report the key that best explains the detected chords:
-        # KeyExtractor first (higher prior), chord-evidence key second
+        # KeyExtractor prior, chord-evidence key, then the best of all 24
+        # keys by diatonic coverage (fixes the v-chord-dominant trap where
+        # the minor dominant is played more often than the tonic)
         chord_key = key_from_chords(segments)
-        key = pick_key([key, chord_key], segments) or key
+        key = pick_key([key, chord_key, best_key_overall(segments)], segments) or key
     else:
         grid_start = librosa.frames_to_time(grid_frames, sr=sr, hop_length=HOP)
         grid_start[0] = 0.0
@@ -852,7 +1068,8 @@ def analyze(path):
             C, B, silent_cols, duration, grid_start, grid_end, period)
         segments = dedupe_and_cover(segments, duration)
         # arbitrate the chord-evidence key against the raw-chroma key
-        key = pick_key([key, detect_key(chroma.mean(axis=1))], segments) or key
+        key = pick_key([key, detect_key(chroma.mean(axis=1)),
+                        best_key_overall(segments)], segments) or key
         # final polish: non-diatonic chords -> diatonic (key + bass evidence)
         Bn_log = _norm_cols(np.log1p(4.0 * np.maximum(B, 0.0)))
         segments = dedupe_and_cover(
@@ -865,6 +1082,24 @@ def analyze(path):
     grid_start = librosa.frames_to_time(grid_frames, sr=sr, hop_length=HOP)
     grid_start[0] = 0.0
     grid_end = np.append(grid_start[1:], duration)
+
+    # ---------- 6b. chroma sanity pass (Essentia path) ----------
+    # re-check every label against the raw CQT chroma; fixes wrong chord
+    # qualities (Bb vs Bbm) and fade-in blips. Never moves boundaries.
+    if ess is not None:
+        try:
+            segments = chroma_sanity_relabel(segments, C, grid_start,
+                                             grid_end, key)
+            segments = dedupe_and_cover(segments, duration)
+        except Exception:
+            pass
+
+    # ---------- 6c. absorb short silence blips into their neighbours ----------
+    try:
+        segments = dedupe_and_cover(absorb_short_N(segments, duration),
+                                    duration)
+    except Exception:
+        pass
 
     # ---------- 6. sections ----------
     n_beats = C.shape[1]
@@ -944,6 +1179,26 @@ def analyze(path):
         [{"chord": c, "seconds": round(v, 1), "percent": round(100 * v / total, 1)}
          for c, v in usage.items()],
         key=lambda x: -x["seconds"])
+
+    # ---------- 7. reader-friendly spelling ----------
+    # flat keys (F/Bb/Eb/Ab/Db minor, F/Bb/Eb/Ab/Db/Gb major) read much
+    # better with flats: 'A#m' -> 'Bbm', 'D#' -> 'Eb'
+    use_flats = (
+        (key.get("mode") == "minor" and key.get("tonic") in _FLAT_KEY_MINOR)
+        or (key.get("mode") == "major" and key.get("tonic") in _FLAT_KEY_MAJOR)
+    )
+    if use_flats:
+        key["tonic"] = _SHARP_TO_FLAT.get(key["tonic"], key["tonic"])
+        key["tonicFa"] = NOTE_FA.get(key["tonic"], key["tonic"])
+        for s in segments:
+            s["chord"] = respell_for_key(s["chord"], True)
+        for sec in sections:
+            for s in sec.get("segments", []):
+                s["chord"] = respell_for_key(s["chord"], True)
+            sec["progression"] = [respell_for_key(c, True)
+                                  for c in sec.get("progression", [])]
+        for cs in chord_seconds:
+            cs["chord"] = respell_for_key(cs["chord"], True)
 
     return {
         "ok": True,
