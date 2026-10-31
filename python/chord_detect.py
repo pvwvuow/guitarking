@@ -1,18 +1,27 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-GuitarKing — Chord detection engine
-====================================
+GuitarKing — Chord detection engine (v2)
+========================================
 Detects the chords of every section of a song.
 
-Pipeline:
+Primary pipeline (research-grade, robust to dense vocal mixes):
   1. Load audio (mono, 22050 Hz)
-  2. Harmonic/percussive separation -> use harmonic part for harmony analysis
-  3. Chromagram (CQT-based) + bass-limited chroma (for root emphasis)
-  4. Beat tracking -> beat-synchronous chroma
-  5. Template matching (maj, min, 7, maj7, m7 + N) with Viterbi smoothing
-  6. Key estimation (Krumhansl-Schmuckler profiles)
-  7. Structural segmentation -> song sections (A, B, C ...)
+  2. Essentia: SpectralPeaks -> HPCP chroma -> ChordsDetection
+     (HPCP + NNLS-style profile matching handles vocals/dense arrangements
+      far better than raw chroma template matching)
+  3. Key via Essentia KeyExtractor
+  4. Silence gating: "N" (no chord) only where harmonic energy is near zero
+
+Fallback pipeline (if Essentia is unavailable):
+  1. librosa harmonic/percussive separation
+  2. CQT chroma + bass chroma, beat-anchored grid, template matching
+     with sparsified chroma (top-3 pitch classes) + Viterbi smoothing
+  3. Krumhansl-Schmuckler key finding
+
+Shared post-processing:
+  - merge tiny segments, structural segmentation (A/B/C sections),
+    chord usage statistics
 
 Usage:  python3 chord_detect.py <audio_file>
 Output: JSON on stdout
@@ -45,14 +54,20 @@ KMIN = np.array([6.33, 2.68, 3.52, 5.38, 2.60, 3.53, 2.54, 4.75, 3.98, 2.69, 3.3
 SECTION_COLORS = ["#f59e0b", "#f43f5e", "#10b981", "#a855f7", "#f97316",
                   "#14b8a6", "#84cc16", "#ec4899"]
 
+MIN_SEG = 0.8  # seconds; segments shorter than this get folded
+
 
 def fail(msg):
     print(json.dumps({"ok": False, "error": msg}, ensure_ascii=False))
     sys.exit(0)
 
 
+# ----------------------------------------------------------------------
+# Fallback template machinery (librosa path)
+# ----------------------------------------------------------------------
+
 def build_templates():
-    """Chord templates: L2-normalized binary-ish vectors for 60 chords + N."""
+    """Chord templates: L2-normalized binary vectors for 60 chords + N."""
     T, labels, kinds = [], [], []
 
     def add(idx, label, kind):
@@ -74,13 +89,14 @@ def build_templates():
         add([r, (r + 4) % 12, (r + 7) % 12, (r + 11) % 12], NOTES[r] + "maj7", "maj7")
     for r in range(12):  # minor 7th
         add([r, (r + 3) % 12, (r + 7) % 12, (r + 10) % 12], NOTES[r] + "m7", "min7")
-    # "no chord" state: uniform template
     T.append(np.ones(12) / math.sqrt(12))
     labels.append("N")
     kinds.append("N")
 
-    # kind-based prior weights: prefer plain triads when ambiguous
-    kind_w = {"maj": 1.0, "min": 1.0, "dom7": 0.94, "maj7": 0.92, "min7": 0.92, "N": 0.85}
+    # On dense (vocal/pad-heavy) chroma, 4-note templates always out-correlate
+    # 3-note ones, so 7th chords need a strong penalty to stay exceptions.
+    kind_w = {"maj": 1.0, "min": 1.0, "dom7": 0.72, "maj7": 0.70, "min7": 0.70,
+              "N": 1.0}
     return np.array(T), labels, np.array([kind_w[k] for k in kinds])
 
 
@@ -103,19 +119,8 @@ def bass_chroma(y, sr):
     return bc
 
 
-def sync_to_beats(feat, beat_frames):
-    beat_frames = librosa.util.fix_frames(beat_frames, x_min=0, x_max=feat.shape[1] - 1)
-    synced = librosa.util.sync(feat, beat_frames, aggregate=np.median)
-    return synced, beat_frames
-
-
-def viterbi(emissions, stay=0.85, gamma=4.0):
-    """Viterbi decoding with self-transition bias.
-
-    Emissions are sharpened (power gamma) and normalized to a per-frame
-    probability distribution, so log-probabilities are comparable across
-    frames and the transition penalty is meaningful.
-    """
+def viterbi(emissions, stay=0.88, gamma=4.0):
+    """Viterbi decoding with self-transition bias."""
     n_states, n_frames = emissions.shape
     E = np.power(np.maximum(emissions, 1e-6), gamma)
     E = E / E.sum(axis=0, keepdims=True)
@@ -127,9 +132,9 @@ def viterbi(emissions, stay=0.85, gamma=4.0):
     back = np.zeros((n_states, n_frames), dtype=np.int32)
 
     for t in range(1, n_frames):
-        best_prev = dp.argmax()  # if switching, come from the globally best state
-        stay_score = dp + log_stay          # stay in same state
-        move_score = dp[best_prev] + log_move  # switch from best state
+        best_prev = dp.argmax()
+        stay_score = dp + log_stay
+        move_score = dp[best_prev] + log_move
         switch_better = move_score > stay_score
         dp_new = np.where(switch_better, move_score, stay_score) + logem[:, t]
         back[:, t] = np.where(switch_better, best_prev, np.arange(n_states))
@@ -143,7 +148,7 @@ def viterbi(emissions, stay=0.85, gamma=4.0):
 
 
 def detect_key(mean_chroma):
-    """Krumhansl-Schmuckler key finding."""
+    """Krumhansl-Schmuckler key finding (fallback)."""
     c = np.asarray(mean_chroma, dtype=float)
     if c.max() > 0:
         c = c / c.max()
@@ -168,7 +173,7 @@ def detect_key(mean_chroma):
 
 
 def assign_section_labels(section_chromas):
-    """Give letters A/B/C to sections by harmonic similarity (repeats get same letter)."""
+    """Give letters A/B/C to sections by harmonic similarity."""
     norms = []
     for ch in section_chromas:
         v = np.asarray(ch, dtype=float)
@@ -191,35 +196,180 @@ def assign_section_labels(section_chromas):
     return letters
 
 
-def analyze(path):
-    # ---------- 1. load ----------
+# ----------------------------------------------------------------------
+# Chord engines
+# ----------------------------------------------------------------------
+
+def essentia_chords(path):
+    """Primary engine: Essentia HPCP + ChordsDetection.
+
+    Returns (segments, confidence, key_info_or_None, audio) or None on failure.
+    segments: list of {"chord", "start", "end"} covering [0, duration].
+    """
     try:
-        y, sr = librosa.load(path, sr=SR, mono=True, res_type="kaiser_fast")
+        import essentia
+        import essentia.standard as es
+    except Exception:
+        return None
+
+    try:
+        audio = es.MonoLoader(filename=path, sampleRate=SR)()
+    except Exception:
+        return None
+    if len(audio) < SR * 4:
+        return None
+
+    w = es.Windowing(type="blackmanharris92")
+    spectrum = es.Spectrum(size=8192)
+    peaks = es.SpectralPeaks(minFrequency=60, maxFrequency=5000,
+                             magnitudeThreshold=0.00001, maxPeaks=80)
+    hpcp = es.HPCP(size=36, referenceFrequency=440, bandPreset=True,
+                   bandSplitFrequency=500)
+    pool = essentia.Pool()
+    for frame in es.FrameGenerator(audio, frameSize=8192, hopSize=HOP,
+                                   startFromZero=True):
+        spec = spectrum(w(frame))
+        freqs, mags = peaks(spec)
+        pool.add("hpcp", hpcp(freqs, mags))
+
+    hpcp_matrix = pool["hpcp"]
+    if isinstance(hpcp_matrix, np.ndarray):
+        hpcp_matrix = hpcp_matrix.tolist()
+    if not hpcp_matrix:
+        return None
+
+    chords, strengths = es.ChordsDetection(hopSize=HOP, sampleRate=SR,
+                                           windowSize=3.0)(hpcp_matrix)
+
+    # key
+    key_info = None
+    try:
+        kt, ks, kstrength = es.KeyExtractor()(audio)
+        key_info = {"tonic": str(kt), "mode": str(ks),
+                    "confidence": round(float(kstrength), 3),
+                    "tonicFa": NOTE_FA.get(str(kt), str(kt)),
+                    "modeFa": "ماژور" if str(ks) == "major" else "مینور"}
+    except Exception:
+        key_info = None
+
+    # condense per-frame chords into segments
+    dt = HOP / SR
+    duration = len(audio) / SR
+    segments = []
+    for i, c in enumerate(chords):
+        if segments and segments[-1]["chord"] == c:
+            segments[-1]["end"] = min((i + 1) * dt, duration)
+        else:
+            segments.append({"chord": str(c), "start": i * dt,
+                             "end": min((i + 1) * dt, duration)})
+
+    # fold tiny segments (< MIN_SEG) into the previous chord
+    merged = []
+    for seg in segments:
+        if merged and (seg["end"] - seg["start"]) < MIN_SEG:
+            merged[-1]["end"] = seg["end"]
+        else:
+            merged.append(seg)
+    segments = []
+    for seg in merged:  # fold consecutive duplicates created above
+        if segments and segments[-1]["chord"] == seg["chord"]:
+            segments[-1]["end"] = seg["end"]
+        else:
+            segments.append(seg)
+
+    confidence = float(np.mean(np.asarray(strengths, dtype=float))) if len(strengths) else 0.0
+    confidence = round(min(max(confidence, 0.0), 1.0), 3)
+
+    return segments, confidence, key_info, audio
+
+
+def librosa_chords(y_h, sr, C, B, silent_cols, duration):
+    """Fallback engine: sparsified chroma template matching + Viterbi.
+
+    Returns segments (list of {"chord","start","end"}).
+    """
+    def norm_cols(m):
+        out = m.astype(float).copy()
+        n = np.linalg.norm(out, axis=0, keepdims=True)
+        n[n < 1e-9] = 1.0
+        return out / n
+
+    F = norm_cols(0.65 * C + 0.35 * B)
+    # sparsify: keep the 3 strongest pitch classes per cell — combats the
+    # dense smear from vocals/pads that otherwise favours 4-note templates
+    for j in range(F.shape[1]):
+        col = F[:, j]
+        idx = np.argsort(col)[::-1]
+        col[idx[3:]] = 0.0
+    F = norm_cols(F)
+
+    emissions = np.clip((TEMPLATES @ F) * WEIGHTS[:, None], 0.0, 1.0)
+    N_IDX = LABELS.index("N")
+    emissions[N_IDX, ~silent_cols] = 0.0      # music playing -> must be a chord
+    emissions[:N_IDX, silent_cols] = 0.0      # true silence -> no chord
+
+    path = viterbi(emissions, stay=0.88, gamma=4.0)
+
+    grid_start = librosa.frames_to_time(np.arange(emissions.shape[1]), sr=sr,
+                                        hop_length=HOP)
+    grid_end = np.append(grid_start[1:], duration)
+
+    segments = []
+    for i, s in enumerate(path):
+        label = LABELS[s]
+        if segments and segments[-1]["chord"] == label:
+            segments[-1]["end"] = float(grid_end[i])
+        else:
+            segments.append({"chord": label, "start": float(grid_start[i]),
+                             "end": float(grid_end[i])})
+    merged = []
+    for seg in segments:
+        if merged and (seg["end"] - seg["start"]) < MIN_SEG:
+            merged[-1]["end"] = seg["end"]
+        else:
+            merged.append(seg)
+    return merged
+
+
+# ----------------------------------------------------------------------
+# Main analysis
+# ----------------------------------------------------------------------
+
+def analyze(path):
+    # ---------- 1. primary engine (Essentia) ----------
+    ess = essentia_chords(path)
+    if ess is not None:
+        segments, confidence, key, audio = ess
+        sr = SR
+        y = audio
+        duration = float(len(audio) / SR)
+        y_h = None
+    else:
+        segments = confidence = key = y = None
+
+    # ---------- 2. shared prep (librosa load for fallback features) ----------
+    try:
+        y2, sr = librosa.load(path, sr=SR, mono=True, res_type="kaiser_fast")
     except Exception as e:
         fail(f"نتوانستم فایل صوتی را باز کنم: {type(e).__name__}")
-    duration = float(len(y) / sr)
+    duration = float(len(y2) / sr)
     if duration < 4:
         fail("فایل صوتی خیلی کوتاه است (حداقل ۴ ثانیه).")
     if duration > 900:
-        y = y[: int(900 * sr)]
+        y2 = y2[: int(900 * sr)]
         duration = 900.0
 
-    # ---------- 2. harmonic separation ----------
     try:
-        y_h = librosa.effects.harmonic(y, margin=3.0)
+        y2_h = librosa.effects.harmonic(y2, margin=3.0)
     except Exception:
-        y_h = y
+        y2_h = y2
 
-    # ---------- 3. chroma features ----------
-    chroma = librosa.feature.chroma_cqt(y=y_h, sr=sr, hop_length=HOP, n_octaves=5)
-    bc = bass_chroma(y_h, sr)
+    chroma = librosa.feature.chroma_cqt(y=y2_h, sr=sr, hop_length=HOP, n_octaves=5)
+    bc = bass_chroma(y2_h, sr)
 
-    # ---------- 4. beat-anchored uniform grid ----------
-    # Beat tracking can miss the intro (quiet start), so we derive the pulse
-    # period from detected beats and lay a UNIFORM grid anchored on the beat
-    # phase across the whole duration. This keeps every cell ~one beat long.
+    # ---------- 3. beat-anchored uniform grid (for tempo + sections) ----------
     try:
-        tempo, beats = librosa.beat.beat_track(y=y, sr=sr, hop_length=HOP)
+        tempo, beats = librosa.beat.beat_track(y=y2, sr=sr, hop_length=HOP)
         tempo = float(np.atleast_1d(tempo)[0])
         beat_times = librosa.frames_to_time(beats, sr=sr, hop_length=HOP)
     except Exception:
@@ -247,55 +397,85 @@ def analyze(path):
     grid_frames = np.unique(librosa.util.fix_frames(
         grid_frames, x_min=0, x_max=chroma.shape[1] - 1))
 
-    chroma_sync = librosa.util.sync(chroma, grid_frames, aggregate=np.median)
-    bass_sync = librosa.util.sync(bc, grid_frames, aggregate=np.median)
-
-    # normalize per cell (L2)
     def norm_cols(m):
         out = m.astype(float).copy()
         n = np.linalg.norm(out, axis=0, keepdims=True)
         n[n < 1e-9] = 1.0
         return out / n
 
+    chroma_sync = librosa.util.sync(chroma, grid_frames, aggregate=np.median)
     C = norm_cols(chroma_sync)
-    B = norm_cols(bass_sync)
-    F = norm_cols(0.68 * C + 0.32 * B)  # combined feature
+    B = norm_cols(librosa.util.sync(bc, grid_frames, aggregate=np.median))
 
-    # ---------- 5. template matching + Viterbi ----------
-    emissions = np.clip((TEMPLATES @ F) * WEIGHTS[:, None], 0.0, 1.0)
-    path = viterbi(emissions, stay=0.85, gamma=4.0)
+    # ---------- 4. silence map (harmonic RMS per grid cell) ----------
+    rms_h = librosa.feature.rms(y=y2_h, hop_length=HOP)[0]
+    rms_sync = librosa.util.sync(rms_h.reshape(1, -1), grid_frames,
+                                 aggregate=np.mean)[0]
+    if rms_sync.size and float(np.percentile(rms_sync, 95)) > 1e-6:
+        sil_thr = 0.055 * float(np.percentile(rms_sync, 95))
+    else:
+        sil_thr = 0.0
+    silent = rms_sync < sil_thr
+    n_cells = C.shape[1]
+    silent_cols = np.zeros(n_cells, dtype=bool)
+    m = min(n_cells, len(silent))
+    silent_cols[:m] = silent[:m]
+    # silent time spans (for relabeling Essentia segments)
+    span_t = librosa.frames_to_time(grid_frames, sr=sr, hop_length=HOP)
+    silent_spans = []
+    run = None
+    for i in range(n_cells):
+        if silent_cols[i]:
+            if run is None:
+                run = [float(span_t[i]), float(span_t[i])]
+            else:
+                run[1] = float(span_t[i])
+        elif run is not None:
+            silent_spans.append(tuple(run))
+            run = None
+    if run is not None:
+        silent_spans.append((run[0], duration))
+
+    def silent_fraction(a, b):
+        if b <= a:
+            return 0.0
+        cov = 0.0
+        for sa, sb in silent_spans:
+            lo, hi = max(a, sa), min(b, sb)
+            if hi > lo:
+                cov += hi - lo
+        return cov / (b - a)
+
+    # ---------- 5. chords ----------
+    if ess is not None:
+        # relabel segments that mostly overlap true silence as N
+        for seg in segments:
+            if seg["chord"] != "N" and silent_fraction(seg["start"], seg["end"]) > 0.6:
+                seg["chord"] = "N"
+        # re-fold N / duplicates
+        folded = []
+        for seg in segments:
+            if folded and folded[-1]["chord"] == seg["chord"]:
+                folded[-1]["end"] = seg["end"]
+            else:
+                folded.append(seg)
+        segments = folded
+        engine = "essentia-hpcp"
+    else:
+        segments = librosa_chords(y2_h, sr, C, B, silent_cols, duration)
+        mean_chroma = chroma.mean(axis=1)
+        key = detect_key(mean_chroma)
+        confidence = None
+        engine = "librosa-viterbi"
+
+    if confidence is None:
+        confidence = 0.0
 
     grid_start = librosa.frames_to_time(grid_frames, sr=sr, hop_length=HOP)
     grid_start[0] = 0.0
     grid_end = np.append(grid_start[1:], duration)
 
-    # merge consecutive identical chords
-    segments = []
-    for i, s in enumerate(path):
-        label = LABELS[s]
-        if segments and segments[-1]["chord"] == label:
-            segments[-1]["end"] = float(grid_end[i])
-        else:
-            segments.append({"chord": label, "start": float(grid_start[i]),
-                             "end": float(grid_end[i])})
-    # drop tiny segments (< 0.30 s) by merging into previous
-    merged = []
-    for seg in segments:
-        if merged and (seg["end"] - seg["start"]) < 0.30:
-            merged[-1]["end"] = seg["end"]
-        else:
-            merged.append(seg)
-    segments = merged
-
-    # confidence = mean emission of chosen states
-    confidence = float(np.mean(emissions[path, np.arange(len(path))]))
-    confidence = round(min(max(confidence, 0.0), 1.0), 3)
-
-    # ---------- 6. key ----------
-    mean_chroma = chroma.mean(axis=1)
-    key = detect_key(mean_chroma)
-
-    # ---------- 7. sections ----------
+    # ---------- 6. sections ----------
     n_beats = C.shape[1]
     if duration <= 45:
         k = max(2, min(4, int(round(duration / 15))))
@@ -307,8 +487,6 @@ def analyze(path):
         bnds = np.array([], dtype=int)
     bnds = sorted(set(int(b) for b in np.atleast_1d(bnds) if 0 < b < n_beats))
 
-    # enforce a minimum section length by iteratively dropping the boundary
-    # that creates the smallest section
     min_sec = max(8.0, duration / 24.0)
     min_cells = max(2, int(round(min_sec / period)))
     while bnds:
@@ -317,7 +495,6 @@ def analyze(path):
         i = int(np.argmin(gaps))
         if gaps[i] >= min_cells:
             break
-        # drop the boundary adjacent to the smallest gap (must be internal)
         drop = ext[i + 1] if 0 < ext[i + 1] < n_beats else ext[i]
         if drop not in bnds:
             break
@@ -338,7 +515,6 @@ def analyze(path):
         clipped = [{"chord": s["chord"],
                     "start": float(max(s["start"], start_t)),
                     "end": float(min(s["end"], end_t))} for s in raw]
-        # progression: unique chords in order
         prog = []
         for s in clipped:
             if s["chord"] != "N" and (not prog or prog[-1] != s["chord"]):
@@ -351,7 +527,7 @@ def analyze(path):
         for s in segments:
             if s["chord"] != "N" and (not prog or prog[-1] != s["chord"]):
                 prog.append(s["chord"])
-        chromas_for_letters.append(mean_chroma)
+        chromas_for_letters.append(chroma.mean(axis=1))
         sections.append({"id": 1, "label": "", "start": 0.0, "end": duration,
                          "segments": segments, "progression": prog})
 
@@ -362,8 +538,7 @@ def analyze(path):
 
     # NOTE: adjacent sections sharing a letter are kept separate on purpose —
     # songs with a looped progression have near-identical mean chromas across
-    # all sections, and merging them would erase the real structure found by
-    # the agglomerative segmentation.
+    # all sections, and merging them would erase the real structure.
     for i, sec in enumerate(sections):
         sec["id"] = i + 1
 
@@ -381,6 +556,7 @@ def analyze(path):
 
     return {
         "ok": True,
+        "engine": engine,
         "duration": round(duration, 2),
         "tempo": tempo_out,
         "key": key,
