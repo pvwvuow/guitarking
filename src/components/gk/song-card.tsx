@@ -110,7 +110,7 @@ export function SongCard({
                   <span className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center">
                     <Bot className="w-3 h-3" aria-hidden />
                   </span>
-                  ربات
+                  گیتارکینگ
                 </>
               ) : (
                 <>

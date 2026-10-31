@@ -48,7 +48,7 @@ export function BlogView({
         <h1 className="font-fantasy text-4xl sm:text-5xl mt-2">وبلاگ گیتار کینگ</h1>
         <div className="gk-titlebar mx-auto mt-3" aria-hidden />
         <p className="text-muted-foreground mt-3 max-w-xl mx-auto leading-8">
-          آموزش‌های گیتار، خبرهای سایت و پشت‌صحنه‌ی ربات اکوردنویس.
+          آموزش‌های گیتار، خبرهای سایت و پشت‌صحنه‌ی گیتارکینگ.
         </p>
       </header>
 
@@ -331,7 +331,7 @@ export function PostView({
       <footer className="mt-12 rounded-3xl bg-secondary/60 border border-border/60 p-7 text-center">
         <p className="font-fantasy text-2xl">آماده‌ای آهنگ بعدی را بزنی؟</p>
         <p className="text-sm text-muted-foreground mt-2 leading-7">
-          از آرشیو اکوردها یک آهنگ بردار، یا آهنگ خودت را به ربات بده تا برگه‌اش را بنویسد.
+          از آرشیو اکوردها یک آهنگ بردار، یا آهنگ خودت را به گیتارکینگ بده تا برگه‌اش را بنویسد.
         </p>
         <div className="flex flex-wrap gap-3 justify-center mt-5">
           <a
@@ -344,7 +344,7 @@ export function PostView({
             href="#bot"
             className="gk-btn gk-btn-royal text-sm px-6 py-2.5"
           >
-            ربات اکوردنویس
+            گیتارکینگ
           </a>
         </div>
       </footer>

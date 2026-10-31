@@ -246,7 +246,7 @@ export default function Home() {
             <NavLink href="#top">خانه</NavLink>
             <NavLink href="#featured">اکورد ویژه</NavLink>
             <NavLink href="#/blog">وبلاگ</NavLink>
-            <NavLink href="#bot">ربات</NavLink>
+            <NavLink href="#bot">گیتارکینگ</NavLink>
           </nav>
           <a href="#bot" className="shrink-0">
             <Button size="sm" className="gk-btn gk-btn-red gap-1.5">
@@ -349,7 +349,7 @@ export default function Home() {
               <div className="max-w-4xl mx-auto px-4 pt-14 pb-16 text-center relative">
                 <p className="inline-flex items-center gap-3 text-xs font-medium text-[oklch(0.617_0.093_62)]">
                   <i className="w-1.5 h-1.5 bg-primary rotate-45 inline-block" aria-hidden />
-                  آرشیو اکورد گیتار · ربات اکوردنویس آنلاین
+                  آرشیو اکورد گیتار · اکوردنویس آنلاین گیتارکینگ
                   <i className="w-1.5 h-1.5 bg-primary rotate-45 inline-block" aria-hidden />
                 </p>
                 { }
@@ -404,11 +404,11 @@ export default function Home() {
                   Guitar King
                 </h1>
                 <p className="font-fantasy text-3xl sm:text-4xl text-primary mt-2 pb-1">
-                  پادشاهِ اکوردها در دستان تو
+                  گیتارکینگ برات اکورد مینویسه
                 </p>
                 <p className="text-muted-foreground max-w-xl mx-auto mt-4 leading-8">
                   اکورد آهنگ‌های تازه را با پوستر و برگه‌ی کامل بخوان، گام را همان‌جا
-                  عوض کن، یا آهنگ خودت را برای ربات بفرست تا اکورد تک‌تک بخش‌هایش را
+                  عوض کن، یا آهنگ خودت را برای گیتارکینگ بفرست تا اکوردش را
                   بنویسد.
                 </p>
                 <div className="flex flex-wrap gap-4 justify-center mt-8">
@@ -423,7 +423,7 @@ export default function Home() {
                       variant="outline"
                       className="gk-btn gk-btn-royal px-9"
                     >
-                      آپلود آهنگ برای ربات
+                      آپلود آهنگ برای گیتارکینگ
                     </Button>
                   </a>
                 </div>
@@ -508,7 +508,7 @@ export default function Home() {
                       </h2>
                     </div>
                     <p className="text-sm text-muted-foreground max-w-md leading-7 pb-1.5">
-                      برگه‌ای که ربات شنیده و تحریریه چک کرده؛ با تغییر گام زنده.
+                      برگه‌ای که گیتارکینگ شنیده و تحریریه چک کرده؛ با تغییر گام زنده.
                     </p>
                   </div>
                   <div className="gk-rule mt-5" aria-hidden />
@@ -530,7 +530,7 @@ export default function Home() {
                     </h2>
                   </div>
                   <p className="text-sm text-muted-foreground max-w-md leading-7 pb-1.5">
-                    آموزش‌های گیتار، خبرهای سایت و پشت‌صحنه‌ی ربات اکوردنویس.
+                    آموزش‌های گیتار، خبرهای سایت و پشت‌صحنه‌ی گیتارکینگ.
                   </p>
                 </div>
                 <div className="gk-rule mt-5" aria-hidden />
@@ -561,11 +561,11 @@ export default function Home() {
                       آهنگ خودت را بفرست
                     </h2>
                     <p className="mt-3 leading-8 text-primary-foreground/90">
-                      ربات اکوردنویس آهنگ تو را می‌شنود، بخش‌بندی می‌کند و برگه‌ی اکورد
+                      گیتارکینگ آهنگ تو را می‌شنود و برگه‌ی اکورد
                       کامل با کلید و تمپو تحویل می‌دهد — همه‌چیز آنلاین و در چند دقیقه.
                     </p>
                     <div className="flex flex-wrap gap-x-7 gap-y-3 mt-6 text-sm">
-                      {["فایل را آپلود کن", "ربات گوش می‌دهد", "برگه‌ی اکورد آماده"].map(
+                      {["فایل را آپلود کن", "گیتارکینگ گوش می‌دهد", "برگه‌ی اکورد آماده"].map(
                         (s, i) => (
                           <span key={s} className="inline-flex items-center gap-2">
                             <i className="chord-latin w-6 h-6 rounded-full border border-white/70 flex items-center justify-center text-[11px] font-black">
@@ -583,7 +583,7 @@ export default function Home() {
                       <span className="text-sm leading-6 flex-1 min-w-40">
                         نمونه‌ی آماده: امین قباد — «کو بهشتمون»
                         <span className="block text-xs text-primary-foreground/70">
-                          تحلیل کامل شده توسط ربات؛ بدون آپلود ببین و پخش کن
+                          تحلیل کامل شده توسط گیتارکینگ؛ بدون آپلود ببین و پخش کن
                         </span>
                       </span>
                       <Button
@@ -623,8 +623,8 @@ export default function Home() {
                   {
                     icon: Bot,
                     status: "در جریان",
-                    title: "ربات اکوردنویس آنلاین",
-                    desc: "آپلود آهنگ و دریافت اکورد تمام بخش‌ها با پخش همگام.",
+                    title: "اکوردنویس آنلاین گیتارکینگ",
+                    desc: "آپلود آهنگ و دریافت برگه‌ی اکورد؛ با پخش و هایلایت همزمان.",
                     done: false,
                   },
                   {
@@ -661,8 +661,8 @@ export default function Home() {
               <h2 className="font-fantasy text-3xl sm:text-4xl">درباره‌ی گیتار کینگ</h2>
               <p className="text-muted-foreground mt-4 leading-8">
                 ما برای گیتاریست‌ها اکورد می‌نویسیم. هر آهنگی که منتشر شود، اکوردش را
-                با گوشِ ربات و چشمِ تحریریه اینجا پیدا می‌کنی؛ و اگر آهنگ خودت را داری،
-                ربات اکوردنویس برایت می‌نویسد. ساده، سریع و همیشه رایگان.
+                با گوشِ گیتارکینگ و چشمِ تحریریه اینجا پیدا می‌کنی؛ و اگر آهنگ خودت را داری،
+                گیتارکینگ برایت می‌نویسد. ساده، سریع و همیشه رایگان.
               </p>
             </section>
 
@@ -676,7 +676,7 @@ export default function Home() {
                     <b className="font-display text-base tracking-wide">Guitar King</b>
                   </span>
                   <p className="text-muted-foreground mt-3 leading-7">
-                    مرجع اکورد آهنگ‌ها و ربات اکوردنویس برای جامعه‌ی گیتاریست‌های ایرانی.
+                    مرجع اکورد آهنگ‌ها و اکوردنویس آنلاین برای جامعه‌ی گیتاریست‌های ایرانی.
                   </p>
                 </div>
                 <div>
@@ -685,7 +685,7 @@ export default function Home() {
                     <li><a href="#archive" className="hover:text-primary transition-colors">آرشیو اکوردها</a></li>
                     <li><a href="#featured" className="hover:text-primary transition-colors">اکورد ویژه</a></li>
                     <li><a href="#/blog" className="hover:text-primary transition-colors">وبلاگ و فهرست خواننده‌ها</a></li>
-                    <li><a href="#bot" className="hover:text-primary transition-colors">ربات اکوردنویس</a></li>
+                    <li><a href="#bot" className="hover:text-primary transition-colors">گیتارکینگ</a></li>
                     <li><a href="#about" className="hover:text-primary transition-colors">درباره‌ی ما</a></li>
                   </ul>
                 </div>
@@ -839,7 +839,7 @@ function FeaturedCard({ song, onOpen }: { song: SongEntry; onOpen: () => void })
                 </span>
               )}
               <span className="rounded-full border border-border bg-card px-3 py-1.5 text-muted-foreground">
-                {song.source === "bot" ? "شنیده‌ی ربات" : "برگه‌ی تحریریه"}
+                {song.source === "bot" ? "شنیده‌ی گیتارکینگ" : "برگه‌ی تحریریه"}
               </span>
             </div>
 

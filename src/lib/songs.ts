@@ -1,12 +1,24 @@
-/* Archive data — real songs with demo chord sheets.
-   «کو بهشتمون» is fully analyzed by the Guitar King bot (real data);
-   the other sheets are editorial demo placements written for the layout
-   and will be replaced by verified transcriptions. Sample lyric lines are
-   original placeholder poetry, not the official lyrics. */
+/* Archive data — real songs with chord sheets.
+
+   Reference source (مرجع): ahaang.com (رسانه آهنگ) — lyrics AND audio.
+   Workflow for new songs:
+     1. take the song file, run the GuitarKing engine on it (python/chord_detect.py)
+     2. write the sheet with per-line timings (SheetSeg.t, seconds) so the
+        on-page player can highlight the active line while it plays
+     3. the audio file does NOT need to stay in the repo: remove it from
+        public/demo and point `audio` at the source site (or drop `audio`
+        — the player simply hides) — always keep `sourceRef` so the
+        source is credited (با ذکر منبع).
+
+   «کو بهشتمون» is fully analyzed by the GuitarKing engine (real data);
+   other sheets are editorial placements being replaced by verified
+   transcriptions with lyrics credited to their source. */
 
 export interface SheetSeg {
   chord: string;
   text: string;
+  /** start time in seconds — enables play-along highlighting */
+  t?: number;
 }
 export interface SheetSection {
   label: string;
@@ -30,6 +42,12 @@ export interface SongEntry {
   poster: string;
   source: "bot" | "editorial";
   description: string;
+  /** audio for the on-page play-along player (local path or external URL) */
+  audio?: string;
+  /** source site credited on the song page (با ذکر منبع) */
+  sourceRef?: { name: string; url: string };
+  /** lyric texts are the official ones (not layout samples) */
+  officialLyrics?: boolean;
   sections: SheetSection[];
   bot?: {
     duration: string;
@@ -53,15 +71,16 @@ export const SONGS: SongEntry[] = [
     difficulty: "متوسط",
     poster: "/posters/koo-beheshtemoon.jpg",
     source: "bot",
+    audio: "/demo/koo-beheshtemoon.mp3",
     description:
-      "آهنگی پاپ و دلنشین از امین قباد. برگه‌ی اکورد این ترانه کاملاً با ربات گیتارکینگ شنیده و نوشته شده: کلید لا مینور، تمپوی ۱۱۲ و چهار بخش ساختاری.",
+      "آهنگی پاپ و دلنشین از امین قباد. برگه‌ی اکورد این ترانه کاملاً با گیتارکینگ شنیده و نوشته شده: کلید لا مینور، تمپوی ۱۱۲ و چهار بخش ساختاری.",
     sections: [
       {
         label: "اینترو",
         lines: [
           [
-            { chord: "Am", text: "بداهه‌ی گیتار" },
-            { chord: "Am", text: "۰:۰۰ تا ۰:۰۹" },
+            { chord: "Am", text: "بداهه‌ی گیتار", t: 0 },
+            { chord: "Am", text: "۰:۰۰ تا ۰:۰۹", t: 4.5 },
           ],
         ],
       },
@@ -69,13 +88,13 @@ export const SONGS: SongEntry[] = [
         label: "بند اول",
         lines: [
           [
-            { chord: "Am", text: "شب از نیمه گذشت" },
-            { chord: "Dm", text: "و تو هنوز" },
-            { chord: "G", text: "تو راهی" },
+            { chord: "Am", text: "شب از نیمه گذشت", t: 17 },
+            { chord: "Dm", text: "و تو هنوز", t: 37.4 },
+            { chord: "G", text: "تو راهی", t: 60.6 },
           ],
           [
-            { chord: "Em", text: "می‌گم برگرد" },
-            { chord: "Am", text: "به اولِ خاطره‌ها" },
+            { chord: "Em", text: "می‌گم برگرد", t: 78.2 },
+            { chord: "Am", text: "به اولِ خاطره‌ها", t: 97.7 },
           ],
         ],
       },
@@ -83,12 +102,12 @@ export const SONGS: SongEntry[] = [
         label: "همخوان",
         lines: [
           [
-            { chord: "F", text: "کو بهشتمون" },
-            { chord: "G", text: "تو کوچه‌های این شهر" },
+            { chord: "F", text: "کو بهشتمون", t: 114.4 },
+            { chord: "G", text: "تو کوچه‌های این شهر", t: 123.3 },
           ],
           [
-            { chord: "C", text: "جایی میان" },
-            { chord: "Am", text: "غم‌های بی‌بهانه" },
+            { chord: "C", text: "جایی میان", t: 132.1 },
+            { chord: "Am", text: "غم‌های بی‌بهانه", t: 136.5 },
           ],
         ],
       },
@@ -96,14 +115,14 @@ export const SONGS: SongEntry[] = [
         label: "بند دوم",
         lines: [
           [
-            { chord: "F", text: "باز این کوچه" },
-            { chord: "Dm", text: "پر از صدای" },
-            { chord: "G", text: "قدم‌های تو شد" },
+            { chord: "F", text: "باز این کوچه", t: 147.3 },
+            { chord: "Dm", text: "پر از صدای", t: 151.7 },
+            { chord: "G", text: "قدم‌های تو شد", t: 171.1 },
           ],
           [
-            { chord: "F", text: "و گیتار من" },
-            { chord: "Em", text: "باز نام تو را" },
-            { chord: "Am", text: "می‌خواند" },
+            { chord: "F", text: "و گیتار من", t: 175.4 },
+            { chord: "Em", text: "باز نام تو را", t: 192.9 },
+            { chord: "Am", text: "می‌خواند", t: 206 },
           ],
         ],
       },
@@ -112,16 +131,16 @@ export const SONGS: SongEntry[] = [
       duration: "3:31",
       tempo: 112,
       key: "Am",
-      confidence: 57.4,
+      confidence: 58.9,
       sections: [
-        { label: "A", time: "0:00 – 0:09", chords: ["Am"] },
+        { label: "A", time: "0:00 – 0:09", chords: ["Am", "Dm"] },
         {
           label: "B",
           time: "0:09 – 1:51",
-          chords: ["Am", "Dm", "G", "Em", "A", "F", "C"],
+          chords: ["Dm", "G", "Em", "F", "C", "Am"],
         },
-        { label: "B", time: "1:51 – 2:21", chords: ["Am", "F", "G", "Em", "C"] },
-        { label: "B", time: "2:21 – 3:31", chords: ["F", "G", "Dm", "Am", "Em"] },
+        { label: "B", time: "1:51 – 2:21", chords: ["Am", "G", "Em", "C", "F"] },
+        { label: "B", time: "2:21 – 3:31", chords: ["C", "G", "F", "Am", "Dm", "Em"] },
       ],
     },
   },
@@ -136,58 +155,59 @@ export const SONGS: SongEntry[] = [
     difficulty: "آسان",
     poster: "/posters/behet-ghol-midam.jpg",
     source: "editorial",
+    sourceRef: {
+      name: "رسانه آهنگ (ahaang.com)",
+      url: "https://ahaang.com/محسن-یگانه-بهت-قول-میدم",
+    },
+    officialLyrics: true,
     description:
-      "یکی از ماندگارترین ترانه‌های محسن یگانه. با گام می مینور و ریتم آرام، انتخابی عالی برای تمرین آرپژ و انگشت‌گذاری نرم.",
+      "یکی از ماندگارترین ترانه‌های محسن یگانه. متن ترانه از رسانه آهنگ نقل شده؛ با گام می مینور و ریتم آرام، انتخابی عالی برای تمرین آرپژ و انگشت‌گذاری نرم.",
     sections: [
-      {
-        label: "اینترو",
-        lines: [
-          [
-            { chord: "Em", text: "بداهه‌ی گیتار" },
-            { chord: "C", text: "دو میزان" },
-          ],
-        ],
-      },
       {
         label: "بند اول",
         lines: [
-          [
-            { chord: "Em", text: "باز شب شد" },
-            { chord: "C", text: "و حالم دوباره" },
-            { chord: "G", text: "هوایی شد" },
-          ],
-          [
-            { chord: "D", text: "به یاد چشم‌هایی" },
-            { chord: "Em", text: "که دیگر نیست" },
-          ],
+          [{ chord: "Em", text: "خودت می‌خوای بری خاطره شی" }],
+          [{ chord: "C", text: "اما دلت می‌سوزه، تظاهر می‌کنی" }],
+          [{ chord: "G", text: "عاشقمی، این بازی هر روزت" }],
+          [{ chord: "D", text: "نترس، تا دمِ دم رفتن همش" }],
+          [{ chord: "Em", text: "دلشور می‌گره، دو روز بگذره" }],
+          [{ chord: "C", text: "این دلشورها از خاطرت می‌ره" }],
         ],
       },
       {
         label: "همخوان",
         lines: [
-          [
-            { chord: "C", text: "بهت قول می‌دم" },
-            { chord: "G", text: "از این شهر برم" },
-          ],
-          [
-            { chord: "Am", text: "جایی که باد" },
-            { chord: "Em", text: "نامِ تو را کم کم" },
-            { chord: "D", text: "فراموش کند" },
-          ],
+          [{ chord: "C", text: "بهت قول می‌دم سخت نیست" }],
+          [{ chord: "G", text: "لااقل برای تو راحت باش" }],
+          [{ chord: "Am", text: "دورم از تو و دنیایه تو، راحت باش" }],
+          [{ chord: "D", text: "هیچ‌کس نمیاد جای تو" }],
+          [{ chord: "Em", text: "دلشوره دارم من واسه فردایه تو" }],
         ],
       },
       {
         label: "بند دوم",
         lines: [
-          [
-            { chord: "Am", text: "سال‌ها رفت" },
-            { chord: "C", text: "و من همان" },
-            { chord: "G", text: "قدم‌های اولم" },
-          ],
-          [
-            { chord: "D", text: "با همین گیتار" },
-            { chord: "Em", text: "و همین قصه" },
-          ],
+          [{ chord: "Am", text: "از عشق هر چیزی که می‌شناسمو" }],
+          [{ chord: "Em", text: "از من گرفتی تو" }],
+          [{ chord: "C", text: "باقی مونده احساسمو از من گرفتی" }],
+          [{ chord: "G", text: "می‌خوای من باشیو یادت بره" }],
+          [{ chord: "Am", text: "مایی، وجود داره خودت" }],
+          [{ chord: "Em", text: "آمادی رفتنی، ترست نمی‌ذاره" }],
+          [{ chord: "C", text: "اصلا نترس، راحت برو" }],
+          [{ chord: "G", text: "بی من هیچ‌کی به جز تو" }],
+          [{ chord: "Am", text: "منو یادش نیست" }],
+          [{ chord: "Em", text: "فکر کردی کی از من خبر داره" }],
+          [{ chord: "C", text: "راحت برو، هیچ‌کی حواسش نیست" }],
+        ],
+      },
+      {
+        label: "همخوان",
+        lines: [
+          [{ chord: "C", text: "بهت قول می‌دم سخت نیست" }],
+          [{ chord: "G", text: "لااقل برای تو راحت باش" }],
+          [{ chord: "Am", text: "دورم از تو و دنیایه تو، راحت باش" }],
+          [{ chord: "D", text: "هیچ‌کس نمیاد جای تو" }],
+          [{ chord: "Em", text: "دلشوره دارم من واسه فردایه تو" }],
         ],
       },
     ],

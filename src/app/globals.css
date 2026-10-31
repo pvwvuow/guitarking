@@ -208,6 +208,28 @@ body {
   animation: gk-rays 110s linear infinite;
 }
 
+/* faint circular rays for behind text (chord sheet): square canvas +
+   deep radial fade so the rectangle of the container never shows */
+.gk-rays-soft {
+  background: repeating-conic-gradient(
+    from 0deg at 50% 50%,
+    oklch(0.545 0.212 26 / 0.045) 0deg 3.5deg,
+    transparent 3.5deg 13deg
+  );
+  -webkit-mask-image: radial-gradient(
+    circle at 50% 50%,
+    transparent 18%,
+    #000 40%,
+    transparent 68%
+  );
+  mask-image: radial-gradient(
+    circle at 50% 50%,
+    transparent 18%,
+    #000 40%,
+    transparent 68%
+  );
+}
+
 /* minimal guitar strings behind the emblem, fading out to both sides */
 .gk-string {
   display: block;

@@ -533,7 +533,7 @@ function paintBotHeader(
   fa(ctx);
   ctx.font = `500 24px ${F_BODY}`;
   ctx.fillStyle = MUTED;
-  ctx.fillText("برگه‌ی اکوردِ شنیده‌شده توسط ربات گیتارکینگ", W / 2, y);
+  ctx.fillText("برگه‌ی اکوردِ شنیده‌شده توسط گیتارکینگ", W / 2, y);
   y += 48;
 
   metaLine(
