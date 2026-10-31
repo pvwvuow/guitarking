@@ -19,7 +19,7 @@ export function BlogView({
   const groups = groupByArtist(SONGS);
 
   return (
-    <div className="w-full max-w-3xl mx-auto px-4 pb-20">
+    <div className="w-full max-w-5xl mx-auto px-4 pb-20">
       <button
         type="button"
         onClick={onBack}
@@ -40,77 +40,81 @@ export function BlogView({
         </p>
       </header>
 
-      {/* posts — modern cards, newest first */}
-      <div className="mt-8 space-y-4 rv on">
-        {POSTS.map((p, i) => (
-          <PostRow
-            key={p.slug}
-            post={p}
-            index={i + 1}
-            onOpen={() => onOpen(p.slug)}
-          />
-        ))}
-      </div>
-
-      <Ornament className="mt-10" />
-
-      {/* artists directory — modern chips with gradient initials */}
-      <section className="mt-8 rv on" aria-label="فهرست خواننده‌ها">
-        <div className="flex items-end justify-between gap-4 flex-wrap">
-          <div>
-            <p className="gk-overline text-[10px] text-[oklch(0.617_0.093_62)]">
-              Artists Index
-            </p>
-            <h2 className="font-fantasy text-3xl sm:text-4xl mt-1.5">
-              فهرست خواننده‌ها
-            </h2>
+      {/* posts + singers index — the list lives on the right, sticks while scrolling */}
+      <div className="mt-10 flex flex-col gap-12 lg:flex-row-reverse lg:items-start lg:gap-10">
+        <div className="min-w-0 flex-1 rv on">
+          {/* posts — modern cards, newest first */}
+          <div className="space-y-4">
+            {POSTS.map((p, i) => (
+              <PostRow
+                key={p.slug}
+                post={p}
+                index={i + 1}
+                onOpen={() => onOpen(p.slug)}
+              />
+            ))}
           </div>
-          <p className="text-xs text-muted-foreground pb-1.5">
-            <span className="chord-latin font-bold">{groups.length}</span>{" "}
-            خواننده · به ترتیب الفبا
-          </p>
+          <Ornament className="mt-10" />
         </div>
-        <div className="gk-rule mt-4" aria-hidden />
 
-        {/* one simple column · names only */}
-        <ul className="mt-5 divide-y divide-border/60 border-y border-border/60">
-          {groups.map((g, i) => (
-            <li key={g.name}>
-              <a
-                href={`#/artist/${encodeURIComponent(g.name)}`}
-                aria-label={`دیدن برگه‌های ${g.name}`}
-                className="group flex items-baseline gap-3 px-2 -mx-2 py-3 rounded-lg hover:bg-secondary/50 transition-colors"
-              >
-                <span
-                  className="chord-latin text-[11px] font-bold text-muted-foreground/50 tabular-nums w-6 shrink-0"
-                  aria-hidden
-                >
-                  {String(i + 1).padStart(2, "0")}
-                </span>
-                <span className="flex-1 truncate font-extrabold text-[15px] sm:text-base leading-7 group-hover:text-primary transition-colors">
-                  {g.name}
-                </span>
-                <span className="shrink-0 text-[11px] text-muted-foreground/70">
-                  {g.songs.length > 1 ? (
-                    <>
-                      <span className="chord-latin font-bold">{g.songs.length}</span> اکورد
-                    </>
-                  ) : (
-                    <>
-                      <span className="chord-latin font-bold">۱</span> اکورد
-                    </>
-                  )}
-                </span>
-                <ArrowLeft
-                  className="w-3.5 h-3.5 shrink-0 self-center text-muted-foreground/30 group-hover:text-primary group-hover:-translate-x-0.5 transition-all"
-                  aria-hidden
-                />
-              </a>
-            </li>
-          ))}
-        </ul>
-      </section>
+        <aside className="shrink-0 self-start lg:w-60 xl:w-72 lg:sticky lg:top-24 rv on">
+          <ArtistsSidebar groups={groups} />
+        </aside>
+      </div>
     </div>
+  );
+}
+
+/* ── singers index sidebar — one column of names, always in reach ───── */
+
+export function ArtistsSidebar({
+  groups,
+}: {
+  groups: ReturnType<typeof groupByArtist>;
+}) {
+  return (
+    <nav
+      aria-label="فهرست خواننده‌ها"
+      className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm"
+    >
+      <p className="gk-overline text-[10px] text-[oklch(0.617_0.093_62)]">
+        Artists Index
+      </p>
+      <h2 className="font-fantasy text-2xl leading-relaxed mt-1.5">
+        فهرست خواننده‌ها
+      </h2>
+      <p className="text-[11px] text-muted-foreground mt-1">
+        <span className="chord-latin font-bold">{groups.length}</span> خواننده ·
+        به ترتیب الفبا
+      </p>
+
+      {/* one simple column · names only */}
+      <ul className="mt-4 divide-y divide-border/60 border-t border-border/60">
+        {groups.map((g) => (
+          <li key={g.name}>
+            <a
+              href={`#/artist/${encodeURIComponent(g.name)}`}
+              aria-label={`دیدن برگه‌های ${g.name}`}
+              className="group flex items-center gap-2.5 py-2.5"
+            >
+              <span className="flex-1 truncate text-sm font-bold leading-6 group-hover:text-primary transition-colors">
+                {g.name}
+              </span>
+              <span
+                className="shrink-0 chord-latin text-[10px] font-bold text-muted-foreground/50 group-hover:text-primary transition-colors"
+                aria-hidden
+              >
+                {g.songs.length}
+              </span>
+              <ArrowLeft
+                className="w-3.5 h-3.5 shrink-0 text-muted-foreground/30 group-hover:text-primary group-hover:-translate-x-0.5 transition-all"
+                aria-hidden
+              />
+            </a>
+          </li>
+        ))}
+      </ul>
+    </nav>
   );
 }
 
@@ -187,8 +191,10 @@ export function PostView({
   post: Post;
   onBack: () => void;
 }) {
+  const groups = groupByArtist(SONGS);
+
   return (
-    <article className="w-full max-w-2xl mx-auto px-4 pb-16">
+    <div className="w-full max-w-5xl mx-auto px-4 pb-16">
       <button
         type="button"
         onClick={onBack}
@@ -197,6 +203,10 @@ export function PostView({
         <ArrowRight className="w-4 h-4" aria-hidden />
         بازگشت به وبلاگ
       </button>
+
+      {/* article + singers index on the right, in reach while reading */}
+      <div className="flex flex-col gap-10 lg:flex-row-reverse lg:items-start lg:gap-10">
+        <article className="min-w-0 flex-1">
 
       <header className="mt-8 rv on">
         <p className="flex items-center gap-2 text-[11px] text-muted-foreground">
@@ -253,6 +263,12 @@ export function PostView({
           </a>
         </div>
       </footer>
-    </article>
+        </article>
+
+        <aside className="shrink-0 self-start lg:w-60 xl:w-72 lg:sticky lg:top-24">
+          <ArtistsSidebar groups={groups} />
+        </aside>
+      </div>
+    </div>
   );
 }
