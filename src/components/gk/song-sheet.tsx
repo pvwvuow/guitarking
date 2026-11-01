@@ -17,6 +17,14 @@ import type { SongEntry } from "@/lib/songs";
 import { songChords } from "@/lib/songs";
 import { transposeChord } from "@/lib/transpose";
 import { downloadSongSheetImage } from "@/lib/sheet-image";
+import { useAudioClock, VISUAL_LEAD } from "@/lib/use-audio-clock";
+import {
+  beatPositions,
+  beatState,
+  beatsBetween,
+  lastAtOrBefore,
+  wordTimes,
+} from "@/lib/sheet-sync";
 import { ChordDiagram } from "./chord-diagram";
 import { PlayerCard } from "./player-card";
 import { Button } from "@/components/ui/button";
@@ -31,21 +39,47 @@ interface Props {
 const SEG_NOTE =
   "متن‌های داخل برگه برای نمایش چیدمان اکورد نمونه‌سازی شده‌اند و به‌زودی با متن رسمی ترانه جایگزین می‌شوند.";
 
+const SUNG = "text-[oklch(0.545_0.212_26)]";
+
+interface TimedSeg {
+  li: number;
+  si: number;
+  /** lyric start */
+  t: number;
+  /** chord start (beat-exact when the sheet was synced) */
+  ct: number;
+  chord: string;
+  text: string;
+  w?: number[];
+}
+
 /** flat timed entries of a sheet: one per segment that carries a time.
     li must be the index in the FLATTENED line list (same as render). */
-function buildTimed(song: SongEntry) {
-  const out: { li: number; si: number; t: number; chord: string }[] = [];
+function buildTimed(song: SongEntry): TimedSeg[] {
+  const out: TimedSeg[] = [];
   let li = 0;
   song.sections.forEach((sec) => {
     sec.lines.forEach((line) => {
       line.forEach((seg, si) => {
         if (typeof seg.t === "number")
-          out.push({ li, si, t: seg.t, chord: seg.chord });
+          out.push({
+            li,
+            si,
+            t: seg.t,
+            ct: typeof seg.ct === "number" ? seg.ct : seg.t,
+            chord: seg.chord,
+            text: seg.text,
+            w: seg.w,
+          });
       });
       li++;
     });
   });
   return out.sort((a, b) => a.t - b.t);
+}
+
+function isSilentText(text: string) {
+  return !text.trim() || text.trim() === "—";
 }
 
 export function SongSheet({ song, onBack, onPlayDemo }: Props) {
@@ -56,34 +90,21 @@ export function SongSheet({ song, onBack, onPlayDemo }: Props) {
   const currentKey = t(song.key);
   const diagrams = useMemo(() => songChords(song).map(t), [song, t]);
 
-  // ---- play-along (karaoke) state ----
+  // ---- play-along (karaoke) state: frame-accurate clock ----
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const [playing, setPlaying] = useState(false);
-  const [time, setTime] = useState(0);
-  const [duration, setDuration] = useState(0);
+  const { time: clock, playing, duration, seekTo } = useAudioClock(
+    audioRef,
+    song.audio
+  );
+  const time = clock + VISUAL_LEAD;
   const timed = useMemo(() => buildTimed(song), [song]);
-  const hasSync = song.audio && timed.length > 1;
+  const hasSync = !!song.audio && timed.length > 1;
 
-  useEffect(() => {
-    if (!song.audio) return;
-    const a = audioRef.current;
-    if (!a) return;
-    a.src = song.audio;
-    const onTime = () => setTime(a.currentTime);
-    const onPlay = () => setPlaying(true);
-    const onPause = () => setPlaying(false);
-    const onMeta = () => setDuration(a.duration || 0);
-    a.addEventListener("timeupdate", onTime);
-    a.addEventListener("play", onPlay);
-    a.addEventListener("pause", onPause);
-    a.addEventListener("loadedmetadata", onMeta);
-    return () => {
-      a.removeEventListener("timeupdate", onTime);
-      a.removeEventListener("play", onPlay);
-      a.removeEventListener("pause", onPause);
-      a.removeEventListener("loadedmetadata", onMeta);
-    };
-  }, [song.audio]);
+  // lyric clock (t) and chord clock (ct) are separate: singers push or
+  // delay a syllable, the band changes chord on the beat
+  const lyricStarts = useMemo(() => timed.map((e) => e.t), [timed]);
+  const byChord = useMemo(() => [...timed].sort((a, b) => a.ct - b.ct), [timed]);
+  const chordStarts = useMemo(() => byChord.map((e) => e.ct), [byChord]);
 
   const toggle = () => {
     const a = audioRef.current;
@@ -93,24 +114,44 @@ export function SongSheet({ song, onBack, onPlayDemo }: Props) {
   };
 
   const seek = (sec: number) => {
-    const a = audioRef.current;
-    if (!a || !duration) return;
-    a.currentTime = Math.min(Math.max(sec, 0), duration - 0.2);
-    setTime(a.currentTime);
+    if (!duration) return;
+    seekTo(Math.min(Math.max(sec, 0), duration - 0.2));
   };
 
-  // which timed entry is playing right now?
-  const activeIdx = useMemo(() => {
-    if (!hasSync) return -1;
-    let idx = -1;
-    for (let i = 0; i < timed.length; i++) {
-      if (timed[i].t <= time + 0.001) idx = i;
-      else break;
-    }
-    return idx;
-  }, [hasSync, timed, time]);
-
+  // which lyric segment is being sung right now?
+  const activeIdx = hasSync ? lastAtOrBefore(lyricStarts, time) : -1;
   const active = activeIdx >= 0 ? timed[activeIdx] : null;
+
+  // which chord is sounding right now (and which one comes next)?
+  const chordIdx = hasSync ? lastAtOrBefore(chordStarts, time) : -1;
+  const chordNow = chordIdx >= 0 ? byChord[chordIdx] : null;
+  let chordNext: TimedSeg | null = null;
+  for (let i = chordIdx + 1; i < byChord.length; i++) {
+    if (byChord[i].chord !== chordNow?.chord) {
+      chordNext = byChord[i];
+      break;
+    }
+  }
+
+  // word-by-word progress inside the active lyric segment
+  const karaoke = useMemo(() => {
+    if (!active || isSilentText(active.text)) return null;
+    const next = timed[activeIdx + 1];
+    const tNext = next ? next.t : duration || active.t + 6;
+    return wordTimes(active.text, active.t, tNext, active.w);
+  }, [active, activeIdx, timed, duration]);
+  const wordIdx = karaoke ? lastAtOrBefore(karaoke.starts, time) : -1;
+
+  // beat pulse (engine beat grid, when the sheet was synced)
+  const beats = useMemo(() => song.beats ?? [], [song.beats]);
+  const bpb = song.bpb ?? 4;
+  const beatPos = useMemo(
+    () => beatPositions(beats, song.downbeats, bpb),
+    [beats, song.downbeats, bpb]
+  );
+  const beatNow = beats.length > 1 ? beatState(beats, beatPos, time) : null;
+  const beatsToNext =
+    chordNext && beats.length > 1 ? beatsBetween(beats, time, chordNext.ct) : null;
 
   // keep the active line in view while playing (very smooth scroll)
   const activeLi = active?.li ?? -1;
@@ -256,26 +297,30 @@ export function SongSheet({ song, onBack, onPlayDemo }: Props) {
         </div>
       </section>
 
-      {/* play-along player — follows the sheet, highlights the active line */}
+      {/* play-along player — follows the sheet word by word, chords on the beat */}
       {hasSync && (
         <section className="mt-8">
           <SectionTitle>پخش همراه برگه</SectionTitle>
           <PlayerCard
             audioRef={audioRef}
             playing={playing}
-            time={time}
+            time={clock}
             duration={duration}
-            currentChord={active ? t(active.chord) : "N"}
+            currentChord={chordNow ? t(chordNow.chord) : "N"}
             onToggle={toggle}
             onSeek={seek}
+            nextChord={chordNext ? t(chordNext.chord) : null}
+            beatsToNext={beatsToNext}
+            beatInBar={beatNow ? beatNow.inBar : null}
+            bpb={beats.length > 1 ? bpb : undefined}
           />
           <p className="text-[11px] text-muted-foreground mt-2.5 leading-6">
-            پخش کن؛ هر بخش از برگه که آهنگ به آن می‌رسد، به‌نرمی قرمز می‌شود و
-            صفحه خودش همراهی می‌کند. روی هر بخش برگه هم کلیک کنی، پخش از همان‌جا شروع می‌شود.
+            پخش کن؛ متن کلمه‌به‌کلمه همراه صدا قرمز می‌شود، اکورد هر بخش سرِ ضربش
+            روشن می‌شود و صفحه خودش همراهی می‌کند. روی هر بخش برگه هم کلیک کنی،
+            پخش از همان‌جا شروع می‌شود.
           </p>
         </section>
       )}
-      {song.audio && !hasSync && null}
 
       {/* sheet — one uniform flow, no section labels, faint circular rays behind */}
       <section className="mt-10">
@@ -304,6 +349,8 @@ export function SongSheet({ song, onBack, onPlayDemo }: Props) {
                 {line.map((seg, si) => {
                   const isNow =
                     !!active && active.li === li && active.si === si;
+                  const isChordNow =
+                    !!chordNow && chordNow.li === li && chordNow.si === si;
                   const seekable = typeof seg.t === "number" && hasSync;
                   return (
                     <button
@@ -324,29 +371,47 @@ export function SongSheet({ song, onBack, onPlayDemo }: Props) {
                       }
                       disabled={!seekable}
                       className={cn(
-                        "inline-flex flex-col min-w-14 items-start rounded-lg px-2 py-1 -mx-2 text-start transition-all duration-700",
+                        "inline-flex flex-col min-w-14 items-start rounded-lg px-2 py-1 -mx-2 text-start transition-colors duration-200",
                         seekable && "cursor-pointer hover:bg-secondary/60",
                         isNow && "bg-primary/10 ring-1 ring-primary/25"
                       )}
                     >
                       <b
                         className={cn(
-                          "chord-latin text-lg font-black leading-6 transition-colors duration-700",
-                          isNow ? "text-primary" : "text-primary/60"
+                          "chord-latin text-lg font-black leading-6 transition-colors duration-100",
+                          isChordNow ? "text-primary" : "text-primary/60"
                         )}
                       >
                         {t(seg.chord)}
                       </b>
-                      <span
-                        className={cn(
-                          "text-sm leading-6 transition-colors duration-700",
-                          isNow
-                            ? "text-[oklch(0.545_0.212_26)] font-bold"
-                            : "text-foreground/90"
-                        )}
-                      >
-                        {seg.text}
-                      </span>
+                      {isNow && karaoke ? (
+                        <span className="text-sm leading-6">
+                          {karaoke.words.map((w, wi) => (
+                            <span
+                              key={wi}
+                              className={cn(
+                                "transition-colors duration-100",
+                                wi < wordIdx && SUNG,
+                                wi === wordIdx &&
+                                  `${SUNG} underline decoration-2 underline-offset-[6px]`,
+                                wi > wordIdx && "text-foreground/90"
+                              )}
+                            >
+                              {w}
+                              {wi < karaoke.words.length - 1 ? " " : ""}
+                            </span>
+                          ))}
+                        </span>
+                      ) : (
+                        <span
+                          className={cn(
+                            "text-sm leading-6 transition-colors duration-200",
+                            isNow ? SUNG : "text-foreground/90"
+                          )}
+                        >
+                          {seg.text}
+                        </span>
+                      )}
                     </button>
                   );
                 })}
