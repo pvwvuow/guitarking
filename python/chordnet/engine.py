@@ -1,10 +1,12 @@
-"""Deep chord engine: CNN-LSTM ensemble + XHMM decoding + bar-grid Viterbi.
+"""Deep chord engine: CNN-LSTM ensemble + XHMM decoding + metrical beat Viterbi.
 
 Frame-level probabilities come from a 5-fold ensemble of the ISMIR-2019
 large-vocabulary ChordNet (trained on Billboard/McGill/RWC-style corpora,
 ~300 chord templates).  A frame-level XHMM pass produces a smooth harmonic
-labelling; bar-grid emissions are pooled from the same probabilities and
-re-decoded with a key constraint, so the final sheet lands on musical time.
+labelling (used for key candidates); per-BEAT emissions are pooled from the
+same probabilities and re-decoded with a joint (chord x bar-position) HMM
+under a key constraint, so every chord change lands exactly on a beat —
+mostly on the bar line, on the half bar when the music really does it.
 """
 import math
 import os
@@ -17,6 +19,7 @@ from .complex_chord import Chord, NUM_TO_ABS_SCALE, shift_complex_chord_array
 
 SR = 22050
 HOP = 512
+EM_TEMP = 0.7   # beat-level emission temperature (one column per beat)
 _WEIGHTS = os.path.join(os.path.dirname(__file__), "weights")
 _SUBMISSION = os.path.join(os.path.dirname(__file__), "chord_list.txt")
 
@@ -128,25 +131,6 @@ def xhmm_frame_decode(names, logp, diff_pen=10.0):
     return [names[i] for i in ids]
 
 
-def viterbi_bars(em, stay=0.76):
-    """Viterbi over bars; em = (n_chord, n_bars) log-emissions."""
-    n_states, n_frames = em.shape
-    log_stay, log_move = math.log(stay), math.log(1.0 - stay)
-    dp = em[:, 0].copy()
-    back = np.zeros((n_states, n_frames), dtype=np.int32)
-    for t in range(1, n_frames):
-        stay_score = dp + log_stay
-        move_score = dp.max() + log_move
-        switch = move_score > stay_score
-        back[:, t] = np.where(switch, dp.argmax(), np.arange(n_states))
-        dp = np.where(switch, move_score, stay_score) + em[:, t]
-    path = np.zeros(n_frames, dtype=np.int32)
-    path[-1] = int(dp.argmax())
-    for t in range(n_frames - 1, 0, -1):
-        path[t - 1] = back[path[t], t]
-    return path
-
-
 def cqt_chroma(cqt):
     """(frames, 288) CQT magnitude -> normalized (12, frames) chroma."""
     pcs = (np.arange(cqt.shape[1]) // 3 + 6) % 12  # bin0 = F#0 -> pc 6
@@ -175,8 +159,13 @@ def display_label(name_bass):
 
 
 # ------------------------------------------------------------------ main ---
-def analyze_deep(y, dur, bars, silent):
-    """Deep analysis -> (segments, key|None, confidence, bar_chroma)."""
+def analyze_deep(y, dur, beats, silent, accent=None):
+    """Deep analysis on the beat grid.
+
+    -> (segments, key|None, confidence, beat_chroma (12, n_beats),
+        meter {"bpb": 3|4, "pos": bar position of every beat})"""
+    import meter as mt
+
     cqt = np.abs(librosa.hybrid_cqt(
         y, bins_per_octave=36, fmin=librosa.note_to_hz("F#0"),
         n_bins=288, tuning=None, hop_length=HOP)).T.astype(np.float32)
@@ -194,43 +183,50 @@ def analyze_deep(y, dur, bars, silent):
     n_frames = cqt.shape[0]
     frame_t = np.arange(n_frames) * frame_dur
 
-    # ---- frame-level XHMM labelling (key detection) ----
+    # ---- frame-level XHMM labelling (key candidates) ----
     table = build_chord_table()
     names, _arr, logp = chord_obs(table, probs)
     frame_labels = xhmm_frame_decode(names, logp)
 
-    # ---- bar-grid emissions pooled from the same probabilities ----
-    n_bars = len(bars)
-    frame_bar = np.clip(np.searchsorted(bars, frame_t, side="right") - 1,
-                        0, n_bars - 1)
-    em = np.zeros((logp.shape[1], n_bars))
-    for j in range(n_bars):
-        sel = frame_bar == j
+    # ---- beat-grid emissions pooled from the same probabilities ----
+    n_beats = len(beats)
+    frame_beat = mt.cell_index(frame_t, beats)
+    em = np.zeros((logp.shape[1], n_beats))
+    for j in range(n_beats):
+        sel = frame_beat == j
         if not sel.any():
-            continue
+            # beat shorter than a frame: borrow the nearest frame
+            k = int(np.clip(np.searchsorted(frame_t, beats[j]), 0,
+                            n_frames - 1))
+            sel = np.zeros(n_frames, dtype=bool)
+            sel[k] = True
         mp = [p[sel].mean(axis=0) for p in probs]
         _n2, _a2, lp2 = chord_obs(table, mp)
         em[:, j] = lp2[0]
 
-    for j in range(min(n_bars, len(silent))):
+    for j in range(min(n_beats, len(silent))):
         if silent[j]:
             em[1:, j] = -1e9
         else:
             em[0, j] = -1e9
 
-    # ---- key competition: candidate keys, keep the best raw-fit decode ----
+    em_t = EM_TEMP * np.maximum(em, -1e6)
+
+    # ---- metrical decode; meter settled on the free decode ----
     disp_all = [display_label(n) for n in names]
-    path = viterbi_bars(em)
+    free = mt.decode_meter(em_t, accent)
+    bpb = free["bpb"]
+    path, pos = free["path"], free["pos"]
     frame_segs = _frame_segments(frame_labels, frame_t)
-    free_segs = _bars_to_segments(bars, dur, path, disp_all)
+    free_segs = _bars_to_segments(beats, dur, path, disp_all)
     try:
         import chord_detect as cd
         cands = [cd.key_from_chords(frame_segs),
                  cd.best_key_overall(free_segs)]
     except Exception:
         cands = []
-    free_score = float(np.mean([em[path[j], j] for j in range(n_bars)]))
-    best_path, best_key, best_score = path, None, free_score
+    free_score = float(np.mean([em[path[j], j] for j in range(n_beats)]))
+    best_path, best_pos, best_key, best_score = path, pos, None, free_score
     seen = set()
     for k in cands:
         if not k:
@@ -239,29 +235,28 @@ def analyze_deep(y, dur, bars, silent):
         if kk in seen:
             continue
         seen.add(kk)
-        em_k = _apply_key_penalty(em, disp_all, k, penalty=0.45)
-        p_k = viterbi_bars(em_k)
-        sc = float(np.mean([em[p_k[j], j] for j in range(n_bars)]))
+        em_k = _apply_key_penalty(em_t, disp_all, k, penalty=0.45)
+        p_k, q_k, _sc = mt.metrical_viterbi(em_k, bpb, accent)
+        sc = float(np.mean([em[p_k[j], j] for j in range(n_beats)]))
         # adopt the constrained decoding when it costs almost nothing:
         # one key => consistent repeats, fewer out-of-key decoys
         if sc >= free_score - 0.03 and (best_key is None or sc > best_score):
-            best_path, best_key, best_score = p_k, k, sc
-    path = best_path
-    key = best_key
+            best_path, best_pos, best_key, best_score = p_k, q_k, k, sc
+    path, pos, key = best_path, best_pos, best_key
 
-    chosen = np.array([em[path[j], j] for j in range(n_bars)])
-    conf = float(np.mean(np.exp(np.clip(chosen, -20.0, 0.0)))) if n_bars else 0.0
+    chosen = np.array([em[path[j], j] for j in range(n_beats)])
+    conf = float(np.mean(np.exp(np.clip(chosen, -20.0, 0.0)))) if n_beats else 0.0
     conf = float(np.clip(conf ** 0.45, 0.0, 1.0))
 
     chroma = cqt_chroma(cqt)
-    counts = np.maximum(np.bincount(frame_bar, minlength=n_bars), 1)
-    bar_chroma = np.zeros((12, n_bars))
+    counts = np.maximum(np.bincount(frame_beat, minlength=n_beats), 1)
+    beat_chroma = np.zeros((12, n_beats))
     for pc in range(12):
-        bar_chroma[pc] = np.bincount(
-            frame_bar, weights=chroma[pc], minlength=n_bars) / counts
+        beat_chroma[pc] = np.bincount(
+            frame_beat, weights=chroma[pc], minlength=n_beats) / counts
 
-    segs = _bars_to_segments(bars, dur, path, disp_all)
-    return segs, key, conf, bar_chroma
+    segs = _bars_to_segments(beats, dur, path, disp_all)
+    return segs, key, conf, beat_chroma, {"bpb": int(bpb), "pos": pos}
 
 
 def _bars_to_segments(bars, dur, path, disp_all):
