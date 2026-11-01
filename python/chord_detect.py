@@ -1,23 +1,28 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-GuitarKing — Chord detection engine (v6)
+GuitarKing — Chord detection engine (v7)
 ========================================
 Detects the chords of every section of a song.
 
-Primary engine (v6, deep):
+Primary engine (v7, deep):
   1. Load audio (mono, 22050 Hz); hybrid-CQT features (288 bins).
   2. 5-fold ensemble of the ISMIR-2019 large-vocabulary ChordNet
      (CNN + BiLSTM, ~300 chord templates, bass head included).
   3. Frame-level XHMM (Viterbi) labelling for key detection.
-  4. Per-bar emissions pooled from the ensemble probabilities ->
-     bar-grid Viterbi under a key constraint -> chords land on musical time.
+  4. Per-BEAT emissions pooled from the ensemble probabilities ->
+     metrical (chord x bar-position) Viterbi under a key constraint
+     (meter.py): chord changes land exactly on beats, mostly on the bar
+     line, half-bar changes allowed, bar phase + 4/4 vs 3/4 inferred.
   5. Chords are mapped onto guitar-friendly labels (maj, m, 7, m7, maj7,
      sus, dim, real slash inversions kept, weak colour tones collapsed).
 
-Fallback engine (v5, DSP): wide-band chroma + bar Viterbi + key
-competition + repeat pooling — used automatically when torch is not
-installed or the deep engine fails.
+Fallback engine (v7, DSP): wide-band chroma + the same metrical beat
+Viterbi + key competition + repeat pooling — used automatically when
+torch is not installed or the deep engine fails.
+
+Output adds "beats", "downbeats" and "bpb" so the player can follow the
+song beat by beat.
 
 Usage:  python3 chord_detect.py <audio_file>
 Output: JSON on stdout
@@ -31,6 +36,8 @@ import warnings
 
 import numpy as np
 import librosa
+
+import meter as mt
 
 warnings.filterwarnings("ignore")
 
@@ -54,7 +61,7 @@ _FLAT_KEY_MAJOR = {"F", "Bb", "Eb", "Ab", "Db", "Gb"}
 
 SOFTMAX_Z = 14.0     # emission contrast
 KEY_PENALTY = 0.40   # emission multiplier for out-of-key chords
-STAY = 0.72          # per-bar self-transition probability
+EM_TEMP = 0.6        # beat-level emission temperature (v5 DSP decode)
 MIN_SEG = 0.8        # seconds; absolute floor for a chord segment
 PAIR_SIM_THR = 0.90  # mean-chroma cosine for "these two sections repeat"
 REPEAT_MIN_SPAN = 8.0  # only harmonize sections at least this long
@@ -635,7 +642,7 @@ def harmonize_repeats(sec_ranges, segments, C, grid_start, grid_end, key):
 
 
 # ----------------------------------------------------------------------
-# Wide-band chroma (vibrato-robust) + bar grid
+# Wide-band chroma (vibrato-robust)
 # ----------------------------------------------------------------------
 
 def wide_chroma_from_stft(S, freqs, tuning, fmin, fmax, width=0.65):
@@ -655,53 +662,26 @@ def wide_chroma_from_stft(S, freqs, tuning, fmin, fmax, width=0.65):
     return C
 
 
-def bar_grid(y, sr, dur):
-    """Beat-tracked bar grid; bar phase picked by onset energy on bar lines."""
-    try:
-        tempo, beats = librosa.beat.beat_track(y=y, sr=sr, hop_length=HOP)
-        bt = librosa.frames_to_time(np.atleast_1d(beats), sr=sr, hop_length=HOP)
-    except Exception:
-        return None, 0.5, 4
-    bt = bt[(bt >= 0) & (bt < dur)]
-    if len(bt) < 8:
-        return None, 0.5, 4
-    diffs = np.diff(bt)
-    diffs = diffs[(diffs > 0.15) & (diffs < 2.0)]
-    period = float(np.median(diffs)) if len(diffs) else 0.5
-    onset = librosa.onset.onset_strength(y=y, sr=sr, hop_length=HOP)
-    ot = librosa.frames_to_time(np.arange(len(onset)), sr=sr, hop_length=HOP)
-    bpb = 4 if period < 0.85 else 3   # fast 6/8 songs: 3 beats per bar
-    best_ph, best_e = 0, -1.0
-    for ph in range(bpb):
-        lines = bt[ph::bpb]
-        if len(lines) < 2:
-            continue
-        e = 0.0
-        for L in lines:
-            sel = (ot > L - 0.06) & (ot < L + 0.06)
-            e += onset[sel].mean() if sel.any() else 0.0
-        if e > best_e:
-            best_e, best_ph = e, ph
-    lines = list(bt[best_ph::bpb])
-    step = period * bpb
-    k = int(math.floor(lines[0] / step))
-    if 0 < k < 100:
-        lines = [lines[0] - step * i for i in range(k, 0, -1)] + lines
-    lines = [max(0.0, t) for t in lines]
-    last, g = lines[-1], 0
-    while dur - last > step and g < 400:
-        last += step
-        g += 1
-        lines.append(last)
-    return np.array(lines), period, bpb
+def beat_silence(y, sr, beats, rel=0.06):
+    """Per-beat silence map (RMS below rel x 95th percentile)."""
+    rms = librosa.feature.rms(y=y, hop_length=HOP)[0]
+    fr_t = librosa.frames_to_time(np.arange(len(rms)), sr=sr, hop_length=HOP)
+    n = len(beats)
+    idx = mt.cell_index(fr_t, beats)
+    cnt = np.maximum(np.bincount(idx, minlength=n), 1)
+    cell_rms = np.bincount(idx, weights=rms, minlength=n) / cnt
+    if not cell_rms.size:
+        return np.zeros(n, dtype=bool)
+    thr = rel * float(np.percentile(cell_rms, 95))
+    return cell_rms < thr
 
 
 # ----------------------------------------------------------------------
-# Primary engine: bar-synced Viterbi with key competition
+# DSP engine: beat-synced metrical Viterbi with key competition
 # ----------------------------------------------------------------------
 
 def prepare_features(path):
-    """Load audio, tuning, wide-band chromas, bar grid, silence map."""
+    """Load audio, tuning, wide-band chromas, beat grid, silence map."""
     y, sr = librosa.load(path, sr=SR, mono=True, res_type="kaiser_fast")
     dur = float(len(y) / sr)
     if dur < 4:
@@ -726,25 +706,13 @@ def prepare_features(path):
     C = wide_chroma_from_stft(S, freqs, tuning, 55.0, 2200.0)
     B = wide_chroma_from_stft(S, freqs, tuning, 55.0, 300.0)
 
-    bars, period, bpb = bar_grid(y, sr, dur)
-    if bars is None:
-        bars = np.arange(0.0, dur, 2.0)
-        period, bpb = 0.5, 4
+    beats, period, accent = mt.track_beats(y, sr, dur)
+    silent = beat_silence(y_h, sr, beats, rel=0.055)
 
-    # silence map per bar (harmonic RMS floor)
-    rms_h = librosa.feature.rms(y=y_h, hop_length=HOP)[0]
-    n = rms_h.shape[0]
-    frames = np.unique(np.concatenate(
-        [[0], np.clip(librosa.time_to_frames(bars, sr=sr, hop_length=HOP), 0, n - 1)]))
-    rms_b = librosa.util.sync(rms_h.reshape(1, -1), frames, aggregate=np.mean)[0]
-    thr = 0.055 * float(np.percentile(rms_b, 95)) if rms_b.size else 0.0
-    silent = rms_b < thr
-
-    def sync(feats, agg):
-        return librosa.util.sync(feats, frames, aggregate=agg)
-
-    Cb = sync(C, np.median)
-    Bb = sync(B, np.median)
+    fr_t = librosa.frames_to_time(np.arange(C.shape[1]), sr=sr, hop_length=HOP)
+    cell = mt.cell_index(fr_t, beats)
+    Cb = mt.pool_cells(C, cell, len(beats), np.median)
+    Bb = mt.pool_cells(B, cell, len(beats), np.median)
 
     def norm_cols(m):
         out = m.astype(float).copy()
@@ -759,13 +727,14 @@ def prepare_features(path):
     Cb = norm_cols(Cb)
     Bb = norm_cols(np.log1p(3.0 * np.maximum(Bb, 0.0)))
 
-    return dict(y=y, y_h=y_h, sr=sr, dur=dur, tuning=tuning, bars=bars,
-                period=period, bpb=bpb, Cb=Cb, Bb=Bb, silent=silent, C=C,
-                bar_frames=frames)
+    # "bars" = the decode grid (one column per BEAT since v7)
+    return dict(y=y, y_h=y_h, sr=sr, dur=dur, tuning=tuning, bars=beats,
+                beats=beats, period=period, bpb=4, cell=period,
+                accent=accent, pos=None, Cb=Cb, Bb=Bb, silent=silent, C=C)
 
 
 def emissions_for_key(F, key):
-    """Per-bar emission matrix: template softmax x kind weight x bass bonus
+    """Per-beat emission matrix: template softmax x kind weight x bass bonus
     x key prior, plus silence gating."""
     Cb, Bb, sil = F["Cb"], F["Bb"], F["silent"]
     n_bars = Cb.shape[1]
@@ -774,8 +743,8 @@ def emissions_for_key(F, key):
     silent_cols[:m] = sil[:m]
     Tn = _templates_norm()
     corr = np.clip(Tn @ Cb, 0.0, 1.0)
-    # softmax over templates per bar: emission = how much better this chord
-    # is than the alternatives in THIS bar (contrast, not absolute fit)
+    # softmax over templates per beat: emission = how much better this chord
+    # is than the alternatives in THIS beat (contrast, not absolute fit)
     e = np.exp(SOFTMAX_Z * (corr - corr.max(axis=0, keepdims=True)))
     em = e / e.sum(axis=0, keepdims=True)
     bmax = Bb.max(axis=0, keepdims=True)
@@ -800,29 +769,13 @@ def emissions_for_key(F, key):
     return em, corr
 
 
-def viterbi(em, stay=STAY):
-    """Viterbi decoding with shared move cost (log domain)."""
-    n_states, n_frames = em.shape
-    logem = np.log(np.maximum(em, 1e-12))
-    log_stay, log_move = math.log(stay), math.log(1.0 - stay)
-    dp = logem[:, 0].copy()
-    back = np.zeros((n_states, n_frames), dtype=np.int32)
-    for t in range(1, n_frames):
-        stay_score = dp + log_stay
-        move_score = dp.max() + log_move
-        switch = move_score > stay_score
-        back[:, t] = np.where(switch, dp.argmax(), np.arange(n_states))
-        dp = np.where(switch, move_score, stay_score) + logem[:, t]
-    path = np.zeros(n_frames, dtype=np.int32)
-    path[-1] = int(dp.argmax())
-    for t in range(n_frames - 1, 0, -1):
-        path[t - 1] = back[path[t], t]
-    return path
+def log_em(em):
+    return EM_TEMP * np.log(np.maximum(em, 1e-12))
 
 
 def bass_root_agreement_bars(F, path):
-    """Fraction of musical bars whose strongest bass pitch class matches the
-    decoded chord root (or fifth)."""
+    """Fraction of musical beats whose strongest bass pitch class matches
+    the decoded chord root (or fifth)."""
     Bb = F["Bb"]
     bmax = Bb.max(axis=0, keepdims=True)
     bmax[bmax < 1e-9] = 1.0
@@ -849,24 +802,30 @@ def bass_root_agreement_bars(F, path):
 
 
 def decode_with_keys(F):
-    """Run Viterbi under every candidate key (+ unconstrained); keep all
-    candidate decodings for the ensemble."""
+    """Metrical Viterbi under every candidate key (+ unconstrained). The
+    meter (4/4 vs 3/4) is settled once on the free decode."""
+    em0, _ = emissions_for_key(F, None)
+    free = mt.decode_meter(log_em(em0), F["accent"])
+    bpb = free["bpb"]
     keys = [None] + [(NOTES[r], mo) for r in range(12) for mo in ("major", "minor")]
     cands = []
     for key in keys:
         em, corr = emissions_for_key(F, key)
-        path = viterbi(em, stay=STAY)
-        n_bars = len(path)
-        fit = float(np.mean([corr[path[i], i] for i in range(n_bars)]))
+        if key is None:
+            path, pos = free["path"], free["pos"]
+        else:
+            path, pos, _sc = mt.metrical_viterbi(log_em(em), bpb, F["accent"])
+        n = len(path)
+        fit = float(np.mean([corr[path[i], i] for i in range(n)]))
         bass = bass_root_agreement_bars(F, path)
         score = 0.55 * fit + 0.45 * bass
-        cands.append({"key": key, "path": path, "fit": fit, "bass": bass,
-                      "score": score, "corr": corr})
+        cands.append({"key": key, "path": path, "pos": pos, "bpb": bpb,
+                      "fit": fit, "bass": bass, "score": score, "corr": corr})
     return cands
 
 
 def path_to_segments(F, path):
-    """Turn a bar-level chord path into time segments."""
+    """Turn a beat-level chord path into time segments."""
     bars, dur = F["bars"], F["dur"]
     raw = []
     for i, st in enumerate(path):
@@ -926,17 +885,16 @@ def quality_simplify(segments, F):
 
 
 def pool_repeats(F, path):
-    """Second pass: bars inside near-identical repeated passages are
+    """Second pass: beats inside near-identical repeated passages are
     re-decided on the POOLED chroma of all occurrences, so a chorus cannot
     change chords when it returns."""
     Cb = F["Cb"]
-    n_bars = Cb.shape[1]
     seq = [LABELS[s] for s in path]
-    # find repeated sub-sequences of >= 6 bars
+    # find repeated sub-sequences of >= 8 beats (2 bars)
     best_pairs = []
     L = len(seq)
     max_len = L // 2
-    for length in range(min(32, max_len), 5, -1):
+    for length in range(min(64, max_len), 7, -1):
         seen = {}
         for i in range(L - length + 1):
             key = tuple(seq[i:i + length])
@@ -965,8 +923,6 @@ def pool_repeats(F, path):
             break
     if not best_pairs:
         return path
-    # pool: for each pair of aligned runs, re-decide disagreeing bars on
-    # the pooled chroma (argmax of pooled softmax emission, in-key first)
     newpath = np.array(path, dtype=np.int32)
     for (i, j, length, _sim) in best_pairs:
         for k in range(length):
@@ -981,7 +937,6 @@ def pool_repeats(F, path):
                 continue
             vp = vp / nv
             corr_pool = _templates_norm() @ vp
-            # candidates: the two assigned chords; winner = better pooled fit
             ca, cb = newpath[a], newpath[b]
             if corr_pool[ca] >= corr_pool[cb]:
                 newpath[b] = ca
@@ -991,11 +946,12 @@ def pool_repeats(F, path):
 
 
 def primary_engine(path):
-    """Wide-band chroma + bar Viterbi + key competition + repeat pooling.
-    Returns (segments, key, confidence, F)."""
+    """Wide-band chroma + metrical beat Viterbi + key competition + repeat
+    pooling. Returns (segments, key, confidence, F)."""
     F = prepare_features(path)
     cands = decode_with_keys(F)
     best = max(cands, key=lambda c: c["score"])
+    F["bpb"], F["pos"] = best["bpb"], best["pos"]
     path2 = pool_repeats(F, best["path"])
     segs = path_to_segments(F, path2)
     segs = dedupe_and_cover(quality_simplify(segs, F), F["dur"])
@@ -1013,12 +969,12 @@ def primary_engine(path):
 
 
 # ----------------------------------------------------------------------
-# Secondary engine (cross-check): Essentia HPCP
+# Last-resort engine: Essentia HPCP
 # ----------------------------------------------------------------------
 
 def essentia_chords(path):
-    """Essentia HPCP + ChordsDetection (native); sanity-fixed against the
-    bar chroma and key. Returns (segments, confidence, key_or_None) or None."""
+    """Essentia HPCP + ChordsDetection (native). Returns
+    (segments, confidence, key_or_None) or None."""
     try:
         import essentia
         import essentia.standard as es
@@ -1072,8 +1028,7 @@ def essentia_chords(path):
                            "end": min((i + 1) * dt, duration)})
     if not segs_f:
         return None
-    min_len = 1.2
-    segs = fold_short(segs_f, min_len)
+    segs = fold_short(segs_f, 1.2)
 
     key_info = None
     try:
@@ -1094,183 +1049,11 @@ def essentia_chords(path):
 
 
 # ----------------------------------------------------------------------
-# Composite arbitration
-# ----------------------------------------------------------------------
-
-def bass_root_agreement(segments, Bn, grid_start, grid_end):
-    """Duration-weighted fraction of chord time whose strongest bass pitch
-    class is the chord root (or its fifth)."""
-    n_cells = Bn.shape[1]
-    total, hit = 0.0, 0.0
-    for s in segments:
-        if s["chord"] == "N":
-            continue
-        pc, _suf = chord_parse(s["chord"])
-        if pc is None:
-            continue
-        i0 = max(0, int(np.searchsorted(grid_start, s["start"], side="right") - 1))
-        i1 = int(np.searchsorted(grid_start, s["end"], side="left"))
-        i0, i1 = max(0, i0), min(n_cells, max(i1, i0 + 1))
-        v = Bn[:, i0:i1].mean(axis=1)
-        if v.max() < 1e-9:
-            continue
-        bass_pc = int(np.argmax(v))
-        total += s["end"] - s["start"]
-        if bass_pc == pc or bass_pc == (pc + 7) % 12:
-            hit += s["end"] - s["start"]
-    return (hit / total) if total > 1e-6 else 0.0
-
-
-def fit_margin_score(segments, C, grid_start, grid_end):
-    """Duration-weighted template-fit quality of the chosen labels."""
-    total, acc = 0.0, 0.0
-    for s in segments:
-        if s["chord"] == "N":
-            continue
-        v = span_chroma(C, grid_start, grid_end, s["start"], s["end"])
-        if v is None:
-            continue
-        acc += (s["end"] - s["start"]) * max(template_fit(v, s["chord"]), 0.0)
-        total += s["end"] - s["start"]
-    return (acc / total) if total > 1e-6 else 0.0
-
-
-def composite_score(segments, key, C, Bn, grid_start, grid_end):
-    cov = 0.0
-    if key:
-        try:
-            cov = key_compatibility(segments, key["tonic"], key["mode"])
-        except Exception:
-            cov = 0.0
-    bass = bass_root_agreement(segments, Bn, grid_start, grid_end)
-    fit = fit_margin_score(segments, C, grid_start, grid_end)
-    return 0.50 * cov + 0.30 * bass + 0.20 * fit
-
-
-def chroma_sanity_relabel(segments, C, grid_start, grid_end, key,
-                          min_margin=0.12):
-    """Second look at every segment using the bar chroma; relabels only
-    when a clearly better in-key alternative exists."""
-    if not key or C is None or not len(segments):
-        return segments
-    try:
-        mask = key_chord_mask(key["tonic"], key["mode"])
-    except Exception:
-        return segments
-    Tn = _templates_norm()
-    lab_in_key = {lab: bool(mask[i]) for i, lab in enumerate(LABELS)}
-    cand_idx = [i for i, lab in enumerate(LABELS) if lab != "N"]
-    cand_T = Tn[cand_idx]
-    n_cells = C.shape[1]
-    out = []
-    for s in segments:
-        lab = s["chord"]
-        if lab == "N":
-            out.append(s)
-            continue
-        sel = np.array([(grid_end[i] > s["start"] and grid_start[i] < s["end"])
-                        for i in range(n_cells)], dtype=bool)
-        if not sel.any():
-            mid = 0.5 * (float(s["start"]) + float(s["end"]))
-            idx = int(np.searchsorted(grid_start, mid)) - 1
-            idx = max(0, min(idx, n_cells - 1))
-            sel[idx] = True
-        v = C[:, sel].mean(axis=1)
-        nv = np.linalg.norm(v)
-        if nv < 1e-9:
-            out.append(s)
-            continue
-        v = v / nv
-        corr = cand_T @ v
-        j = int(np.argmax(corr))
-        corr_i = cand_idx[j]
-        best_lab, best_c = LABELS[corr_i], float(corr[j])
-        if best_c < 0.30:
-            out.append(s)
-            continue
-        try:
-            cur_c = float(Tn[LABELS.index(lab)] @ v)
-        except ValueError:
-            cur_c = -1.0
-        new_lab = lab
-        if best_lab != lab and best_c - cur_c >= min_margin:
-            if lab_in_key.get(best_lab) and not lab_in_key.get(lab, True):
-                new_lab = best_lab
-            elif lab_in_key.get(best_lab) and cur_c < 0.55:
-                new_lab = best_lab
-        if new_lab != lab:
-            out.append({"chord": new_lab, "start": s["start"], "end": s["end"]})
-        else:
-            out.append(s)
-    return out
-
-
-def relabel_to_key(segments, key, Bn, grid_start, grid_end):
-    """Pull out-of-key chords back into the key (root-preserving first)."""
-    if not key:
-        return segments
-    mask = key_chord_mask(key["tonic"], key["mode"])
-
-    def in_key(lab):
-        try:
-            return bool(mask[LABELS.index(lab)])
-        except ValueError:
-            return False
-
-    ti = NOTES.index(key["tonic"])
-    if key["mode"] == "major":
-        pref = {0: "maj", 2: "min", 4: "min", 5: "maj", 7: "maj", 9: "min"}
-    else:
-        pref = {0: "min", 3: "maj", 5: "min", 7: "maj", 8: "maj", 10: "maj"}
-
-    n_cells = Bn.shape[1]
-
-    def bass_support(pc, a, b):
-        i0 = max(0, int(np.searchsorted(grid_start, a, side="right") - 1))
-        i1 = int(np.searchsorted(grid_start, b, side="left"))
-        i0, i1 = max(0, i0), min(n_cells, max(i1, i0 + 1))
-        return float(Bn[pc, i0:i1].max()) if i1 > i0 else 0.0
-
-    out = []
-    for s in segments:
-        lab = s["chord"]
-        if lab == "N" or in_key(lab):
-            out.append(s)
-            continue
-        root, _suf = chord_parse(lab)
-        newlab = None
-        if root is not None:
-            st = (root - ti) % 12
-            if st in pref:
-                cand = NOTES[root] + ("" if pref[st] == "maj" else "m")
-                if in_key(cand):
-                    newlab = cand
-        if newlab is None:
-            best, bestsup = None, -1.0
-            for st2, q2 in pref.items():
-                r2 = (ti + st2) % 12
-                sup = bass_support(r2, s["start"], s["end"])
-                if sup > bestsup:
-                    bestsup, best = sup, NOTES[r2] + ("" if q2 == "maj" else "m")
-            newlab = best
-        s = dict(s)
-        s["chord"] = newlab
-        out.append(s)
-    merged = []
-    for s in out:
-        if merged and merged[-1]["chord"] == s["chord"]:
-            merged[-1]["end"] = s["end"]
-        else:
-            merged.append(s)
-    return merged
-
-
-# ----------------------------------------------------------------------
-# Primary engine (v6): deep ChordNet ensemble on the bar grid
+# Primary engine (v7): deep ChordNet ensemble on the beat grid
 # ----------------------------------------------------------------------
 
 def deep_engine(path):
-    """ChordNet 5-fold ensemble + XHMM + bar-grid key-constrained decode.
+    """ChordNet 5-fold ensemble + XHMM + metrical beat decode.
     Returns (segments, key, confidence, F)."""
     from chordnet import engine as de
 
@@ -1282,35 +1065,23 @@ def deep_engine(path):
         y = y[: int(900 * sr)]
         dur = 900.0
 
-    bars, period, bpb = bar_grid(y, sr, dur)
-    if bars is None:
-        bars = np.arange(0.0, dur, 2.0)
-        period, bpb = 0.5, 4
+    beats, period, accent = mt.track_beats(y, sr, dur)
+    silent = beat_silence(y, sr, beats, rel=0.06)
 
-    # per-bar silence map (plain RMS floor)
-    rms = librosa.feature.rms(y=y, hop_length=HOP)[0]
-    fr_t = librosa.frames_to_time(np.arange(len(rms)), sr=sr, hop_length=HOP)
-    n_bars = len(bars)
-    idx = np.clip(np.searchsorted(bars, fr_t, side="right") - 1,
-                  0, max(n_bars - 1, 0))
-    cnt = np.maximum(np.bincount(idx, minlength=n_bars), 1)
-    bar_rms = np.bincount(idx, weights=rms, minlength=n_bars) / cnt
-    thr = 0.06 * float(np.percentile(bar_rms, 95)) if bar_rms.size else 0.0
-    silent = bar_rms < thr if bar_rms.size else np.zeros(n_bars, dtype=bool)
-
-    segs, key, conf, bar_chroma = de.analyze_deep(y, dur, bars, silent)
+    segs, key, conf, beat_chroma, meter = de.analyze_deep(
+        y, dur, beats, silent, accent)
 
     min_len = float(np.clip(1.1 * period, MIN_SEG, 1.7))
     segs = dedupe_and_cover(absorb_short_N(fold_short(segs, min_len), dur),
                             dur)
-    segs = dedupe_and_cover(quality_simplify(segs, F_lite(bars, bar_chroma,
+    segs = dedupe_and_cover(quality_simplify(segs, F_lite(beats, beat_chroma,
                                                           period, dur)),
                             dur)
 
-    F = {"dur": dur, "tuning": 0.0, "bars": bars, "period": period,
-         "bpb": bpb, "Cb": bar_chroma, "Bb": np.ones((12, 1)) / 12.0,
-         "silent": silent, "C": bar_chroma, "y_h": y, "y": y, "sr": sr,
-         "bar_frames": np.array([0])}
+    F = {"dur": dur, "tuning": 0.0, "bars": beats, "beats": beats,
+         "period": period, "bpb": meter["bpb"], "pos": meter["pos"],
+         "cell": period, "Cb": beat_chroma, "Bb": np.ones((12, 1)) / 12.0,
+         "silent": silent, "C": beat_chroma, "y_h": y, "y": y, "sr": sr}
     return segs, key, conf, F
 
 
@@ -1320,27 +1091,56 @@ def F_lite(bars, Cb, period, dur):
             "dur": dur}
 
 
+def snap_to_beats(segments, beats, dur):
+    """Final guard: every chord change sits exactly on a beat."""
+    if beats is None or len(beats) < 2:
+        return segments
+    b = np.asarray(beats, dtype=float)
+    out = []
+    for s in segments:
+        a = float(s["start"])
+        if a > 1e-6:
+            j = int(np.argmin(np.abs(b - a)))
+            a = float(b[j])
+        if out and a <= out[-1]["start"] + 1e-6:
+            continue
+        if out:
+            out[-1]["end"] = a
+        out.append({"chord": s["chord"], "start": a, "end": float(s["end"])})
+    if out:
+        out[0]["start"] = 0.0
+        out[-1]["end"] = dur
+    merged = []
+    for s in out:
+        if merged and merged[-1]["chord"] == s["chord"]:
+            merged[-1]["end"] = s["end"]
+        else:
+            merged.append(s)
+    return merged
+
+
 # ----------------------------------------------------------------------
 # Main analysis
 # ----------------------------------------------------------------------
 
 def analyze(path):
-    # ---------- 0. deep engine (v6 primary) ----------
+    # ---------- 0. deep engine (v7 primary) ----------
     deep_ok = False
     try:
         segs_p, key_p, conf_p, F = deep_engine(path)
         deep_ok = True
         segments, key, engine, confidence = \
-            segs_p, key_p, "v6-chordnet", conf_p
+            segs_p, key_p, "v7-chordnet-beat", conf_p
     except SystemExit:
         raise
     except Exception:
         deep_ok = False
 
-    # ---------- 1. v5 fallback ----------
+    # ---------- 1. DSP fallback ----------
     if not deep_ok:
         try:
             segs_p, key_p, conf_p, F = primary_engine(path)
+            engine = "v7-wideband-beat"
         except SystemExit:
             raise
         except Exception:
@@ -1350,20 +1150,28 @@ def analyze(path):
                 fail("نتوانستم آکوردهای این فایل را تشخیص بدهم.")
             ess_segs, ess_conf, ess_key = ess
             y, sr = librosa.load(path, sr=SR, mono=True, res_type="kaiser_fast")
-            F = {"dur": float(len(y) / sr), "tuning": 0.0,
-                 "bars": np.arange(0.0, len(y) / sr, 2.0),
-                 "period": 0.5, "bpb": 4, "Cb": np.ones((12, 1)) / 12.0,
-                 "Bb": np.ones((12, 1)) / 12.0, "silent": np.zeros(1, dtype=bool),
-                 "C": np.ones((12, 1)) / 12.0, "y_h": y, "y": y, "sr": sr,
-                 "bar_frames": np.array([0])}
+            d = float(len(y) / sr)
+            try:
+                beats, period, _acc = mt.track_beats(y, sr, d)
+            except Exception:
+                beats, period = np.arange(0.0, d, 0.5), 0.5
+            grid = np.arange(0.0, d, 2.0)
+            F = {"dur": d, "tuning": 0.0, "bars": grid, "beats": beats,
+                 "period": period, "bpb": 4, "pos": None, "cell": 2.0,
+                 "Cb": np.ones((12, max(len(grid), 1))) / 12.0,
+                 "Bb": np.ones((12, 1)) / 12.0,
+                 "silent": np.zeros(1, dtype=bool),
+                 "C": np.ones((12, max(len(grid), 1))) / 12.0,
+                 "y_h": y, "y": y, "sr": sr}
             segs_p, key_p, conf_p = ess_segs, ess_key, ess_conf
-        segments, key, engine, confidence = \
-            segs_p, key_p, "v5-wideband-barviterbi", conf_p
+            engine = "essentia-native"
+        segments, key, confidence = segs_p, key_p, conf_p
 
     dur = F["dur"]
     tuning = F["tuning"]
+    beats = np.asarray(F.get("beats", F["bars"]), dtype=float)
 
-    # bar-level grid arrays for post-processing helpers
+    # decode-grid arrays for post-processing helpers
     bars = F["bars"]
     grid_start = np.array(list(bars) + [dur], dtype=float)
     grid_end = np.array(list(bars[1:]) + [dur], dtype=float)
@@ -1371,19 +1179,28 @@ def analyze(path):
         grid_end = np.append(grid_end, dur)
 
     C = F["Cb"]
-    Bn = F["Bb"]
     period = F["period"]
     if C is not None and C.size > 12:
         key = refine_key(key, segments, C.mean(axis=1))
-    else:
-        key = key or {"tonic": "C", "mode": "major", "confidence": 0.0,
-                      "tonicFa": "دو", "modeFa": "ماژور"}
+    key = key or {"tonic": "C", "mode": "major", "confidence": 0.0,
+                  "tonicFa": "دو", "modeFa": "ماژور"}
 
     # ---------- 3. post passes ----------
     segments = dedupe_and_cover(absorb_short_N(segments, dur), dur)
 
+    # downbeat columns (bar lines) of the decode grid
+    pos = F.get("pos")
+    bpb = int(F.get("bpb") or 4)
+    if pos is not None and len(pos):
+        pos = np.asarray(pos)
+        down_cols = [int(i) for i in np.where(pos == 0)[0]]
+        downbeats = mt.downbeat_times(beats, pos)
+    else:
+        down_cols = []
+        downbeats = beats[::bpb] if len(beats) else np.array([])
+
     # ---------- 4. sections ----------
-    n_beats = C.shape[1]
+    n_cells = C.shape[1]
     if dur <= 45:
         k = max(2, min(4, int(round(dur / 15))))
     else:
@@ -1392,27 +1209,31 @@ def analyze(path):
         bnds = librosa.segment.agglomerative(C, k)
     except Exception:
         bnds = np.array([], dtype=int)
-    bnds = sorted(set(int(b) for b in np.atleast_1d(bnds) if 0 < b < n_beats))
+    bnds = [int(b) for b in np.atleast_1d(bnds) if 0 < b < n_cells]
+    if down_cols:  # sections start on a bar line
+        dc = np.array(down_cols)
+        bnds = [int(dc[np.argmin(np.abs(dc - b))]) for b in bnds]
+    bnds = sorted(set(b for b in bnds if 0 < b < n_cells))
 
     min_sec = max(8.0, dur / 24.0)
-    bar_len = period * F["bpb"]
-    min_cells = max(2, int(round(min_sec / max(bar_len, 0.5))))
+    cell_len = float(F.get("cell") or period * bpb)
+    min_cells = max(2, int(round(min_sec / max(cell_len, 0.2))))
     while bnds:
-        ext = [0] + bnds + [n_beats]
+        ext = [0] + bnds + [n_cells]
         gaps = np.diff(ext)
         i = int(np.argmin(gaps))
         if gaps[i] >= min_cells:
             break
-        drop = ext[i + 1] if 0 < ext[i + 1] < n_beats else ext[i]
+        drop = ext[i + 1] if 0 < ext[i + 1] < n_cells else ext[i]
         if drop not in bnds:
             break
         bnds.remove(drop)
-    bnds = sorted(set([0] + bnds + [n_beats]))
+    bnds = sorted(set([0] + bnds + [n_cells]))
 
     # harmonize repeated sections (same section -> same chords)
-    # v6 note: the deep engine already decodes under one key with a strong
-    # model; the v5 label-vocabulary matcher below would corrupt its
-    # maj7/slash labels, so it runs on the v5 fallback output only.
+    # the deep engine already decodes under one key with a strong model;
+    # this label-vocabulary matcher would corrupt its maj7/slash labels,
+    # so it runs on the DSP fallback output only.
     try:
         sec_ranges = []
         for si in range(len(bnds) - 1):
@@ -1421,12 +1242,15 @@ def analyze(path):
                 continue
             sec_ranges.append((float(grid_start[a]), float(grid_end[b - 1]),
                                C[:, a:b].mean(axis=1)))
-        if sec_ranges and key and engine.startswith("v5"):
+        if sec_ranges and key and engine == "v7-wideband-beat":
             segments = dedupe_and_cover(
                 harmonize_repeats(sec_ranges, segments, C, grid_start,
                                   grid_end, key), dur)
     except Exception:
         pass
+
+    # every chord change sits on a beat
+    segments = snap_to_beats(segments, beats, dur)
 
     sections = []
     chromas_for_letters = []
@@ -1498,12 +1322,25 @@ def analyze(path):
 
     tempo_out = round(60.0 / F["period"], 1)
 
+    def r3(xs):
+        return [round(float(x), 3) for x in xs]
+
+    for s in segments:
+        s["start"], s["end"] = round(s["start"], 3), round(s["end"], 3)
+    for sec in sections:
+        sec["start"], sec["end"] = round(sec["start"], 3), round(sec["end"], 3)
+        for s in sec["segments"]:
+            s["start"], s["end"] = round(s["start"], 3), round(s["end"], 3)
+
     return {
         "ok": True,
         "engine": engine,
         "tuning": round(float(tuning), 3),
         "duration": round(dur, 2),
         "tempo": tempo_out,
+        "bpb": bpb,
+        "beats": r3(beats),
+        "downbeats": r3(downbeats),
         "key": key,
         "confidence": confidence,
         "sections": sections,
