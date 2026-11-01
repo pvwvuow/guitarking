@@ -39,3 +39,8 @@ tests/
 mini-services/
 download/
 upload/
+
+# engine bench: local audio + analysis cache never committed (copyright)
+bench/audio/
+bench/cache/
+bench/chords/*.raw
