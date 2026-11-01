@@ -32,6 +32,7 @@ export interface ChordUsage {
 
 export interface AnalysisResult {
   ok: true;
+  engine?: string;
   duration: number;
   tempo: number;
   key: KeyInfo;
@@ -39,6 +40,12 @@ export interface AnalysisResult {
   sections: SongSection[];
   segments: ChordSegment[];
   chordSeconds: ChordUsage[];
+  /** engine v7: beat grid (s); every chord change sits on one of these */
+  beats?: number[];
+  /** engine v7: bar lines (s) */
+  downbeats?: number[];
+  /** engine v7: beats per bar (4 or 3) */
+  bpb?: number;
 }
 
 export interface AnalysisError {

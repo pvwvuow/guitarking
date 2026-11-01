@@ -14,6 +14,14 @@ interface Props {
   currentChord: string;
   onToggle: () => void;
   onSeek: (t: number) => void;
+  /** next chord (beat-synced timeline) */
+  nextChord?: string | null;
+  /** beats left until the next chord */
+  beatsToNext?: number | null;
+  /** 0-based position of the current beat in its bar */
+  beatInBar?: number | null;
+  /** beats per bar */
+  bpb?: number;
 }
 
 export function PlayerCard({
@@ -24,8 +32,14 @@ export function PlayerCard({
   currentChord,
   onToggle,
   onSeek,
+  nextChord,
+  beatsToNext,
+  beatInBar,
+  bpb,
 }: Props) {
   const isN = currentChord === "N";
+  const showBeats = typeof beatInBar === "number" && !!bpb && bpb > 1;
+  const showNext = !!nextChord && nextChord !== "N" && nextChord !== currentChord;
 
   return (
     <div className="rounded-2xl border bg-card p-4 sm:p-6">
@@ -49,6 +63,34 @@ export function PlayerCard({
             <p className="text-xs text-muted-foreground mt-1.5">
               {isN ? "بدون آکورد مشخص" : `${chordRootFa(currentChord)} — ${chordQuality(currentChord)}`}
             </p>
+            {showBeats && (
+              <div className="flex justify-center gap-1.5 mt-2.5" dir="ltr" aria-hidden>
+                {Array.from({ length: bpb as number }, (_, i) => (
+                  <span
+                    key={i}
+                    className={`h-2 w-2 rounded-full transition-transform duration-75 ${
+                      playing && i === beatInBar
+                        ? i === 0
+                          ? "bg-primary scale-150"
+                          : "bg-primary/70 scale-125"
+                        : "bg-foreground/15"
+                    }`}
+                  />
+                ))}
+              </div>
+            )}
+            {showNext && (
+              <p className="text-[11px] text-muted-foreground mt-1.5">
+                بعدی:{" "}
+                <b className="chord-latin text-foreground">{chordDisplay(nextChord as string)}</b>
+                {typeof beatsToNext === "number" && beatsToNext > 0 && beatsToNext <= 16 && (
+                  <>
+                    {" · "}
+                    <span className="chord-latin tabular-nums">{beatsToNext}</span> ضرب دیگر
+                  </>
+                )}
+              </p>
+            )}
           </div>
         </div>
 
