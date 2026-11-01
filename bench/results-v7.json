@@ -1,0 +1,329 @@
+{
+ "summary": {
+  "root": 0.5493,
+  "majmin": 0.4587,
+  "change_f": 0.4578,
+  "seq_root": 0.3097,
+  "seq_majmin": 0.2942,
+  "songs": 30,
+  "ok": 24
+ },
+ "songs": [
+  {
+   "audio": "audio/bani-akhmat.mp3",
+   "engine": "v7-chordnet-beat",
+   "tempo": 103.4,
+   "bpb": 4,
+   "root": 0.5745,
+   "majmin": 0.5316,
+   "change_f": 0.6929,
+   "change_err_ms": 284.3,
+   "seq_root": 0.5493,
+   "seq_root_shift": 0,
+   "seq_majmin": 0.5493,
+   "seq_majmin_shift": 0,
+   "seq_ref_len": 56,
+   "seq_est_len": 71
+  },
+  {
+   "audio": "audio/bani-setare.mp3",
+   "engine": "v7-chordnet-beat",
+   "tempo": 123.0,
+   "bpb": 4,
+   "seq_root": 0.4762,
+   "seq_root_shift": 0,
+   "seq_majmin": 0.4571,
+   "seq_majmin_shift": 0,
+   "seq_ref_len": 77,
+   "seq_est_len": 105
+  },
+  {
+   "audio": "audio/bani-tooentekhab.mp3",
+   "engine": "v7-chordnet-beat",
+   "tempo": 89.1,
+   "bpb": 4,
+   "seq_root": 0.3143,
+   "seq_root_shift": 0,
+   "seq_majmin": 0.3,
+   "seq_majmin_shift": 0,
+   "seq_ref_len": 30,
+   "seq_est_len": 70
+  },
+  {
+   "audio": "audio/chavoshi-sange.mp3",
+   "error": "engine OOM-killed (exit 137) in 4 GB sandbox; deep engine needs more memory for files this long"
+  },
+  {
+   "audio": "audio/farzad-atish.mp3",
+   "engine": "v7-chordnet-beat",
+   "tempo": 129.2,
+   "bpb": 4,
+   "seq_root": 0.0625,
+   "seq_root_shift": 3,
+   "seq_majmin": 0.0621,
+   "seq_majmin_shift": 10,
+   "seq_ref_len": 10,
+   "seq_est_len": 160
+  },
+  {
+   "audio": "audio/farzad-divooneh.mp3",
+   "engine": "v7-chordnet-beat",
+   "tempo": 99.4,
+   "bpb": 4,
+   "seq_root": 0.3385,
+   "seq_root_shift": 0,
+   "seq_majmin": 0.3231,
+   "seq_majmin_shift": 0,
+   "seq_ref_len": 22,
+   "seq_est_len": 65
+  },
+  {
+   "audio": "audio/farzad-khoda.mp3",
+   "engine": "v7-chordnet-beat",
+   "tempo": 129.2,
+   "bpb": 4,
+   "seq_root": 0.2763,
+   "seq_root_shift": 2,
+   "seq_majmin": 0.2763,
+   "seq_majmin_shift": 2,
+   "seq_ref_len": 21,
+   "seq_est_len": 76
+  },
+  {
+   "audio": "audio/hamayoon-alborz.mp3",
+   "engine": "v7-chordnet-beat",
+   "tempo": 136.0,
+   "bpb": 4,
+   "seq_root": 0.0769,
+   "seq_root_shift": 0,
+   "seq_majmin": 0.0769,
+   "seq_majmin_shift": 0,
+   "seq_ref_len": 5,
+   "seq_est_len": 65
+  },
+  {
+   "audio": "audio/hamayoon-delvapasi.mp3",
+   "engine": "v7-chordnet-beat",
+   "tempo": 117.5,
+   "bpb": 4,
+   "root": 0.5902,
+   "majmin": 0.4323,
+   "change_f": 0.3505,
+   "change_err_ms": 87.9,
+   "seq_root": 0.5385,
+   "seq_root_shift": 0,
+   "seq_majmin": 0.5385,
+   "seq_majmin_shift": 0,
+   "seq_ref_len": 52,
+   "seq_est_len": 50
+  },
+  {
+   "audio": "audio/hamayoon-dobare.mp3",
+   "engine": "v7-chordnet-beat",
+   "tempo": 95.7,
+   "bpb": 4,
+   "seq_root": 0.4444,
+   "seq_root_shift": 0,
+   "seq_majmin": 0.4259,
+   "seq_majmin_shift": 0,
+   "seq_ref_len": 30,
+   "seq_est_len": 54
+  },
+  {
+   "audio": "audio/koo-beheshtemoon.mp3",
+   "engine": "v7-chordnet-beat",
+   "tempo": 112.3,
+   "bpb": 4,
+   "root": 0.4426,
+   "majmin": 0.2812,
+   "change_f": 0.2362,
+   "change_err_ms": 34.9
+  },
+  {
+   "audio": "audio/lohrasbi-baron.mp3",
+   "engine": "v7-chordnet-beat",
+   "tempo": 129.2,
+   "bpb": 3,
+   "seq_root": 0.3444,
+   "seq_root_shift": 3,
+   "seq_majmin": 0.3444,
+   "seq_majmin_shift": 3,
+   "seq_ref_len": 36,
+   "seq_est_len": 90
+  },
+  {
+   "audio": "audio/masih-aroom.mp3",
+   "engine": "v7-chordnet-beat",
+   "tempo": 152.0,
+   "bpb": 4,
+   "seq_root": 0.2105,
+   "seq_root_shift": 0,
+   "seq_majmin": 0.2105,
+   "seq_majmin_shift": 0,
+   "seq_ref_len": 9,
+   "seq_est_len": 38
+  },
+  {
+   "audio": "audio/masih-rangkhoda.mp3",
+   "engine": "v7-chordnet-beat",
+   "tempo": 89.1,
+   "bpb": 4,
+   "seq_root": 0.5484,
+   "seq_root_shift": 0,
+   "seq_majmin": 0.5312,
+   "seq_majmin_shift": 0,
+   "seq_ref_len": 17,
+   "seq_est_len": 31
+  },
+  {
+   "audio": "audio/sad-gozashtam.mp3",
+   "engine": "v7-chordnet-beat",
+   "tempo": 123.0,
+   "bpb": 4,
+   "root": 0.5897,
+   "majmin": 0.5897,
+   "change_f": 0.5517,
+   "change_err_ms": 240.7
+  },
+  {
+   "audio": "audio/sadeghi-10sanive.mp3",
+   "error": "engine OOM-killed (exit 137) in 4 GB sandbox; deep engine needs more memory for files this long"
+  },
+  {
+   "audio": "audio/sadeghi-babayebaroon.mp3",
+   "error": "engine OOM-killed (exit 137) in 4 GB sandbox; deep engine needs more memory for files this long"
+  },
+  {
+   "audio": "audio/sadeghi-hesskhoob.mp3",
+   "engine": "v7-chordnet-beat",
+   "tempo": 123.0,
+   "bpb": 3,
+   "seq_root": 0.2453,
+   "seq_root_shift": 5,
+   "seq_majmin": 0.217,
+   "seq_majmin_shift": 5,
+   "seq_ref_len": 26,
+   "seq_est_len": 106
+  },
+  {
+   "audio": "audio/sadeghi-soltangholbha.mp3",
+   "engine": "v7-chordnet-beat",
+   "tempo": 152.0,
+   "bpb": 3,
+   "seq_root": 0.0556,
+   "seq_root_shift": 0,
+   "seq_majmin": 0.0543,
+   "seq_majmin_shift": 7,
+   "seq_ref_len": 5,
+   "seq_est_len": 90
+  },
+  {
+   "audio": "audio/sirvan-akharinrooz.mp3",
+   "engine": "v7-chordnet-beat",
+   "tempo": 136.0,
+   "bpb": 4,
+   "seq_root": 0.1489,
+   "seq_root_shift": 0,
+   "seq_majmin": 0.1277,
+   "seq_majmin_shift": 0,
+   "seq_ref_len": 14,
+   "seq_est_len": 94
+  },
+  {
+   "audio": "audio/sirvan-bargard.mp3",
+   "error": "engine OOM-killed (exit 137) in 4 GB sandbox; deep engine needs more memory for files this long"
+  },
+  {
+   "audio": "audio/sirvan-divoonegi.mp3",
+   "error": "engine OOM-killed (exit 137) in 4 GB sandbox; deep engine needs more memory for files this long"
+  },
+  {
+   "audio": "audio/sirvan-oonrooza.mp3",
+   "engine": "v7-chordnet-beat",
+   "tempo": 112.3,
+   "bpb": 4,
+   "seq_root": 0.4186,
+   "seq_root_shift": 3,
+   "seq_majmin": 0.3256,
+   "seq_majmin_shift": 3,
+   "seq_ref_len": 23,
+   "seq_est_len": 43
+  },
+  {
+   "audio": "audio/talischi-bepanahi.mp3",
+   "engine": "v7-chordnet-beat",
+   "tempo": 117.5,
+   "bpb": 4,
+   "seq_root": 0.5342,
+   "seq_root_shift": 0,
+   "seq_majmin": 0.5068,
+   "seq_majmin_shift": 0,
+   "seq_ref_len": 46,
+   "seq_est_len": 73
+  },
+  {
+   "audio": "audio/talischi-biamanoboobin.mp3",
+   "engine": "v7-chordnet-beat",
+   "tempo": 129.2,
+   "bpb": 4,
+   "seq_root": 0.1509,
+   "seq_root_shift": 6,
+   "seq_majmin": 0.1509,
+   "seq_majmin_shift": 6,
+   "seq_ref_len": 8,
+   "seq_est_len": 53
+  },
+  {
+   "audio": "audio/talischi-raazim.mp3",
+   "engine": "v7-chordnet-beat",
+   "tempo": 143.6,
+   "bpb": 3,
+   "seq_root": 0.2353,
+   "seq_root_shift": 0,
+   "seq_majmin": 0.2353,
+   "seq_majmin_shift": 0,
+   "seq_ref_len": 16,
+   "seq_est_len": 68
+  },
+  {
+   "audio": "audio/yeganeh-behetgholmidam.mp3",
+   "error": "engine OOM-killed (exit 137) in 4 GB sandbox; deep engine needs more memory for files this long"
+  },
+  {
+   "audio": "audio/yeganeh-oskole.mp3",
+   "engine": "v7-chordnet-beat",
+   "tempo": 112.3,
+   "bpb": 4,
+   "seq_root": 0.2951,
+   "seq_root_shift": 10,
+   "seq_majmin": 0.2131,
+   "seq_majmin_shift": 2,
+   "seq_ref_len": 21,
+   "seq_est_len": 61
+  },
+  {
+   "audio": "audio/zand-jodayi.mp3",
+   "engine": "v7-chordnet-beat",
+   "tempo": 107.7,
+   "bpb": 4,
+   "seq_root": 0.4576,
+   "seq_root_shift": 9,
+   "seq_majmin": 0.4576,
+   "seq_majmin_shift": 9,
+   "seq_ref_len": 27,
+   "seq_est_len": 59
+  },
+  {
+   "audio": "audio/zand-royaye.mp3",
+   "engine": "v7-chordnet-beat",
+   "tempo": 161.5,
+   "bpb": 3,
+   "seq_root": 0.0909,
+   "seq_root_shift": 0,
+   "seq_majmin": 0.0877,
+   "seq_majmin_shift": 0,
+   "seq_ref_len": 5,
+   "seq_est_len": 55
+  }
+ ]
+}
