@@ -24,6 +24,13 @@ import {
   keyLabelLatin,
 } from "@/lib/format";
 import { downloadAnalysisSheetImage } from "@/lib/sheet-image";
+import { useAudioClock, VISUAL_LEAD } from "@/lib/use-audio-clock";
+import {
+  beatPositions,
+  beatState,
+  beatsBetween,
+  lastAtOrBefore,
+} from "@/lib/sheet-sync";
 import { PlayerCard } from "./player-card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -38,27 +45,12 @@ interface Props {
 
 export function ResultsView({ result, audioUrl, fileName, onReset }: Props) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const [playing, setPlaying] = useState(false);
-  const [time, setTime] = useState(0);
+  const listRef = useRef<HTMLDivElement | null>(null);
   const { toast } = useToast();
 
-  // wire audio element
-  useEffect(() => {
-    const a = audioRef.current;
-    if (!a) return;
-    a.src = audioUrl;
-    const onTime = () => setTime(a.currentTime);
-    const onPlay = () => setPlaying(true);
-    const onPause = () => setPlaying(false);
-    a.addEventListener("timeupdate", onTime);
-    a.addEventListener("play", onPlay);
-    a.addEventListener("pause", onPause);
-    return () => {
-      a.removeEventListener("timeupdate", onTime);
-      a.removeEventListener("play", onPlay);
-      a.removeEventListener("pause", onPause);
-    };
-  }, [audioUrl]);
+  // frame-accurate clock (timeupdate only fires ~4x/s)
+  const { time: clock, playing, seekTo } = useAudioClock(audioRef, audioUrl);
+  const time = clock + VISUAL_LEAD;
 
   const toggle = useCallback(() => {
     const a = audioRef.current;
@@ -69,19 +61,51 @@ export function ResultsView({ result, audioUrl, fileName, onReset }: Props) {
 
   const seek = useCallback(
     (t: number) => {
-      const a = audioRef.current;
-      if (!a) return;
-      const clamped = Math.min(Math.max(t, 0), result.duration);
-      a.currentTime = clamped;
-      setTime(clamped);
+      seekTo(Math.min(Math.max(t, 0), result.duration));
     },
-    [result.duration]
+    [result.duration, seekTo]
   );
 
-  const currentSegment = useMemo(
-    () => result.segments.find((s) => time >= s.start && time < s.end) ?? null,
-    [time, result.segments]
+  // ---- chord timeline (beat-exact since engine v7) ----
+  const segStarts = useMemo(
+    () => result.segments.map((s) => s.start),
+    [result.segments]
   );
+  const curIdx = useMemo(() => {
+    const i = lastAtOrBefore(segStarts, time);
+    return i >= 0 && time < result.segments[i].end ? i : -1;
+  }, [segStarts, time, result.segments]);
+  const currentSegment = curIdx >= 0 ? result.segments[curIdx] : null;
+  const nextSegment = useMemo(() => {
+    for (let i = Math.max(curIdx + 1, 0); i < result.segments.length; i++) {
+      const s = result.segments[i];
+      if (s.chord !== "N" && s.chord !== currentSegment?.chord) return s;
+    }
+    return null;
+  }, [curIdx, currentSegment, result.segments]);
+
+  // ---- beat grid ----
+  const beats = useMemo(() => result.beats ?? [], [result.beats]);
+  const bpb = result.bpb ?? 4;
+  const beatPos = useMemo(
+    () => beatPositions(beats, result.downbeats, bpb),
+    [beats, result.downbeats, bpb]
+  );
+  const beatNow = beats.length > 1 ? beatState(beats, beatPos, time) : null;
+  const beatsToNext =
+    nextSegment && beats.length > 1 ? beatsBetween(beats, time, nextSegment.start) : null;
+
+  // keep the active row centred inside the list while playing
+  useEffect(() => {
+    if (!playing || curIdx < 0) return;
+    const box = listRef.current;
+    const row = box?.querySelector<HTMLElement>(`[data-seg="${curIdx}"]`);
+    if (!box || !row) return;
+    box.scrollTo({
+      top: row.offsetTop - box.clientHeight / 2 + row.clientHeight / 2,
+      behavior: "smooth",
+    });
+  }, [curIdx, playing]);
 
   const ribbonSeek = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -135,7 +159,7 @@ export function ResultsView({ result, audioUrl, fileName, onReset }: Props) {
       icon: Gauge,
       label: "تمپو",
       value: `${Math.round(result.tempo)}`,
-      sub: "ضرب در دقیقه",
+      sub: result.bpb === 3 ? "ضرب در دقیقه · سه‌ضربی" : "ضرب در دقیقه",
     },
     {
       icon: Clock3,
@@ -220,11 +244,15 @@ export function ResultsView({ result, audioUrl, fileName, onReset }: Props) {
       <PlayerCard
         audioRef={audioRef}
         playing={playing}
-        time={time}
+        time={clock}
         duration={result.duration}
         currentChord={currentSegment?.chord ?? "N"}
         onToggle={toggle}
         onSeek={seek}
+        nextChord={nextSegment?.chord ?? null}
+        beatsToNext={beatsToNext}
+        beatInBar={beatNow ? beatNow.inBar : null}
+        bpb={beats.length > 1 ? bpb : undefined}
       />
 
       {/* chord ribbon — the whole song at a glance, click to jump */}
@@ -242,7 +270,7 @@ export function ResultsView({ result, audioUrl, fileName, onReset }: Props) {
             onClick={ribbonSeek}
             role="slider"
             aria-label="خط زمانی آکوردها"
-            aria-valuenow={Math.round(time)}
+            aria-valuenow={Math.round(clock)}
             aria-valuemin={0}
             aria-valuemax={Math.round(result.duration)}
           >
@@ -259,6 +287,7 @@ export function ResultsView({ result, audioUrl, fileName, onReset }: Props) {
                       ((sg.start - sec.start) / (sec.end - sec.start)) * 100;
                     const width =
                       ((sg.end - sg.start) / (sec.end - sec.start)) * 100;
+                    const now = time >= sg.start && time < sg.end;
                     return (
                       <div
                         key={i}
@@ -266,7 +295,7 @@ export function ResultsView({ result, audioUrl, fileName, onReset }: Props) {
                         style={{
                           left: `${left}%`,
                           width: `${width}%`,
-                          backgroundColor: `${sec.color ?? "#f59e0b"}26`,
+                          backgroundColor: `${sec.color ?? "#f59e0b"}${now ? "66" : "26"}`,
                           borderLeft: `1px solid ${sec.color ?? "#f59e0b"}55`,
                         }}
                       >
@@ -291,7 +320,7 @@ export function ResultsView({ result, audioUrl, fileName, onReset }: Props) {
           {/* playhead */}
           <div
             className="absolute top-0 h-full w-0.5 bg-white/90 pointer-events-none shadow-[0_0_8px_rgba(255,255,255,0.7)]"
-            style={{ left: `${(time / result.duration) * 100}%` }}
+            style={{ left: `${(clock / result.duration) * 100}%` }}
             aria-hidden
           />
         </div>
@@ -300,19 +329,17 @@ export function ResultsView({ result, audioUrl, fileName, onReset }: Props) {
       {/* all chords in order */}
       <div className="rounded-xl border bg-card/70">
         <p className="text-sm font-bold px-4 pt-3 pb-2">همه‌ی آکوردها به ترتیب</p>
-        <div className="max-h-96 overflow-y-auto gk-scroll border-t">
+        <div ref={listRef} className="relative max-h-96 overflow-y-auto gk-scroll border-t">
           {result.segments.map((sg, i) => {
-            const active =
-              currentSegment !== null &&
-              time >= sg.start &&
-              time < sg.end;
+            const active = i === curIdx;
             return (
               <button
                 key={i}
                 type="button"
+                data-seg={i}
                 onClick={() => seek(sg.start + 0.01)}
                 className={cn(
-                  "w-full grid grid-cols-[70px_1fr_auto] items-center px-4 py-2 text-sm transition-colors hover:bg-secondary/70",
+                  "w-full grid grid-cols-[70px_1fr_auto] items-center px-4 py-2 text-sm transition-colors duration-100 hover:bg-secondary/70",
                   active && "bg-primary/15",
                   i > 0 && "border-t"
                 )}
