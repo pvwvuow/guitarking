@@ -96,6 +96,48 @@ export interface WordTiming {
   starts: number[];
 }
 
+/** Whisper word stamps on Persian songs are often broken: identical
+    stamps for a whole line, ten words squeezed into one second, or the
+    first word seconds after the line lit up. Accept them only when they
+    look like real singing; small runs of duplicates are spread out. */
+export function cleanWordTimes(
+  exact: number[] | undefined,
+  nWords: number,
+  t0: number,
+  tNext: number
+): number[] | null {
+  if (!exact || exact.length !== nWords || !nWords) return null;
+  const lo = t0 - 0.6;
+  const hi = tNext + 0.3;
+  let dupes = 0;
+  for (let i = 0; i < exact.length; i++) {
+    const s = exact[i];
+    if (!Number.isFinite(s) || s < lo || s > hi) return null;
+    if (i > 0) {
+      if (s < exact[i - 1] - 1e-3) return null;
+      if (s - exact[i - 1] < 0.05) dupes++;
+    }
+  }
+  if (exact[0] - t0 > 1.0) return null;
+  if (nWords > 1 && dupes / (nWords - 1) > 0.25) return null;
+  const span = exact[nWords - 1] - exact[0];
+  if (nWords >= 4 && span / (nWords - 1) < 0.12) return null;
+  // spread short runs of identical stamps up to the next distinct one
+  const out = exact.slice();
+  let i = 0;
+  while (i < nWords) {
+    let j = i;
+    while (j + 1 < nWords && out[j + 1] - out[i] < 0.05) j++;
+    if (j > i) {
+      const end = j + 1 < nWords ? out[j + 1] : Math.min(tNext, out[i] + 0.4 * (j - i + 1));
+      const step = (end - out[i]) / (j - i + 1);
+      for (let k = i + 1; k <= j; k++) out[k] = out[i] + step * (k - i);
+    }
+    i = j + 1;
+  }
+  return out;
+}
+
 /** word start times inside one lyric segment */
 export function wordTimes(
   text: string,
@@ -104,7 +146,8 @@ export function wordTimes(
   exact?: number[]
 ): WordTiming {
   const words = text.split(/\s+/).filter(Boolean);
-  if (exact && exact.length === words.length) return { words, starts: exact };
+  const clean = cleanWordTimes(exact, words.length, t0, tNext);
+  if (clean) return { words, starts: clean };
   const chars = words.reduce((n, w) => n + w.length, 0) || 1;
   const sung = Math.min(
     Math.max(tNext - t0, 0.3),
