@@ -43,6 +43,7 @@ type FretVec = number[]; // 6 values, relative offsets or absolute
 const OPEN: Record<string, FretVec> = {
   C: [-1, 3, 2, 0, 1, 0],
   Cmaj7: [-1, 3, 2, 0, 0, 0],
+  "C/E": [0, 3, 2, 0, 1, 0],
   C7: [-1, 3, 2, 3, 1, 0],
   D: [-1, -1, 0, 2, 3, 2],
   Dm: [-1, -1, 0, 2, 3, 1],
