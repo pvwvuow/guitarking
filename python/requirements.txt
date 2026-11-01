@@ -3,3 +3,7 @@ numpy>=1.24
 soundfile>=0.12
 resampy>=0.4
 essentia>=2.1b6
+# --- v6 deep engine (optional but strongly recommended) ---
+# install CPU torch first, then the rest:
+#   pip install torch --index-url https://download.pytorch.org/whl/cpu
+torch>=2.0

@@ -99,8 +99,8 @@ export const SONGS: SongEntry[] = [
           [{ chord: "Cm", text: "اون چشای آدم فریبت انگار مارو اصلا ندیده", t: 27.1 }],
           [{ chord: "Bbm", text: "اونکه بدون من شبو یه لحظه خوابش نمیرفت", t: 32.18 }],
           [
-            { chord: "Eb7", text: "حالا دیگه کنار من نیست", t: 37.62 },
-            { chord: "G7", text: "میگن پیش آدم جدیده", t: 38.68 },
+            { chord: "Cm", text: "حالا دیگه کنار من نیست", t: 37.62 },
+            { chord: "Cm", text: "میگن پیش آدم جدیده", t: 38.68 },
           ],
         ],
       },
@@ -115,7 +115,7 @@ export const SONGS: SongEntry[] = [
         label: "بند دوم",
         lines: [
           [
-            { chord: "Eb7", text: "گفتم بمون درست میشه", t: 52.41 },
+            { chord: "Bbm", text: "گفتم بمون درست میشه", t: 52.41 },
             { chord: "Bbm", text: "فکر نمیکردم که بغض میشه", t: 54.66 },
           ],
           [
@@ -135,7 +135,7 @@ export const SONGS: SongEntry[] = [
         label: "تکرار بند دوم",
         lines: [
           [
-            { chord: "Eb7", text: "گفتم بمون درست میشه", t: 72.82 },
+            { chord: "Bbm", text: "گفتم بمون درست میشه", t: 72.82 },
             { chord: "Bbm", text: "فکر نمیکردم که بغض میشه", t: 74.58 },
           ],
           [{ chord: "Cm", text: "همه حرفام میمونه تو گلوم اون میاد میشینه درست پیشت", t: 78.41 }],
@@ -156,7 +156,7 @@ export const SONGS: SongEntry[] = [
         label: "پل",
         lines: [
           [
-            { chord: "Ab", text: "شاید نرسه کوه به کوه", t: 104.42 },
+            { chord: "Fm", text: "شاید نرسه کوه به کوه", t: 104.42 },
             { chord: "Fm", text: "میرسه به آدم به آدم", t: 106.32 },
           ],
           [
@@ -165,7 +165,7 @@ export const SONGS: SongEntry[] = [
           ],
           [
             { chord: "Cm", text: "—", t: 118.79 },
-            { chord: "G7", text: "—", t: 121.51 },
+            { chord: "Cm", text: "—", t: 121.51 },
           ],
         ],
       },
@@ -180,7 +180,7 @@ export const SONGS: SongEntry[] = [
         label: "تکرار بند دوم",
         lines: [
           [
-            { chord: "Eb7", text: "گفتم بمون درست میشه", t: 133.92 },
+            { chord: "Bbm", text: "گفتم بمون درست میشه", t: 133.92 },
             { chord: "Bbm", text: "فکر نمیکردم که بغض میشه", t: 135.38 },
           ],
           [{ chord: "Cm", text: "همه حرفام میمونه تو گلوم اون میاد میشینه درست پیشت", t: 139.19 }],
@@ -197,7 +197,7 @@ export const SONGS: SongEntry[] = [
         label: "تکرار بند دوم",
         lines: [
           [
-            { chord: "Eb7", text: "گفتم بمون درست میشه", t: 154.15 },
+            { chord: "Bbm", text: "گفتم بمون درست میشه", t: 154.15 },
             { chord: "Bbm", text: "فکر نمیکردم که بغض میشه", t: 155.19 },
           ],
           [{ chord: "Cm", text: "همه حرفام میمونه تو گلوم اون میاد میشینه درست پیشت", t: 159.54 }],
@@ -210,8 +210,8 @@ export const SONGS: SongEntry[] = [
             { chord: "Fm", text: "فید اوت", t: 163.84 },
             { chord: "Cm", text: "—", t: 169.92 },
             { chord: "Bbm", text: "—", t: 175.65 },
-            { chord: "Cm", text: "—", t: 179.53 },
-            { chord: "Fm", text: "—", t: 190.61 },
+            { chord: "Fm", text: "—", t: 179.53 },
+            { chord: "Cm", text: "—", t: 190.61 },
             { chord: "Cm", text: "تا آخر", t: 195.6 },
           ],
         ],
@@ -221,14 +221,14 @@ export const SONGS: SongEntry[] = [
       duration: "3:19",
       tempo: 123,
       key: "Fm",
-      confidence: 73.1,
+      confidence: 68,
       sections: [
         { label: "A", time: "0:00 – 0:22", chords: ["Fm", "Cm", "Bbm", "Cm"] },
-        { label: "B", time: "0:22 – 0:42", chords: ["Fm", "Cm", "Bbm", "Eb7", "G7"] },
-        { label: "C", time: "0:42 – 1:22", chords: ["Fm", "Cm7", "Eb7", "Bbm", "Cm"] },
+        { label: "B", time: "0:22 – 0:42", chords: ["Fm", "Cm", "Bbm"] },
+        { label: "C", time: "0:42 – 1:22", chords: ["Fm", "Cm7", "Bbm", "Cm", "Ab"] },
         { label: "A", time: "1:22 – 1:44", chords: ["Fm", "Cm", "Bbm", "Cm"] },
-        { label: "D", time: "1:44 – 2:04", chords: ["Ab", "Fm", "Cm", "Bbm", "G7"] },
-        { label: "C", time: "2:04 – 2:44", chords: ["Fm", "Cm7", "Eb7", "Bbm", "Cm"] },
+        { label: "D", time: "1:44 – 2:04", chords: ["Fm", "Cm", "Bbm"] },
+        { label: "C", time: "2:04 – 2:44", chords: ["Fm", "Cm7", "Bbm", "Cm", "Ab"] },
         { label: "A", time: "2:44 – 3:19", chords: ["Fm", "Cm", "Bbm"] },
       ],
     },
@@ -252,15 +252,15 @@ export const SONGS: SongEntry[] = [
     },
     officialLyrics: true,
     description:
-      "آهنگی پاپ و دلنشین از امین قباد. گیتارکینگ برگه‌ی اکورد را از روی خودِ آهنگ نوشته و زمان هر بیت را با جداسازی صدا و متن رسمی تطبیق داده: گام لا مینور، تمپوی ۱۱۲ و چرخه‌ی بند Am – F – Em که در همخوان به Am – G – F می‌رسد. متن ترانه از رسانه آهنگ نقل شده (با ذکر منبع) و تکرارهای همخوان هم مثل خود آهنگ، دوبار نوشته شده است.",
+      "آهنگی پاپ و دلنشین از امین قباد. گیتارکینگ برگه‌ی اکورد را از روی خودِ آهنگ نوشته و زمان هر بیت را با جداسازی صدا و متن رسمی تطبیق داده: گام لا مینور، تمپوی ۱۱۲ و چرخه‌ی بند Am – Em – F – G که در همخوان به چرخه‌ی Dm – G – Am می‌رسد. متن ترانه از رسانه آهنگ نقل شده (با ذکر منبع) و تکرارهای همخوان هم مثل خود آهنگ، دوبار نوشته شده است.",
     sections: [
       {
         label: "اینترو",
         lines: [
           [
             { chord: "Am", text: "بداهه", t: 0.53 },
-            { chord: "C", text: "تا ورود صدا", t: 4.55 },
-            { chord: "G", text: "—", t: 9.9 },
+            { chord: "Am", text: "تا ورود صدا", t: 4.55 },
+            { chord: "Dm", text: "—", t: 9.9 },
           ],
         ],
       },
@@ -270,13 +270,13 @@ export const SONGS: SongEntry[] = [
           [
             { chord: "Am", text: "چه تفاهمی دوتایی میدیم به دست باد", t: 18.55 },
             { chord: "Em", text: "—", t: 23.51 },
-            { chord: "Am", text: "تو موهاتو من خاطره هاتو وای", t: 25.55 },
+            { chord: "Fmaj7", text: "تو موهاتو من خاطره هاتو وای", t: 25.55 },
           ],
           [
-            { chord: "Am", text: "چه تفاهمی دوتایی داریم", t: 33.32 },
-            { chord: "F", text: "چشم میبندیم", t: 37.53 },
+            { chord: "G", text: "چه تفاهمی دوتایی داریم", t: 33.32 },
+            { chord: "Fmaj7", text: "چشم میبندیم", t: 37.53 },
             { chord: "Em", text: "—", t: 41.28 },
-            { chord: "F", text: "تو روی منو من رو هرکی غیر تو", t: 44.84 },
+            { chord: "Fmaj7", text: "تو روی منو من رو هرکی غیر تو", t: 44.84 },
           ],
         ],
       },
@@ -284,8 +284,8 @@ export const SONGS: SongEntry[] = [
         label: "پیش‌همخوان",
         lines: [
           [
-            { chord: "C", text: "یادته", t: 49.06 },
-            { chord: "G", text: "پیش هم هر شب", t: 52.1 },
+            { chord: "G", text: "یادته", t: 49.06 },
+            { chord: "Am", text: "پیش هم هر شب", t: 52.1 },
             { chord: "Am", text: "خیره به آسمون میگفتی", t: 53.62 },
           ],
         ],
@@ -294,30 +294,30 @@ export const SONGS: SongEntry[] = [
         label: "همخوان",
         lines: [
           [
-            { chord: "Am", text: "عشقم نگاه کن اونه ستارمون", t: 56.66 },
-            { chord: "Em", text: "ستارمون کو ستارمون", t: 62.03 },
+            { chord: "Dm", text: "عشقم نگاه کن اونه ستارمون", t: 56.66 },
+            { chord: "G", text: "ستارمون کو ستارمون", t: 62.03 },
           ],
-          [{ chord: "F", text: "یادته با شادی پاک میکردیم اشکامونو از گونه مون", t: 64.43 }],
+          [{ chord: "Am", text: "یادته با شادی پاک میکردیم اشکامونو از گونه مون", t: 64.43 }],
           [
-            { chord: "G", text: "تو نباشی فرشته", t: 69.92 },
-            { chord: "F", text: "ای نداره دیگه", t: 72.42 },
+            { chord: "Dm", text: "تو نباشی فرشته", t: 69.92 },
+            { chord: "G", text: "ای نداره دیگه", t: 72.42 },
             { chord: "G", text: "بهشتمون بهشتمون", t: 75.06 },
-            { chord: "C", text: "کو بهشتمون", t: 77.66 },
+            { chord: "F", text: "کو بهشتمون", t: 77.66 },
           ],
-          [{ chord: "Am", text: "کو بهشتمون کو بهشتمون …", t: 80.22 }],
+          [{ chord: "Dm", text: "کو بهشتمون کو بهشتمون …", t: 80.22 }],
         ],
       },
       {
         label: "سولو",
         lines: [
           [
-            { chord: "Em", text: "سولو", t: 84.61 },
+            { chord: "G", text: "سولو", t: 84.61 },
             { chord: "Am", text: "—", t: 87.33 },
-            { chord: "C", text: "—", t: 90.6 },
+            { chord: "Dm", text: "—", t: 90.6 },
             { chord: "G", text: "—", t: 93.32 },
-            { chord: "Em", text: "—", t: 96.06 },
+            { chord: "Am", text: "—", t: 96.06 },
             { chord: "Am", text: "—", t: 100.43 },
-            { chord: "Em", text: "—", t: 106.42 },
+            { chord: "G", text: "—", t: 106.42 },
             { chord: "Am", text: "تا ورود بند دوم", t: 110.78 },
           ],
         ],
@@ -327,17 +327,17 @@ export const SONGS: SongEntry[] = [
         lines: [
           [
             { chord: "Am", text: "چه تفاهمی داریم دروغ میگیم", t: 114.08 },
-            { chord: "F", text: "دوتاییمون", t: 115.17 },
-            { chord: "C", text: "—", t: 117.89 },
+            { chord: "Am", text: "دوتاییمون", t: 115.17 },
+            { chord: "G", text: "—", t: 117.89 },
             { chord: "Em", text: "من به خودم", t: 121.7 },
-            { chord: "E7", text: "تو به دوتاییمون", t: 123.88 },
+            { chord: "Em", text: "تو به دوتاییمون", t: 123.88 },
           ],
           [
             { chord: "F", text: "چه تفاهمی هنوز که عاشقیم", t: 127.13 },
             { chord: "Am", text: "دوتاییمون", t: 130.4 },
-            { chord: "C", text: "—", t: 133.14 },
+            { chord: "Am", text: "—", t: 133.14 },
             { chord: "G", text: "من کجا برم", t: 136.42 },
-            { chord: "Am", text: "تا چشات میگه بمون", t: 139.13 },
+            { chord: "G", text: "تا چشات میگه بمون", t: 139.13 },
           ],
         ],
       },
@@ -345,8 +345,8 @@ export const SONGS: SongEntry[] = [
         label: "پیش‌همخوان",
         lines: [
           [
-            { chord: "C", text: "یادته", t: 147.33 },
-            { chord: "G", text: "پیش هم هر شب", t: 149.51 },
+            { chord: "G", text: "یادته", t: 147.33 },
+            { chord: "Am", text: "پیش هم هر شب", t: 149.51 },
             { chord: "Am", text: "خیره به آسمون میگفتی", t: 150.6 },
           ],
         ],
@@ -355,28 +355,28 @@ export const SONGS: SongEntry[] = [
         label: "همخوان پایانی",
         lines: [
           [
-            { chord: "Am", text: "عشقم نگاه کن اونه ستارمون", t: 153.88 },
-            { chord: "Em", text: "ستارمون کو ستارمون", t: 157.66 },
+            { chord: "Dm", text: "عشقم نگاه کن اونه ستارمون", t: 153.88 },
+            { chord: "G", text: "ستارمون کو ستارمون", t: 157.66 },
           ],
-          [{ chord: "F", text: "یادته با شادی پاک میکردیم اشکامونو از گونه مون", t: 161.52 }],
+          [{ chord: "Am", text: "یادته با شادی پاک میکردیم اشکامونو از گونه مون", t: 161.52 }],
           [
-            { chord: "G", text: "تو نباشی فرشته", t: 166.97 },
-            { chord: "F", text: "ای نداره دیگه", t: 169.67 },
+            { chord: "Dm", text: "تو نباشی فرشته", t: 166.97 },
+            { chord: "G", text: "ای نداره دیگه", t: 169.67 },
             { chord: "G", text: "بهشتمون بهشتمون", t: 171.87 },
-            { chord: "C", text: "کو بهشتمون", t: 175.12 },
+            { chord: "F", text: "کو بهشتمون", t: 175.12 },
           ],
-          [{ chord: "Am", text: "کو بهشتمون کو بهشتمون …", t: 177.31 }],
+          [{ chord: "Dm", text: "کو بهشتمون کو بهشتمون …", t: 177.31 }],
         ],
       },
       {
         label: "پایان",
         lines: [
           [
-            { chord: "C", text: "فید اوت", t: 180.6 },
-            { chord: "Am", text: "—", t: 184.44 },
+            { chord: "Am", text: "فید اوت", t: 180.6 },
+            { chord: "Dm", text: "—", t: 184.44 },
             { chord: "G", text: "—", t: 189.89 },
-            { chord: "F", text: "—", t: 195.86 },
-            { chord: "Em", text: "—", t: 201.87 },
+            { chord: "Am", text: "—", t: 195.86 },
+            { chord: "G", text: "—", t: 201.87 },
             { chord: "Am", text: "تا آخر", t: 208.0 },
           ],
         ],
@@ -386,17 +386,17 @@ export const SONGS: SongEntry[] = [
       duration: "3:31",
       tempo: 112,
       key: "Am",
-      confidence: 62.6,
+      confidence: 59,
       sections: [
-        { label: "A", time: "0:00 – 0:18", chords: ["Am", "C", "G"] },
-        { label: "B", time: "0:18 – 0:49", chords: ["Am", "F", "Em"] },
-        { label: "C", time: "0:49 – 0:56", chords: ["C", "G", "Am"] },
-        { label: "D", time: "0:56 – 1:24", chords: ["Am", "Em", "F", "G", "C"] },
-        { label: "E", time: "1:24 – 1:53", chords: ["Em", "Am", "C", "G"] },
-        { label: "B", time: "1:53 – 2:27", chords: ["Am", "F", "C", "Em", "E7", "G"] },
-        { label: "C", time: "2:27 – 2:33", chords: ["C", "G", "Am"] },
-        { label: "D", time: "2:33 – 3:00", chords: ["Am", "Em", "F", "G", "C"] },
-        { label: "A", time: "3:00 – 3:31", chords: ["C", "Am", "G", "F", "Em"] },
+        { label: "A", time: "0:00 – 0:18", chords: ["Am", "Dm"] },
+        { label: "B", time: "0:18 – 0:49", chords: ["Am", "Em", "Fmaj7", "G"] },
+        { label: "C", time: "0:49 – 0:56", chords: ["G", "Am"] },
+        { label: "D", time: "0:56 – 1:24", chords: ["Dm", "G", "Am", "F"] },
+        { label: "E", time: "1:24 – 1:53", chords: ["G", "Am", "Dm"] },
+        { label: "B", time: "1:53 – 2:27", chords: ["Am", "G", "Em", "F"] },
+        { label: "C", time: "2:27 – 2:33", chords: ["G", "Am"] },
+        { label: "D", time: "2:33 – 3:00", chords: ["Dm", "G", "Am", "F"] },
+        { label: "A", time: "3:00 – 3:31", chords: ["Am", "Dm", "G"] },
       ],
     },
   },
