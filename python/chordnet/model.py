@@ -3,6 +3,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from .chunking import chunked_apply
+
 SPEC_DIM = 252
 SHIFT_HIGH, SHIFT_STEP = 6, 3
 TRIAD_LIMIT, SEVENTH_LIMIT, NINTH_LIMIT, ELEVENTH_LIMIT, THIRTEENTH_LIMIT = \
@@ -101,12 +103,16 @@ class ChordNet(nn.Module):
                 x1[:, ninth_del:eleventh_del],
                 x1[:, eleventh_del:thirteenth_del])
 
-    def probs(self, cqt_sliced):
-        """cqt_sliced: numpy (frames, SPEC_DIM) -> list of 6 softmax arrays."""
+    def _probs(self, cqt_sliced):
         x = torch.tensor(cqt_sliced, dtype=torch.float32).unsqueeze(0)
         with torch.no_grad():
             outs = self.forward(x)
         return [F.softmax(t, dim=1).numpy() for t in outs]
+
+    def probs(self, cqt_sliced):
+        """cqt_sliced: numpy (frames, SPEC_DIM) -> list of 6 softmax arrays.
+        Long songs run in overlapping windows (flat memory, no OOM)."""
+        return chunked_apply(self._probs, cqt_sliced)
 
 
 def load_net(path):
