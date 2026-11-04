@@ -20,8 +20,18 @@ Metrics
   sequence: best transposition + similarity of the collapsed chord orders
             (1 - edit distance / length), root and maj-min level
 
+Reference sanity (round 2): a reference that is obviously not a whole
+song's chord order is flagged "suspect" and kept OUT of summary_clean:
+  * fewer than 12 chords after collapsing repeats (one line, not a song);
+  * collapsing removes more than half of the tokens (only the first chord
+    of every line was copied: "Em Em Em Em ...");
+  * only 1-2 distinct chords;
+  * a .lab whose note says it is a proxy (made by an algorithm, not by
+    ear) - useful for debugging, never as ground truth.
+
 Usage:
   python3 python/bench.py manifest.json [--cache DIR] [--json out.json]
+                          [--only name1,name2]
 """
 import json
 import os
@@ -156,6 +166,32 @@ def sequence_scores(ref_seq, est):
     return res
 
 
+def ref_problems(it):
+    """Why this reference cannot be trusted ([] = looks fine)."""
+    out = []
+    seq = it.get("sequence")
+    if seq:
+        toks = [t for t in seq.split() if reduce(t, "root") is not None]
+        col = collapse([reduce(t, "root") for t in toks])
+        if len(col) < 12:
+            out.append("sequence too short (%d chords): one line, not a song"
+                       % len(col))
+        if len(toks) >= 16 and len(col) < 0.5 * len(toks):
+            out.append("%d of %d tokens repeat the previous chord: looks like"
+                       " only the first chord of each line was copied"
+                       % (len(toks) - len(col), len(toks)))
+        if len(set(col)) <= 2:
+            out.append("only %d distinct chords" % len(set(col)))
+    note = str(it.get("note", "")).lower()
+    if "lab" in it and ("proxy" in note or "algorithm" in note):
+        out.append("lab made by an algorithm, not by ear")
+    return out
+
+
+def change_count(segs):
+    return max(0, len(collapse([reduce(s["chord"], "root") for s in segs])) - 1)
+
+
 def analyze_cached(audio, cache):
     if cache:
         os.makedirs(cache, exist_ok=True)
@@ -170,6 +206,20 @@ def analyze_cached(audio, cache):
     return res
 
 
+SUMMARY_KEYS = ["root", "majmin", "change_f", "seq_root", "seq_majmin",
+                "change_ratio", "seq_change_ratio"]
+
+
+def summarize(rows):
+    summary = {k: round(float(np.median([r[k] for r in rows if k in r]))
+                        if k.endswith("change_ratio") else
+                        float(np.mean([r[k] for r in rows if k in r])), 4)
+               for k in SUMMARY_KEYS if any(k in r for r in rows)}
+    summary["songs"] = len(rows)
+    summary["errors"] = sum(1 for r in rows if "error" in r)
+    return summary
+
+
 def main():
     args = sys.argv[1:]
     if not args:
@@ -180,28 +230,49 @@ def main():
     base = os.path.dirname(os.path.abspath(args[0]))
     with open(args[0], encoding="utf-8") as f:
         items = json.load(f)
+    only = None
+    if "--only" in args:
+        only = set(args[args.index("--only") + 1].split(","))
     rows = []
     for it in items:
+        name = os.path.splitext(os.path.basename(it["audio"]))[0]
+        if only and name not in only:
+            continue
         audio = os.path.join(base, it["audio"])
-        res = analyze_cached(audio, cache)
+        try:
+            res = analyze_cached(audio, cache)
+        except SystemExit:
+            res = {"ok": False, "error": "engine exited"}
+        problems = ref_problems(it)
         if not res.get("ok"):
-            rows.append({"audio": it["audio"], "error": res.get("error")})
+            rows.append({"audio": it["audio"], "error": res.get("error"),
+                         "suspect": problems})
             continue
         row = {"audio": it["audio"], "engine": res.get("engine"),
-               "tempo": res.get("tempo"), "bpb": res.get("bpb")}
+               "tempo": res.get("tempo"), "bpb": res.get("bpb"),
+               "suspect": problems}
+        try:
+            import meter as _mt
+            row["engine_ver"] = getattr(_mt, "VERSION", "7")
+            if _mt.LAST_TEMPO_INFO.get("candidates"):
+                row["tempo_candidates"] = list(_mt.LAST_TEMPO_INFO["candidates"])
+        except Exception:
+            pass
         if "lab" in it:
-            row.update(timed_scores(read_lab(os.path.join(base, it["lab"])),
-                                    res["segments"], res["duration"]))
+            ref = read_lab(os.path.join(base, it["lab"]))
+            row.update(timed_scores(ref, res["segments"], res["duration"]))
+            row["change_ratio"] = round(change_count(res["segments"])
+                                        / max(change_count(ref), 1), 3)
         if "sequence" in it:
             row.update({"seq_" + k: v for k, v in
                         sequence_scores(it["sequence"], res["segments"]).items()})
+            row["seq_change_ratio"] = round(
+                max(row["seq_est_len"] - 1, 0) / max(row["seq_ref_len"] - 1, 1), 3)
         rows.append(row)
         print(json.dumps(row, ensure_ascii=False), file=sys.stderr)
-    keys = ["root", "majmin", "change_f", "seq_root", "seq_majmin"]
-    summary = {k: round(float(np.mean([r[k] for r in rows if k in r])), 4)
-               for k in keys if any(k in r for r in rows)}
-    summary["songs"] = len(rows)
-    out = {"summary": summary, "songs": rows}
+    out = {"summary": summarize(rows),
+           "summary_clean": summarize([r for r in rows if not r.get("suspect")]),
+           "songs": rows}
     print(json.dumps(out, ensure_ascii=False, indent=1))
     if out_path:
         with open(out_path, "w", encoding="utf-8") as f:

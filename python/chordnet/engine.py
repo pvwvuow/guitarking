@@ -7,19 +7,29 @@ labelling (used for key candidates); per-BEAT emissions are pooled from the
 same probabilities and re-decoded with a joint (chord x bar-position) HMM
 under a key constraint, so every chord change lands exactly on a beat —
 mostly on the bar line, on the half bar when the music really does it.
+
+v7.1: the network runs in overlapping windows (no OOM on long songs), its
+probabilities can be cached per song (GK_CACHE_DIR) so decode knobs can be
+swept without re-running the nets, and the decode knobs read environment
+overrides (GK_EM_TEMP, GK_KEY_PENALTY, GK_KEY_SLACK + the meter.py ones).
 """
+import hashlib
 import math
 import os
 
 import numpy as np
 import librosa
 
-from .model import load_net, SPEC_DIM, SHIFT_HIGH, SHIFT_STEP
 from .complex_chord import Chord, NUM_TO_ABS_SCALE, shift_complex_chord_array
 
 SR = 22050
 HOP = 512
-EM_TEMP = 0.7   # beat-level emission temperature (one column per beat)
+EM_TEMP = 0.7      # beat-level emission temperature (one column per beat)
+KEY_PENALTY = 0.45  # emission multiplier for out-of-key templates
+KEY_SLACK = 0.03   # key-constrained decode adopted if it costs <= this
+CACHE_VER = "p71"
+SPEC_DIM = 252          # mirrors model.py (kept here: no torch on a cache hit)
+SHIFT_HIGH, SHIFT_STEP = 6, 3
 _WEIGHTS = os.path.join(os.path.dirname(__file__), "weights")
 _SUBMISSION = os.path.join(os.path.dirname(__file__), "chord_list.txt")
 
@@ -37,6 +47,14 @@ _DEGREE_SEMIS = {"1": 0, "2": 2, "b3": 3, "3": 4, "4": 5, "b5": 6, "5": 7,
 
 _TABLE_CACHE = None
 _NETS_CACHE = None
+
+
+def _knob(name, default):
+    v = os.environ.get("GK_" + name)
+    try:
+        return float(v) if v not in (None, "") else default
+    except ValueError:
+        return default
 
 
 def build_chord_table(template_file=None):
@@ -72,6 +90,7 @@ def build_chord_table(template_file=None):
 def get_nets():
     global _NETS_CACHE
     if _NETS_CACHE is None:
+        from .model import load_net
         _NETS_CACHE = [load_net(os.path.join(_WEIGHTS, "fold%d.sdict" % i))
                        for i in range(5)]
     return _NETS_CACHE
@@ -158,51 +177,102 @@ def display_label(name_bass):
     return label
 
 
-# ------------------------------------------------------------------ main ---
-def analyze_deep(y, dur, beats, silent, accent=None):
-    """Deep analysis on the beat grid.
+# ------------------------------------------------------- network + cache ---
+def _cache_path(y):
+    cdir = os.environ.get("GK_CACHE_DIR")
+    if not cdir:
+        return None
+    h = hashlib.sha1(np.ascontiguousarray(y, dtype=np.float32).tobytes())
+    return os.path.join(cdir, "%s.%s.npz" % (h.hexdigest()[:24], CACHE_VER))
 
-    -> (segments, key|None, confidence, beat_chroma (12, n_beats),
-        meter {"bpb": 3|4, "pos": bar position of every beat})"""
-    import meter as mt
 
+def network_probs(y):
+    """-> (six ensemble-mean prob arrays (frames, k), chroma (12, frames)).
+    Cached per song in GK_CACHE_DIR when set."""
+    cp = _cache_path(y)
+    if cp and os.path.exists(cp):
+        try:
+            z = np.load(cp)
+            return [z["p%d" % i] for i in range(6)], z["chroma"]
+        except Exception:
+            pass
     cqt = np.abs(librosa.hybrid_cqt(
         y, bins_per_octave=36, fmin=librosa.note_to_hz("F#0"),
         n_bins=288, tuning=None, hop_length=HOP)).T.astype(np.float32)
-    cqt = cqt[:, SHIFT_HIGH * SHIFT_STEP:
-              SHIFT_HIGH * SHIFT_STEP + SPEC_DIM]
-
+    chroma = cqt_chroma(cqt)
+    cqt = np.ascontiguousarray(
+        cqt[:, SHIFT_HIGH * SHIFT_STEP: SHIFT_HIGH * SHIFT_STEP + SPEC_DIM])
     nets = get_nets()
     outs = None
     for net in nets:
         p = net.probs(cqt)
         outs = p if outs is None else [a + b for a, b in zip(outs, p)]
-    probs = [a / len(nets) for a in outs]
+    del cqt
+    probs = [(a / len(nets)).astype(np.float32) for a in outs]
+    chroma = chroma.astype(np.float32)
+    if cp:
+        try:
+            os.makedirs(os.path.dirname(cp), exist_ok=True)
+            tmp = cp + ".tmp.npz"
+            np.savez_compressed(tmp, chroma=chroma,
+                                **{"p%d" % i: p for i, p in enumerate(probs)})
+            os.replace(tmp, cp)
+        except Exception:
+            pass
+    return probs, chroma
+
+
+def beat_emissions(table, probs, frame_beat, frame_t, beats):
+    """Per-beat log emissions (n_chord, n_beats): ensemble probabilities
+    averaged over each beat, then scored against every template."""
+    n_beats = len(beats)
+    n_frames = len(frame_t)
+    counts = np.bincount(frame_beat, minlength=n_beats).astype(float)
+    pooled = []
+    for p in probs:
+        acc = np.zeros((n_beats, p.shape[1]))
+        np.add.at(acc, frame_beat, p)
+        pooled.append(acc)
+    empty = np.where(counts == 0)[0]
+    for j in empty:
+        # beat shorter than a frame: borrow the nearest frame
+        k = int(np.clip(np.searchsorted(frame_t, beats[j]), 0, n_frames - 1))
+        for acc, p in zip(pooled, probs):
+            acc[j] = p[k]
+    counts[empty] = 1.0
+    pooled = [acc / counts[:, None] for acc in pooled]
+    _n, _a, lp = chord_obs(table, pooled)
+    return lp.T
+
+
+# ------------------------------------------------------------------ main ---
+def analyze_deep(y, dur, beats, silent, accent=None):
+    """Deep analysis on the beat grid.
+
+    -> (segments, key|None, confidence, beat_chroma (12, n_beats),
+        meter {"bpb": 3|4|6, "pos": bar position of every beat})"""
+    import meter as mt
+
+    em_temp = _knob("EM_TEMP", EM_TEMP)
+    key_pen = _knob("KEY_PENALTY", KEY_PENALTY)
+    key_slack = _knob("KEY_SLACK", KEY_SLACK)
+
+    probs, chroma = network_probs(y)
 
     frame_dur = HOP / SR
-    n_frames = cqt.shape[0]
+    n_frames = probs[0].shape[0]
     frame_t = np.arange(n_frames) * frame_dur
 
     # ---- frame-level XHMM labelling (key candidates) ----
     table = build_chord_table()
     names, _arr, logp = chord_obs(table, probs)
     frame_labels = xhmm_frame_decode(names, logp)
+    del logp
 
     # ---- beat-grid emissions pooled from the same probabilities ----
     n_beats = len(beats)
     frame_beat = mt.cell_index(frame_t, beats)
-    em = np.zeros((logp.shape[1], n_beats))
-    for j in range(n_beats):
-        sel = frame_beat == j
-        if not sel.any():
-            # beat shorter than a frame: borrow the nearest frame
-            k = int(np.clip(np.searchsorted(frame_t, beats[j]), 0,
-                            n_frames - 1))
-            sel = np.zeros(n_frames, dtype=bool)
-            sel[k] = True
-        mp = [p[sel].mean(axis=0) for p in probs]
-        _n2, _a2, lp2 = chord_obs(table, mp)
-        em[:, j] = lp2[0]
+    em = beat_emissions(table, probs, frame_beat, frame_t, beats)
 
     for j in range(min(n_beats, len(silent))):
         if silent[j]:
@@ -210,7 +280,7 @@ def analyze_deep(y, dur, beats, silent, accent=None):
         else:
             em[0, j] = -1e9
 
-    em_t = EM_TEMP * np.maximum(em, -1e6)
+    em_t = em_temp * np.maximum(em, -1e6)
 
     # ---- metrical decode; meter settled on the free decode ----
     disp_all = [display_label(n) for n in names]
@@ -235,12 +305,13 @@ def analyze_deep(y, dur, beats, silent, accent=None):
         if kk in seen:
             continue
         seen.add(kk)
-        em_k = _apply_key_penalty(em_t, disp_all, k, penalty=0.45)
+        em_k = _apply_key_penalty(em_t, disp_all, k, penalty=key_pen)
         p_k, q_k, _sc = mt.metrical_viterbi(em_k, bpb, accent)
         sc = float(np.mean([em[p_k[j], j] for j in range(n_beats)]))
         # adopt the constrained decoding when it costs almost nothing:
         # one key => consistent repeats, fewer out-of-key decoys
-        if sc >= free_score - 0.03 and (best_key is None or sc > best_score):
+        if sc >= free_score - key_slack and (best_key is None
+                                             or sc > best_score):
             best_path, best_pos, best_key, best_score = p_k, q_k, k, sc
     path, pos, key = best_path, best_pos, best_key
 
@@ -248,12 +319,12 @@ def analyze_deep(y, dur, beats, silent, accent=None):
     conf = float(np.mean(np.exp(np.clip(chosen, -20.0, 0.0)))) if n_beats else 0.0
     conf = float(np.clip(conf ** 0.45, 0.0, 1.0))
 
-    chroma = cqt_chroma(cqt)
-    counts = np.maximum(np.bincount(frame_beat, minlength=n_beats), 1)
+    m = min(chroma.shape[1], n_frames)
+    counts = np.maximum(np.bincount(frame_beat[:m], minlength=n_beats), 1)
     beat_chroma = np.zeros((12, n_beats))
     for pc in range(12):
         beat_chroma[pc] = np.bincount(
-            frame_beat, weights=chroma[pc], minlength=n_beats) / counts
+            frame_beat[:m], weights=chroma[pc, :m], minlength=n_beats) / counts
 
     segs = _bars_to_segments(beats, dur, path, disp_all)
     return segs, key, conf, beat_chroma, {"bpb": int(bpb), "pos": pos}
@@ -318,7 +389,7 @@ def _key_allowed_set(tonic, mode):
     return allowed
 
 
-def _apply_key_penalty(em, disp_all, key, penalty=0.45):
+def _apply_key_penalty(em, disp_all, key, penalty=KEY_PENALTY):
     """Log-penalty for out-of-key templates (returns a copy)."""
     try:
         allowed = _key_allowed_set(key["tonic"], key["mode"])
