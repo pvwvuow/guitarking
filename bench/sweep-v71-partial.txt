@@ -1,0 +1,6 @@
+skipping 2 suspect refs: audio/sad-gozashtam.mp3, audio/koo-beheshtemoon.mp3
+[1/19] score=0.3909 changes x1.648 {} (673s)
+[2/19] score=0.3933 changes x1.636 {"GK_EM_TEMP": "0.5", "GK_CP4": "0.30/0.008/0.05/0.008", "GK_KEY_PENALTY": "0.3"} (264s)
+[3/19] score=0.3911 changes x1.619 {"GK_EM_TEMP": "0.5", "GK_CP4": "0.30/0.008/0.05/0.008", "GK_KEY_PENALTY": "0.45"} (266s)
+[4/19] score=0.3931 changes x1.656 {"GK_EM_TEMP": "0.5", "GK_CP4": "0.30/0.012/0.08/0.012", "GK_KEY_PENALTY": "0.3"} (266s)
+[5/19] score=0.3924 changes x1.627 {"GK_EM_TEMP": "0.5", "GK_CP4": "0.30/0.012/0.08/0.012", "GK_KEY_PENALTY": "0.45"} (264s)

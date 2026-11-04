@@ -1,14 +1,14 @@
 [
  {
   "audio": "audio/bani-akhmat.mp3",
-  "sequence": "Dm Bb Am Bb Bb Am Am Bb Gm Am Am Gm Gm Bb Dm Bb Gm Gm Bb Dm Bb Gm Gm Bb Dm Bb Gm Gm Bb Dm Bb Gm Dm Am Dm Gm Am Am Gm Am Bb Am Bb Gm Am Am Gm Am Gm Bb Dm Bb Gm Gm Bb Dm Bb Gm Gm Bb Dm Bb Gm Gm Bb Dm Bb Gm",
+  "sequence": "C Dm Bb C Am Bb Bb Am Am Bb Gm Am Am Gm Gm Bb Dm Bb C Gm Gm Bb Dm Bb C Gm Gm Bb Dm Bb C Gm Gm Bb Dm Bb C Gm Dm Am Dm Gm Am Am Gm Am Bb Am Bb Gm Am Am Gm Am Gm Bb Dm Bb C Gm Gm Bb Dm Bb C Gm Gm Bb Dm Bb C Gm Gm Bb Dm Bb C Gm",
   "sheet_key": "Dm",
   "source": "https://akord.ir/artists/بهنام-بانی/اخماتو-وا-کن",
   "lab": "lab/bani-akhmat.lab"
  },
  {
   "audio": "audio/bani-setare.mp3",
-  "sequence": "Bbmaj7 Dm7 Am7 Gm7 Am7 Bbmaj7 Bb Dm7 Am7 Dm7 Gm7 Am7 Bb Dm7 Dm7 Gm7 Am7 Am7 Bb Dm7 Gm7 Am7 Bb Dm7 Gm7 Am7 Bb Bb Dm7 Gm7 Am7 Bb Am7 Gm7 Bb Am7 Bb Bb Dm7 Gm7 Am7 Bb Am7 Gm7 Bb Am Bb Dm Gm7 Bb Dm7 Gm7 Am7 Bb Bb Dm7 Gm7 Am7 Am7 Bb Gm7 D7 Am7 Bb Bb Dm7 Gm7 Am7 Am7 Bb Bb Dm7 Gm7 Am7 Bb Am7 Gm7 Bb Am7 Bb Bb Dm7 Gm7 Am7 Bb Am7 Gm7 Bb",
+  "sequence": "C Bbmaj7 C Dm7 Am7 Gm7 Am7 Bbmaj7 Bb Dm7 Am7 Dm7 Gm7 Am7 Bb Dm7 Dm7 Gm7 Am7 Am7 Bb C Dm7 Gm7 Am7 Bb C Dm7 Gm7 Am7 Bb C Bb Dm7 Gm7 Am7 Bb C Am7 Gm7 Bb Am7 Bb C Bb Dm7 Gm7 Am7 Bb C Am7 Gm7 Bb Am Bb C Dm A Gm7 F Bb C Dm7 Gm7 Am7 Bb Bb C Dm7 Gm7 Am7 Am7 Bb Gm7 D7 Am7 Bb Bb C Dm7 Gm7 Am7 Am7 Bb C Bb Dm7 Gm7 Am7 Bb C Am7 Gm7 Bb Am7 Bb C Bb Dm7 Gm7 Am7 Bb C Am7 Gm7 Bb",
   "sheet_key": "Dm7",
   "source": "https://akord.ir/artists/بهنام-بانی/ستاره-میشی"
  },
@@ -20,98 +20,98 @@
  },
  {
   "audio": "audio/chavoshi-sange.mp3",
-  "sequence": "Bb Cm Cm Bb Ab Bb Cm Cm Bb Ab Bb Eb Cm Bb Ab Bb Eb Cm Bb Ab Cm Bb Ab Cm Bb Fm Cm Bb Fm Bb Cm Cm Bb Ab Bb Cm Cm Bb Ab Bb Eb Cm Bb Ab Bb Eb Cm Bb Ab Cm Bb Fm Cm Bb Fm",
+  "sequence": "Bb Cm Cm Bb Ab Bb Cm Cm Bb Ab Bb Eb Cm Bb Ab Bb Eb Cm Bb Ab Cm Bb Ab Cm Bb Fm G Cm Bb Fm G Bb Cm Cm Bb Ab Bb Cm Cm Bb Ab Bb Eb Cm Bb Ab Bb Eb Cm Bb Ab Cm Bb Fm G Cm Bb Fm G",
   "sheet_key": "Cm",
   "source": "https://akord.ir/artists/محسن-چاوشی/سنگ-صبور"
  },
  {
   "audio": "audio/farzad-atish.mp3",
-  "sequence": "Bm Bm Bm Bm Bm Em Bm Em Em F#m Em Bm Bm Bm Bm Bm Bm Bm Em F#m F#m Bm Bm Bm Bm Bm Bm Bm Bm Bm Bm Bm Bm Bm Bm Bm Bm Bm Bm Bm Bm",
+  "sequence": "Bm A Bm Bm A Bm Bm Em A G Bm Em A G G Em G F#m Em G A G A Bm A Bm A Bm A G A Bm A Bm A Bm A G Bm A Em F#m G A F#m A G A A Bm A Bm A Bm A G A Bm A Bm A Bm A G Bm A Bm Bm A A Bm A Bm A G A Bm A Bm A Bm A G A Bm A Bm A Bm A G A Bm A Bm A Bm A G",
   "sheet_key": "Bm",
   "source": "https://akord.ir/artists/فرزاد-فرزین/آتیش"
  },
  {
   "audio": "audio/farzad-divooneh.mp3",
-  "sequence": "Cm Bb Ab Gm Bb Cm Bb Ab Gm Bb Gm Cm Ab Bb Bb Cm Ab Cm Fm Cm Bb Ab Bb",
+  "sequence": "Cm Bb Ab Gm Bb Cm Bb Ab Gm Bb Gm Cm Ab G Bb Bb Cm Ab Cm G Fm Cm Bb Ab Bb",
   "sheet_key": "Cm",
   "source": "https://akord.ir/artists/فرزاد-فرزین/دیوونه"
  },
  {
   "audio": "audio/farzad-khoda.mp3",
-  "sequence": "Em Em Am Am Am Dm Am Dm Em Em Em Am Am Em Dm Dm Em Dm Em Em Am Dm Em Dm Em Dm Em Dm Em",
+  "sequence": "Em F Em Am F Am Am Dm Am Dm Em F Em F Em Am F Am Em Dm G Dm F Em F C G Dm F F Em F A C Em F G Am Dm A G Em Dm C Em F G Dm F Em F C G Dm F F Em F A C",
   "sheet_key": "Am",
   "source": "https://akord.ir/artists/فرزاد-فرزین/خدا-منو-ببین"
  },
  {
   "audio": "audio/hamayoon-alborz.mp3",
-  "sequence": "Am Am Am Em Am Em Em Em Am Am",
+  "sequence": "Am F F G Am Am G F F G Em F G Am Em G F F G F G Em G G F Em G Am G G F G G C Am G",
   "sheet_key": "F",
   "source": "https://akord.ir/artists/حامد-همایون/البرز"
  },
  {
   "audio": "audio/hamayoon-delvapasi.mp3",
-  "sequence": "Cm Cm Cm Fm Cm Cm Fm Cm Fm Cm Cm Bb Gm Cm Fm Cm Fm Cm Ab Bb Gm Cm Fm Bb Gm Gm Bb Cm Gm Bb Ab Cm Cm Cm Fm Cm Cm Fm Cm Fm Cm Cm Bb Gm Cm Fm Cm Fm Cm Ab Bb Gm Cm Fm Bb Gm Gm Bb Cm Gm Bb Ab",
+  "sequence": "Cm Cm Cm Fm G Cm Cm Fm G Cm Fm Cm Cm Bb Gm Cm Fm Cm Fm Cm Ab Bb Gm Cm Fm Bb Gm Gm Bb Cm Gm Bb Ab Cm Cm Cm Fm G Cm Cm Fm G Cm Fm Cm Cm Bb Gm Cm Fm Cm Fm Cm Ab Bb Gm Cm Fm Bb Gm Gm Bb Cm Gm Bb Ab",
   "sheet_key": "Cm",
   "source": "https://akord.ir/artists/حامد-همایون/دلواپسی",
   "lab": "lab/hamayoon-delvapasi.lab"
  },
  {
   "audio": "audio/hamayoon-dobare.mp3",
-  "sequence": "Bb Dm Am Dm Bb Dm Am Am Bb Bb Dm Gm Dm Dm Am Dm Bb Am Bb Dm Am Dm Bb Dm Am Am Bb Bb Dm Gm Dm Dm Am Dm Bb Am",
+  "sequence": "Bb Dm Am Dm Bb Dm Am C Am Bb C Bb Dm Gm C Dm Dm Am Dm Bb C Am Bb Dm Am Dm Bb Dm Am C Am Bb C Bb Dm Gm C Dm Dm Am Dm Bb C Am",
   "sheet_key": "Dm",
   "source": "https://akord.ir/artists/حامد-همایون/دوباره-عشق"
  },
  {
   "audio": "audio/lohrasbi-baron.mp3",
-  "sequence": "Gm Dm Cm Gm Gm Gm Dm Cm Gm Gm Gm Eb Cm Dm Gm Gm Eb Cm Dm Gm Gm Eb Gm Cm Gm Cm Gm Cm Gm Eb Gm Cm Gm Cm Gm Cm Dm Cm Gm Gm Dm Cm Gm",
+  "sequence": "Gm Dm Cm Gm Gm Gm Dm Cm Gm Gm Gm F Eb Cm Dm Gm Gm F Eb Cm Dm Gm Gm F Eb Gm Cm Gm Cm Gm Cm Gm F Eb Gm Cm Gm Cm Gm Cm Dm Cm Gm Gm Dm Cm Gm",
   "sheet_key": "Gm",
   "source": "https://akord.ir/artists/علی-لهراسبی/بارون"
  },
  {
   "audio": "audio/masih-aroom.mp3",
-  "sequence": "Gm Eb Eb Cm Gm Eb Gm Eb Eb Gm Eb Eb",
+  "sequence": "Gm F Eb Eb F Cm Gm F F Eb F Gm Eb F F Eb Gm Eb F Eb F",
   "sheet_key": "Gm",
   "source": "https://akord.ir/artists/مسیح-و-آرش-AP/آروم-دل"
  },
  {
   "audio": "audio/masih-rangkhoda.mp3",
-  "sequence": "D#m G#m D#m G#m G#m D#m G#m G#m D#m G#m D#m Bbm G#m Bbm G#m D#m G#m G#m D#m G#m",
+  "sequence": "D#m G#m D#m C G#m G#m D#m G#m F G#m D#m G#m F D#m Bbm G#m Bbm F B G#m D#m G#m F G#m D#m G#m F",
   "sheet_key": "D#m",
   "source": "https://akord.ir/artists/مسیح-و-آرش-AP/رنگ-خدا"
  },
  {
   "audio": "audio/sadeghi-10sanive.mp3",
-  "sequence": "Am Am Dm Am Dm Bb Am Dm Am Am Bb Dm Am Am Bb Am Dm Am Dm Am Bb Am Dm Am Dm Am Bb Am Dm Bb Am Bb Dm Am Dm Am Am Bb Am Bb Am Dm Am Am Dm Am Bb Am Am Dm Am Bb Am Dm Am Dm Bb Am Am Am Dm Am Bb Am Am Dm Am Bb Am Dm Bb Bb Am Dm Am Am Bb Bb Am",
+  "sequence": "Am E Am Dm Am E Dm Bb Am Dm Am Am C Bb Dm Am C Am Bb Am Dm Am C Dm Am Bb Am Dm Am C Dm Am Bb Am Dm Bb C Am Bb Dm Am Dm Am C Am Bb C Am Bb Am Dm Am Am Dm Am C Bb Am Am Dm Am C Bb Am Dm Am Dm C Bb Am Am Am Dm Am Bb C Am Am Dm Am Bb C Am Dm Bb C Bb Am Dm Am Am C Bb Bb Am",
   "sheet_key": "Am",
   "source": "https://akord.ir/artists/رضا-صادقی/10-ثانیه"
  },
  {
   "audio": "audio/sadeghi-babayebaroon.mp3",
-  "sequence": "Bm Bm Am Bm Bm Am Bm Am Bm Am Bm Am",
+  "sequence": "C Bm Bm C Am C Bm Bm C Am Bm Am C D Bm Am C D Bm C Am C D",
   "sheet_key": "Bm",
   "source": "https://akord.ir/artists/رضا-صادقی/بابای-بارون"
  },
  {
   "audio": "audio/sadeghi-hesskhoob.mp3",
-  "sequence": "Em Bm Bm Em B7 D7 Bm Em B7 D7 Bm Bm Bm Em B7 D7 Bm Em B7 D7 Bm Fm C7 D#7 Cm Fm C7 D#7 Cm",
+  "sequence": "D C D Em E Bm C D C D C E Bm C Em B7 D7 G E Bm C Em B7 D7 G E Bm C D C D C E Bm C D C D C E Bm C Em B7 D7 G E Bm C Em B7 D7 G E Bm C Fm C7 D#7 G F Cm C Fm C7 D#7 G F Cm C",
   "sheet_key": "Em",
   "source": "https://akord.ir/artists/رضا-صادقی/حس-خوب"
  },
  {
   "audio": "audio/sadeghi-soltangholbha.mp3",
-  "sequence": "Am Am Am Am Am Am Am Em Am Em Am",
+  "sequence": "B Am G C Am D C B Am B B Am G C Am D C B C B D C B Am D B D Am B Em C B Am G B Em C B Am G F",
   "sheet_key": "Am",
   "source": "https://akord.ir/artists/رضا-صادقی/سلطان--قلب-ها"
  },
  {
   "audio": "audio/sirvan-akharinrooz.mp3",
-  "sequence": "G7 Em G7 Em Am Am Am Am C#m C#m C#m G#m C#m G#m G7 Em G7 Em Am Am Am Am",
+  "sequence": "C G7 G Em C G7 G Em Am C D C Am C D Am C D E D Am C B C#m A E B C#m A E B A C#m G#m A B C C#m A G#m C G7 G Em C G7 G Em Am C D C Am C D Am C D E D Am C",
   "sheet_key": "G",
   "source": "https://akord.ir/artists/سیروان-خسروی/آخرین-روز"
  },
  {
   "audio": "audio/sirvan-bargard.mp3",
-  "sequence": "Am Am Am Am Am Am Dm Am Dm Am Em Am Am Em Em Am Am Am Am Am Am Am Am Dm Am Dm Am Em Am Am Em Em Am Am Am Am Em Am Am Em Em",
+  "sequence": "E Am F G Am G Am E Am F G Am E Am F F Dm G Am F Dm G Am Em F G Am G Am E Em F G E Em E Am F G Am E Am F G Am G Am E Am F G Am E Am F F Dm G Am F Dm G Am Em F G Am G Am E Em F G E Em E Am F G Am E Am F G Am Em F G Am G Am E Em F G E Em",
   "sheet_key": "Am",
   "source": "https://akord.ir/artists/سیروان-خسروی/برگرد-(امشبم-نیستی)"
  },
@@ -124,49 +124,49 @@
  },
  {
   "audio": "audio/sirvan-oonrooza.mp3",
-  "sequence": "Em Dm Em Am Em Dm Em Am Bm Em Bm Am Am Bm Em Bm Em Dm Em Am Em Dm Em Am",
+  "sequence": "Em Dm Em Am Em Dm Em Am G F G C G F G C G Bm Em Bm Am Am Bm C Em Bm Em Dm Em Am Em Dm Em Am G F G C F G C G",
   "sheet_key": "Am",
   "source": "https://akord.ir/artists/سیروان-خسروی/اون-روزا"
  },
  {
   "audio": "audio/talischi-bepanahi.mp3",
-  "sequence": "C#m G#m C#m G#m D#7 C#m G#m G#m D#7 G#m C#m G#m D#7 G#m C#m G#m C#m G#m C#m G#m C#m G#7 G#m D#m C#m G#m C#m G#m D#7 C#m G#m G#m C# G#m G#m D#7 G#m G#m C#m G#m C#m C#m C#m G#m G#m D#7 G#m C#m G#m C#m G#7 G#m D#m D#7 C#m G#m G#m",
+  "sequence": "C#m G#m C#m G#m D#7 A C#m G#m G#m D D#7 G#m C#m G#m D E D#7 G#m C#m F E G#m C#m E F D A G#m C#m B F G#m C#m G#7 G#m D#m E F C#m G#m C#m G#m D#7 A C#m G#m G#m C# G#m G#m D#7 E F G#m G#m C#m G#m C#m C#m B C#m G#m G#m D#7 B G#m C#m B F G#m C#m G#7 G#m D#m E F D#7 A C#m G#m G#m",
   "sheet_key": "G#m",
   "source": "https://akord.ir/artists/علیرضا-طلیسچی/بی-پناهی"
  },
  {
   "audio": "audio/talischi-biamanoboobin.mp3",
-  "sequence": "Am Em Am Em Em Em Em Em Am Am Am Em Em Am Em Em",
+  "sequence": "Am Em G F Am Em Em F C Em G F F Em Em G Am Am F Am Em G F C F C Em F Am Em F Em F",
   "sheet_key": "Em",
   "source": "https://akord.ir/artists/علیرضا-طلیسچی/بیا-منو-ببین"
  },
  {
   "audio": "audio/talischi-raazim.mp3",
-  "sequence": "Dm Bb Am Am Dm Bb Am Gm Bb Dm Bb Gm Bb Am Am Dm Am Bb Bb",
+  "sequence": "Dm Bb Am Am Dm Bb C Am Gm Bb C Dm C Bb Gm Bb Am Am Dm Am Bb Bb C",
   "sheet_key": "Dm",
   "source": "https://akord.ir/artists/علیرضا-طلیسچی/راضیم-ازت"
  },
  {
   "audio": "audio/yeganeh-behetgholmidam.mp3",
-  "sequence": "Em Em Em Em Em Em Em Em",
+  "sequence": "Em D C B Em D C B Em D C B Em D C B Em D C B Em D C B Em D C B D Em B C",
   "sheet_key": "Em",
   "source": "https://akord.ir/artists/محسن-یگانه/بهت-قول-میدم"
  },
  {
   "audio": "audio/yeganeh-oskole.mp3",
-  "sequence": "Dm Am Dm Am E7 Am Dm Dm Am Dm Am Am Dm Dm Am Dm Am E7 Am Dm Dm Am Dm Am Am Am Dm",
+  "sequence": "Dm Am Dm Am E7 E Am Dm Dm Am Dm Am E G Am Dm Dm Am Dm Am E7 E Am Dm Dm Am Dm Am Am E G Am Dm",
   "sheet_key": "Am",
   "source": "https://akord.ir/artists/محسن-یگانه/اسکله"
  },
  {
   "audio": "audio/zand-jodayi.mp3",
-  "sequence": "Bm Am Bm Bm Bm Bm Am Bm Bm Bm Bm Em Bm Em Bm Em Am Bm Em Bm Em Bm Em Am Bm Am Em Am Bm Bm Am Am Bm Bm Am Bm Bm Bm",
+  "sequence": "Bm Am E D Bm Bm C D Bm C D Bm Am E D Bm Bm C D Bm C D Bm Em Bm Em Bm C D Em D Am Bm Em Bm Em Bm C D Em D Am Bm C Am Em Am Bm Bm C Am E Am Bm Bm Am E D Bm Bm C D Bm C D",
   "sheet_key": "Bm",
   "source": "https://akord.ir/artists/علی-زند-وکیلی/جدایی"
  },
  {
   "audio": "audio/zand-royaye.mp3",
-  "sequence": "Dm Dm Gm Dm Am Gm",
+  "sequence": "C F C F C F F C C F C F A C F A A Dm Dm Gm A Dm Am Gm F C F C F C F F C C F C F C F C F F C F",
   "sheet_key": "F",
   "source": "https://akord.ir/artists/علی-زند-وکیلی/رویای-بی-تکرار"
  },

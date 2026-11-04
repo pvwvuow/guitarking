@@ -1,0 +1,2009 @@
+{
+ "summary": {
+  "root": 0.5522,
+  "majmin": 0.4751,
+  "change_f": 0.4648,
+  "seq_root": 0.4153,
+  "seq_majmin": 0.3887,
+  "change_ratio": 1.129,
+  "seq_change_ratio": 1.6485,
+  "songs": 30,
+  "errors": 0
+ },
+ "summary_clean": {
+  "root": 0.5784,
+  "majmin": 0.5054,
+  "change_f": 0.5623,
+  "seq_root": 0.4153,
+  "seq_majmin": 0.3887,
+  "change_ratio": 1.129,
+  "seq_change_ratio": 1.6485,
+  "songs": 28,
+  "errors": 0
+ },
+ "songs": [
+  {
+   "audio": "audio/bani-akhmat.mp3",
+   "engine": "v7-chordnet-beat",
+   "tempo": 103.4,
+   "bpb": 4,
+   "suspect": [],
+   "engine_ver": "7.1",
+   "tempo_candidates": [
+    {
+     "bpm": 103.4,
+     "ratio": 1.0,
+     "score": 0.16,
+     "h1": 0.117,
+     "hb": 0.048,
+     "o1": 0.039,
+     "prior": -0.001
+    },
+    {
+     "bpm": 52.7,
+     "ratio": 0.5,
+     "score": -0.14,
+     "h1": 0.096,
+     "hb": 0.073,
+     "o1": 0.052,
+     "prior": -0.298
+    },
+    {
+     "bpm": 152.0,
+     "ratio": 1.5,
+     "score": 0.005,
+     "h1": 0.034,
+     "hb": 0.057,
+     "o1": 0.142,
+     "prior": -0.128
+    },
+    {
+     "bpm": 69.8,
+     "ratio": 0.667,
+     "score": -0.023,
+     "h1": 0.04,
+     "hb": 0.027,
+     "o1": 0.034,
+     "prior": -0.094
+    },
+    {
+     "bpm": 136.0,
+     "ratio": 1.333,
+     "score": 0.008,
+     "h1": 0.019,
+     "hb": 0.058,
+     "o1": 0.058,
+     "prior": -0.069
+    },
+    {
+     "bpm": 80.7,
+     "ratio": 0.75,
+     "score": 0.13,
+     "h1": 0.081,
+     "hb": 0.04,
+     "o1": 0.124,
+     "prior": -0.033
+    }
+   ],
+   "root": 0.5239,
+   "majmin": 0.481,
+   "change_f": 0.6984,
+   "change_err_ms": 284.3,
+   "change_ratio": 1.14,
+   "seq_root": 0.5,
+   "seq_root_shift": 0,
+   "seq_majmin": 0.5,
+   "seq_majmin_shift": 0,
+   "seq_ref_len": 66,
+   "seq_est_len": 66,
+   "seq_change_ratio": 1.0
+  },
+  {
+   "audio": "audio/bani-setare.mp3",
+   "engine": "v7-chordnet-beat",
+   "tempo": 123.0,
+   "bpb": 4,
+   "suspect": [],
+   "engine_ver": "7.1",
+   "tempo_candidates": [
+    {
+     "bpm": 123.0,
+     "ratio": 1.0,
+     "score": 0.07,
+     "h1": 0.009,
+     "hb": 0.065,
+     "o1": 0.119,
+     "prior": -0.031
+    },
+    {
+     "bpm": 61.5,
+     "ratio": 0.5,
+     "score": -0.005,
+     "h1": 0.055,
+     "hb": 0.073,
+     "o1": 0.151,
+     "prior": -0.172
+    },
+    {
+     "bpm": 184.6,
+     "ratio": 1.5,
+     "score": -0.081,
+     "h1": 0.043,
+     "hb": 0.089,
+     "o1": 0.21,
+     "prior": -0.274
+    },
+    {
+     "bpm": 80.7,
+     "ratio": 0.667,
+     "score": 0.03,
+     "h1": 0.022,
+     "hb": 0.062,
+     "o1": 0.02,
+     "prior": -0.033
+    },
+    {
+     "bpm": 161.5,
+     "ratio": 1.333,
+     "score": -0.073,
+     "h1": 0.056,
+     "hb": 0.034,
+     "o1": 0.041,
+     "prior": -0.167
+    },
+    {
+     "bpm": 95.7,
+     "ratio": 0.75,
+     "score": 0.223,
+     "h1": 0.034,
+     "hb": 0.135,
+     "o1": 0.247,
+     "prior": -0.001
+    }
+   ],
+   "seq_root": 0.4314,
+   "seq_root_shift": 0,
+   "seq_majmin": 0.4118,
+   "seq_majmin_shift": 0,
+   "seq_ref_len": 99,
+   "seq_est_len": 102,
+   "seq_change_ratio": 1.031
+  },
+  {
+   "audio": "audio/bani-tooentekhab.mp3",
+   "engine": "v7-chordnet-beat",
+   "tempo": 89.1,
+   "bpb": 4,
+   "suspect": [],
+   "engine_ver": "7.1",
+   "tempo_candidates": [
+    {
+     "bpm": 89.1,
+     "ratio": 1.0,
+     "score": 0.275,
+     "h1": 0.117,
+     "hb": 0.056,
+     "o1": 0.279,
+     "prior": -0.01
+    },
+    {
+     "bpm": 184.6,
+     "ratio": 2.0,
+     "score": 0.132,
+     "h1": 0.102,
+     "hb": 0.064,
+     "o1": 0.544,
+     "prior": -0.274
+    },
+    {
+     "bpm": 136.0,
+     "ratio": 1.5,
+     "score": 0.105,
+     "h1": 0.031,
+     "hb": 0.084,
+     "o1": 0.201,
+     "prior": -0.069
+    },
+    {
+     "bpm": 60.1,
+     "ratio": 0.667,
+     "score": -0.075,
+     "h1": 0.082,
+     "hb": 0.044,
+     "o1": 0.021,
+     "prior": -0.189
+    },
+    {
+     "bpm": 117.5,
+     "ratio": 1.333,
+     "score": 0.085,
+     "h1": 0.04,
+     "hb": 0.031,
+     "o1": 0.095,
+     "prior": -0.019
+    },
+    {
+     "bpm": 68.0,
+     "ratio": 0.75,
+     "score": 0.006,
+     "h1": 0.039,
+     "hb": 0.109,
+     "o1": 0.042,
+     "prior": -0.108
+    }
+   ],
+   "seq_root": 0.3099,
+   "seq_root_shift": 0,
+   "seq_majmin": 0.2958,
+   "seq_majmin_shift": 0,
+   "seq_ref_len": 30,
+   "seq_est_len": 71,
+   "seq_change_ratio": 2.414
+  },
+  {
+   "audio": "audio/chavoshi-sange.mp3",
+   "engine": "v7-chordnet-beat",
+   "tempo": 136.0,
+   "bpb": 4,
+   "suspect": [],
+   "engine_ver": "7.1",
+   "tempo_candidates": [
+    {
+     "bpm": 136.0,
+     "ratio": 1.0,
+     "score": 0.363,
+     "h1": 0.107,
+     "hb": 0.164,
+     "o1": 0.486,
+     "prior": -0.069
+    },
+    {
+     "bpm": 69.8,
+     "ratio": 0.5,
+     "score": -0.023,
+     "h1": 0.04,
+     "hb": 0.016,
+     "o1": 0.046,
+     "prior": -0.094
+    },
+    {
+     "bpm": 92.3,
+     "ratio": 0.667,
+     "score": 0.072,
+     "h1": 0.03,
+     "hb": 0.04,
+     "o1": 0.054,
+     "prior": -0.005
+    },
+    {
+     "bpm": 184.6,
+     "ratio": 1.333,
+     "score": -0.147,
+     "h1": 0.064,
+     "hb": 0.043,
+     "o1": 0.084,
+     "prior": -0.274
+    },
+    {
+     "bpm": 103.4,
+     "ratio": 0.75,
+     "score": 0.205,
+     "h1": 0.096,
+     "hb": 0.053,
+     "o1": 0.165,
+     "prior": -0.001
+    }
+   ],
+   "seq_root": 0.4854,
+   "seq_root_shift": 0,
+   "seq_majmin": 0.4808,
+   "seq_majmin_shift": 0,
+   "seq_ref_len": 55,
+   "seq_est_len": 103,
+   "seq_change_ratio": 1.889
+  },
+  {
+   "audio": "audio/farzad-atish.mp3",
+   "engine": "v7-chordnet-beat",
+   "tempo": 129.2,
+   "bpb": 4,
+   "suspect": [],
+   "engine_ver": "7.1",
+   "tempo_candidates": [
+    {
+     "bpm": 129.2,
+     "ratio": 1.0,
+     "score": 0.352,
+     "h1": 0.169,
+     "hb": 0.045,
+     "o1": 0.416,
+     "prior": -0.048
+    },
+    {
+     "bpm": 64.6,
+     "ratio": 0.5,
+     "score": -0.048,
+     "h1": 0.042,
+     "hb": 0.029,
+     "o1": 0.07,
+     "prior": -0.139
+    },
+    {
+     "bpm": 198.8,
+     "ratio": 1.5,
+     "score": -0.273,
+     "h1": 0.015,
+     "hb": 0.052,
+     "o1": 0.06,
+     "prior": -0.344
+    },
+    {
+     "bpm": 89.1,
+     "ratio": 0.667,
+     "score": 0.042,
+     "h1": 0.016,
+     "hb": 0.019,
+     "o1": 0.052,
+     "prior": -0.01
+    },
+    {
+     "bpm": 172.3,
+     "ratio": 1.333,
+     "score": -0.137,
+     "h1": 0.028,
+     "hb": 0.025,
+     "o1": 0.077,
+     "prior": -0.215
+    },
+    {
+     "bpm": 95.7,
+     "ratio": 0.75,
+     "score": 0.142,
+     "h1": 0.066,
+     "hb": 0.05,
+     "o1": 0.103,
+     "prior": -0.001
+    }
+   ],
+   "seq_root": 0.4494,
+   "seq_root_shift": 10,
+   "seq_majmin": 0.4187,
+   "seq_majmin_shift": 10,
+   "seq_ref_len": 93,
+   "seq_est_len": 158,
+   "seq_change_ratio": 1.707
+  },
+  {
+   "audio": "audio/farzad-divooneh.mp3",
+   "engine": "v7-chordnet-beat",
+   "tempo": 99.4,
+   "bpb": 4,
+   "suspect": [],
+   "engine_ver": "7.1",
+   "tempo_candidates": [
+    {
+     "bpm": 99.4,
+     "ratio": 1.0,
+     "score": 0.267,
+     "h1": 0.038,
+     "hb": 0.09,
+     "o1": 0.368,
+     "prior": -0.0
+    },
+    {
+     "bpm": 198.8,
+     "ratio": 2.0,
+     "score": -0.087,
+     "h1": 0.074,
+     "hb": 0.044,
+     "o1": 0.322,
+     "prior": -0.344
+    },
+    {
+     "bpm": 152.0,
+     "ratio": 1.5,
+     "score": 0.239,
+     "h1": 0.059,
+     "hb": 0.035,
+     "o1": 0.581,
+     "prior": -0.128
+    },
+    {
+     "bpm": 68.0,
+     "ratio": 0.667,
+     "score": -0.005,
+     "h1": 0.03,
+     "hb": 0.042,
+     "o1": 0.105,
+     "prior": -0.108
+    },
+    {
+     "bpm": 76.0,
+     "ratio": 0.75,
+     "score": 0.218,
+     "h1": 0.105,
+     "hb": 0.094,
+     "o1": 0.243,
+     "prior": -0.055
+    }
+   ],
+   "seq_root": 0.3538,
+   "seq_root_shift": 0,
+   "seq_majmin": 0.3385,
+   "seq_majmin_shift": 0,
+   "seq_ref_len": 24,
+   "seq_est_len": 65,
+   "seq_change_ratio": 2.783
+  },
+  {
+   "audio": "audio/farzad-khoda.mp3",
+   "engine": "v7-chordnet-beat",
+   "tempo": 129.2,
+   "bpb": 4,
+   "suspect": [],
+   "engine_ver": "7.1",
+   "tempo_candidates": [
+    {
+     "bpm": 129.2,
+     "ratio": 1.0,
+     "score": 0.185,
+     "h1": 0.018,
+     "hb": 0.189,
+     "o1": 0.241,
+     "prior": -0.048
+    },
+    {
+     "bpm": 64.6,
+     "ratio": 0.5,
+     "score": -0.07,
+     "h1": 0.004,
+     "hb": 0.025,
+     "o1": 0.105,
+     "prior": -0.139
+    },
+    {
+     "bpm": 198.8,
+     "ratio": 1.5,
+     "score": -0.225,
+     "h1": 0.023,
+     "hb": 0.077,
+     "o1": 0.114,
+     "prior": -0.344
+    },
+    {
+     "bpm": 86.1,
+     "ratio": 0.667,
+     "score": 0.114,
+     "h1": 0.013,
+     "hb": 0.04,
+     "o1": 0.194,
+     "prior": -0.016
+    },
+    {
+     "bpm": 172.3,
+     "ratio": 1.333,
+     "score": -0.019,
+     "h1": 0.029,
+     "hb": 0.06,
+     "o1": 0.275,
+     "prior": -0.215
+    },
+    {
+     "bpm": 99.4,
+     "ratio": 0.75,
+     "score": 0.137,
+     "h1": 0.013,
+     "hb": 0.058,
+     "o1": 0.188,
+     "prior": -0.0
+    }
+   ],
+   "seq_root": 0.4625,
+   "seq_root_shift": 2,
+   "seq_majmin": 0.425,
+   "seq_majmin_shift": 2,
+   "seq_ref_len": 57,
+   "seq_est_len": 80,
+   "seq_change_ratio": 1.411
+  },
+  {
+   "audio": "audio/hamayoon-alborz.mp3",
+   "engine": "v7-chordnet-beat",
+   "tempo": 136.0,
+   "bpb": 4,
+   "suspect": [],
+   "engine_ver": "7.1",
+   "tempo_candidates": [
+    {
+     "bpm": 136.0,
+     "ratio": 1.0,
+     "score": 0.084,
+     "h1": 0.062,
+     "hb": 0.038,
+     "o1": 0.144,
+     "prior": -0.069
+    },
+    {
+     "bpm": 68.0,
+     "ratio": 0.5,
+     "score": 0.112,
+     "h1": 0.03,
+     "hb": 0.123,
+     "o1": 0.259,
+     "prior": -0.108
+    },
+    {
+     "bpm": 89.1,
+     "ratio": 0.667,
+     "score": 0.094,
+     "h1": 0.062,
+     "hb": 0.032,
+     "o1": 0.052,
+     "prior": -0.01
+    },
+    {
+     "bpm": 184.6,
+     "ratio": 1.333,
+     "score": -0.151,
+     "h1": 0.033,
+     "hb": 0.031,
+     "o1": 0.15,
+     "prior": -0.274
+    },
+    {
+     "bpm": 103.4,
+     "ratio": 0.75,
+     "score": 0.137,
+     "h1": 0.02,
+     "hb": 0.106,
+     "o1": 0.13,
+     "prior": -0.001
+    }
+   ],
+   "seq_root": 0.3846,
+   "seq_root_shift": 0,
+   "seq_majmin": 0.3846,
+   "seq_majmin_shift": 0,
+   "seq_ref_len": 29,
+   "seq_est_len": 65,
+   "seq_change_ratio": 2.286
+  },
+  {
+   "audio": "audio/hamayoon-delvapasi.mp3",
+   "engine": "v7-chordnet-beat",
+   "tempo": 117.5,
+   "bpb": 4,
+   "suspect": [],
+   "engine_ver": "7.1",
+   "tempo_candidates": [
+    {
+     "bpm": 117.5,
+     "ratio": 1.0,
+     "score": 0.173,
+     "h1": 0.091,
+     "hb": 0.086,
+     "o1": 0.117,
+     "prior": -0.019
+    },
+    {
+     "bpm": 60.1,
+     "ratio": 0.5,
+     "score": -0.092,
+     "h1": 0.057,
+     "hb": 0.075,
+     "o1": 0.005,
+     "prior": -0.189
+    },
+    {
+     "bpm": 172.3,
+     "ratio": 1.5,
+     "score": -0.094,
+     "h1": 0.048,
+     "hb": 0.058,
+     "o1": 0.089,
+     "prior": -0.215
+    },
+    {
+     "bpm": 80.7,
+     "ratio": 0.667,
+     "score": 0.064,
+     "h1": 0.061,
+     "hb": 0.052,
+     "o1": 0.02,
+     "prior": -0.033
+    },
+    {
+     "bpm": 161.5,
+     "ratio": 1.333,
+     "score": -0.097,
+     "h1": 0.019,
+     "hb": 0.03,
+     "o1": 0.073,
+     "prior": -0.167
+    },
+    {
+     "bpm": 92.3,
+     "ratio": 0.75,
+     "score": 0.106,
+     "h1": 0.054,
+     "hb": 0.046,
+     "o1": 0.067,
+     "prior": -0.005
+    }
+   ],
+   "root": 0.5954,
+   "majmin": 0.4375,
+   "change_f": 0.3711,
+   "change_err_ms": 83.3,
+   "change_ratio": 1.044,
+   "seq_root": 0.625,
+   "seq_root_shift": 0,
+   "seq_majmin": 0.5714,
+   "seq_majmin_shift": 0,
+   "seq_ref_len": 56,
+   "seq_est_len": 48,
+   "seq_change_ratio": 0.855
+  },
+  {
+   "audio": "audio/hamayoon-dobare.mp3",
+   "engine": "v7-chordnet-beat",
+   "tempo": 95.7,
+   "bpb": 4,
+   "suspect": [],
+   "engine_ver": "7.1",
+   "tempo_candidates": [
+    {
+     "bpm": 95.7,
+     "ratio": 1.0,
+     "score": 0.225,
+     "h1": 0.09,
+     "hb": 0.062,
+     "o1": 0.21,
+     "prior": -0.001
+    },
+    {
+     "bpm": 198.8,
+     "ratio": 2.0,
+     "score": 0.135,
+     "h1": 0.14,
+     "hb": 0.034,
+     "o1": 0.643,
+     "prior": -0.344
+    },
+    {
+     "bpm": 143.6,
+     "ratio": 1.5,
+     "score": 0.049,
+     "h1": 0.037,
+     "hb": 0.026,
+     "o1": 0.189,
+     "prior": -0.095
+    },
+    {
+     "bpm": 64.6,
+     "ratio": 0.667,
+     "score": -0.044,
+     "h1": 0.04,
+     "hb": 0.091,
+     "o1": 0.021,
+     "prior": -0.139
+    },
+    {
+     "bpm": 129.2,
+     "ratio": 1.333,
+     "score": 0.047,
+     "h1": 0.041,
+     "hb": 0.07,
+     "o1": 0.038,
+     "prior": -0.048
+    },
+    {
+     "bpm": 76.0,
+     "ratio": 0.75,
+     "score": 0.088,
+     "h1": 0.07,
+     "hb": 0.081,
+     "o1": 0.065,
+     "prior": -0.055
+    }
+   ],
+   "seq_root": 0.5962,
+   "seq_root_shift": 0,
+   "seq_majmin": 0.5577,
+   "seq_majmin_shift": 0,
+   "seq_ref_len": 42,
+   "seq_est_len": 52,
+   "seq_change_ratio": 1.244
+  },
+  {
+   "audio": "audio/lohrasbi-baron.mp3",
+   "engine": "v7-chordnet-beat",
+   "tempo": 129.2,
+   "bpb": 3,
+   "suspect": [],
+   "engine_ver": "7.1",
+   "tempo_candidates": [
+    {
+     "bpm": 129.2,
+     "ratio": 1.0,
+     "score": 0.064,
+     "h1": 0.02,
+     "hb": 0.093,
+     "o1": 0.091,
+     "prior": -0.048
+    },
+    {
+     "bpm": 64.6,
+     "ratio": 0.5,
+     "score": -0.047,
+     "h1": 0.031,
+     "hb": 0.087,
+     "o1": 0.034,
+     "prior": -0.139
+    },
+    {
+     "bpm": 198.8,
+     "ratio": 1.5,
+     "score": -0.201,
+     "h1": 0.077,
+     "hb": 0.056,
+     "o1": 0.077,
+     "prior": -0.344
+    },
+    {
+     "bpm": 86.1,
+     "ratio": 0.667,
+     "score": 0.178,
+     "h1": 0.04,
+     "hb": 0.095,
+     "o1": 0.213,
+     "prior": -0.016
+    },
+    {
+     "bpm": 172.3,
+     "ratio": 1.333,
+     "score": 0.023,
+     "h1": 0.066,
+     "hb": 0.095,
+     "o1": 0.249,
+     "prior": -0.215
+    }
+   ],
+   "seq_root": 0.3626,
+   "seq_root_shift": 3,
+   "seq_majmin": 0.3626,
+   "seq_majmin_shift": 3,
+   "seq_ref_len": 40,
+   "seq_est_len": 91,
+   "seq_change_ratio": 2.308
+  },
+  {
+   "audio": "audio/masih-aroom.mp3",
+   "engine": "v7-chordnet-beat",
+   "tempo": 152.0,
+   "bpb": 4,
+   "suspect": [],
+   "engine_ver": "7.1",
+   "tempo_candidates": [
+    {
+     "bpm": 152.0,
+     "ratio": 1.0,
+     "score": 0.211,
+     "h1": 0.092,
+     "hb": 0.041,
+     "o1": 0.451,
+     "prior": -0.128
+    },
+    {
+     "bpm": 76.0,
+     "ratio": 0.5,
+     "score": 0.073,
+     "h1": 0.025,
+     "hb": 0.081,
+     "o1": 0.125,
+     "prior": -0.055
+    },
+    {
+     "bpm": 99.4,
+     "ratio": 0.667,
+     "score": 0.079,
+     "h1": 0.029,
+     "hb": 0.044,
+     "o1": 0.056,
+     "prior": -0.0
+    },
+    {
+     "bpm": 112.3,
+     "ratio": 0.75,
+     "score": 0.233,
+     "h1": 0.021,
+     "hb": 0.04,
+     "o1": 0.403,
+     "prior": -0.01
+    }
+   ],
+   "seq_root": 0.4474,
+   "seq_root_shift": 0,
+   "seq_majmin": 0.4474,
+   "seq_majmin_shift": 0,
+   "seq_ref_len": 18,
+   "seq_est_len": 38,
+   "seq_change_ratio": 2.176
+  },
+  {
+   "audio": "audio/masih-rangkhoda.mp3",
+   "engine": "v7-chordnet-beat",
+   "tempo": 89.1,
+   "bpb": 4,
+   "suspect": [],
+   "engine_ver": "7.1",
+   "tempo_candidates": [
+    {
+     "bpm": 89.1,
+     "ratio": 1.0,
+     "score": 0.2,
+     "h1": 0.036,
+     "hb": 0.102,
+     "o1": 0.247,
+     "prior": -0.01
+    },
+    {
+     "bpm": 184.6,
+     "ratio": 2.0,
+     "score": 0.137,
+     "h1": 0.133,
+     "hb": 0.051,
+     "o1": 0.505,
+     "prior": -0.274
+    },
+    {
+     "bpm": 136.0,
+     "ratio": 1.5,
+     "score": 0.15,
+     "h1": 0.134,
+     "hb": 0.077,
+     "o1": 0.094,
+     "prior": -0.069
+    },
+    {
+     "bpm": 60.1,
+     "ratio": 0.667,
+     "score": -0.064,
+     "h1": 0.069,
+     "hb": 0.076,
+     "o1": 0.037,
+     "prior": -0.189
+    },
+    {
+     "bpm": 117.5,
+     "ratio": 1.333,
+     "score": 0.144,
+     "h1": 0.05,
+     "hb": 0.076,
+     "o1": 0.15,
+     "prior": -0.019
+    },
+    {
+     "bpm": 69.8,
+     "ratio": 0.75,
+     "score": 0.183,
+     "h1": 0.064,
+     "hb": 0.089,
+     "o1": 0.337,
+     "prior": -0.094
+    }
+   ],
+   "seq_root": 0.4516,
+   "seq_root_shift": 0,
+   "seq_majmin": 0.4375,
+   "seq_majmin_shift": 0,
+   "seq_ref_len": 26,
+   "seq_est_len": 31,
+   "seq_change_ratio": 1.2
+  },
+  {
+   "audio": "audio/sadeghi-10sanive.mp3",
+   "engine": "v7-chordnet-beat",
+   "tempo": 117.5,
+   "bpb": 4,
+   "suspect": [],
+   "engine_ver": "7.1",
+   "tempo_candidates": [
+    {
+     "bpm": 117.5,
+     "ratio": 1.0,
+     "score": 0.318,
+     "h1": 0.208,
+     "hb": 0.065,
+     "o1": 0.192,
+     "prior": -0.019
+    },
+    {
+     "bpm": 57.4,
+     "ratio": 0.5,
+     "score": 0.017,
+     "h1": 0.155,
+     "hb": 0.068,
+     "o1": 0.104,
+     "prior": -0.224
+    },
+    {
+     "bpm": 172.3,
+     "ratio": 1.5,
+     "score": 0.087,
+     "h1": 0.129,
+     "hb": 0.139,
+     "o1": 0.208,
+     "prior": -0.215
+    },
+    {
+     "bpm": 78.3,
+     "ratio": 0.667,
+     "score": 0.016,
+     "h1": 0.032,
+     "hb": 0.023,
+     "o1": 0.032,
+     "prior": -0.044
+    },
+    {
+     "bpm": 161.5,
+     "ratio": 1.333,
+     "score": -0.025,
+     "h1": 0.069,
+     "hb": 0.052,
+     "o1": 0.095,
+     "prior": -0.167
+    },
+    {
+     "bpm": 89.1,
+     "ratio": 0.75,
+     "score": 0.139,
+     "h1": 0.076,
+     "hb": 0.048,
+     "o1": 0.098,
+     "prior": -0.01
+    }
+   ],
+   "seq_root": 0.4126,
+   "seq_root_shift": 3,
+   "seq_majmin": 0.3958,
+   "seq_majmin_shift": 3,
+   "seq_ref_len": 87,
+   "seq_est_len": 143,
+   "seq_change_ratio": 1.651
+  },
+  {
+   "audio": "audio/sadeghi-babayebaroon.mp3",
+   "engine": "v7-chordnet-beat",
+   "tempo": 89.1,
+   "bpb": 4,
+   "suspect": [],
+   "engine_ver": "7.1",
+   "tempo_candidates": [
+    {
+     "bpm": 136.0,
+     "ratio": 1.0,
+     "score": 0.009,
+     "h1": 0.04,
+     "hb": 0.024,
+     "o1": 0.052,
+     "prior": -0.069
+    },
+    {
+     "bpm": 68.0,
+     "ratio": 0.5,
+     "score": -0.009,
+     "h1": 0.048,
+     "hb": 0.051,
+     "o1": 0.051,
+     "prior": -0.108
+    },
+    {
+     "bpm": 89.1,
+     "ratio": 0.667,
+     "score": 0.428,
+     "h1": 0.093,
+     "hb": 0.065,
+     "o1": 0.625,
+     "prior": -0.01
+    },
+    {
+     "bpm": 184.6,
+     "ratio": 1.333,
+     "score": 0.188,
+     "h1": 0.056,
+     "hb": 0.218,
+     "o1": 0.593,
+     "prior": -0.274
+    },
+    {
+     "bpm": 103.4,
+     "ratio": 0.75,
+     "score": 0.258,
+     "h1": 0.052,
+     "hb": 0.04,
+     "o1": 0.373,
+     "prior": -0.001
+    }
+   ],
+   "seq_root": 0.1654,
+   "seq_root_shift": 1,
+   "seq_majmin": 0.1641,
+   "seq_majmin_shift": 1,
+   "seq_ref_len": 21,
+   "seq_est_len": 127,
+   "seq_change_ratio": 6.3
+  },
+  {
+   "audio": "audio/sadeghi-hesskhoob.mp3",
+   "engine": "v7-chordnet-beat",
+   "tempo": 92.3,
+   "bpb": 4,
+   "suspect": [],
+   "engine_ver": "7.1",
+   "tempo_candidates": [
+    {
+     "bpm": 123.0,
+     "ratio": 1.0,
+     "score": 0.052,
+     "h1": 0.046,
+     "hb": 0.027,
+     "o1": 0.046,
+     "prior": -0.031
+    },
+    {
+     "bpm": 61.5,
+     "ratio": 0.5,
+     "score": -0.084,
+     "h1": 0.053,
+     "hb": 0.025,
+     "o1": 0.045,
+     "prior": -0.172
+    },
+    {
+     "bpm": 184.6,
+     "ratio": 1.5,
+     "score": -0.143,
+     "h1": 0.073,
+     "hb": 0.042,
+     "o1": 0.072,
+     "prior": -0.274
+    },
+    {
+     "bpm": 172.3,
+     "ratio": 1.333,
+     "score": -0.081,
+     "h1": 0.034,
+     "hb": 0.083,
+     "o1": 0.117,
+     "prior": -0.215
+    },
+    {
+     "bpm": 92.3,
+     "ratio": 0.75,
+     "score": 0.233,
+     "h1": 0.113,
+     "hb": 0.098,
+     "o1": 0.152,
+     "prior": -0.005
+    }
+   ],
+   "seq_root": 0.3689,
+   "seq_root_shift": 0,
+   "seq_majmin": 0.2621,
+   "seq_majmin_shift": 0,
+   "seq_ref_len": 67,
+   "seq_est_len": 103,
+   "seq_change_ratio": 1.545
+  },
+  {
+   "audio": "audio/sadeghi-soltangholbha.mp3",
+   "engine": "v7-chordnet-beat",
+   "tempo": 152.0,
+   "bpb": 3,
+   "suspect": [],
+   "engine_ver": "7.1",
+   "tempo_candidates": [
+    {
+     "bpm": 152.0,
+     "ratio": 1.0,
+     "score": 0.423,
+     "h1": 0.226,
+     "hb": 0.166,
+     "o1": 0.483,
+     "prior": -0.128
+    },
+    {
+     "bpm": 76.0,
+     "ratio": 0.5,
+     "score": 0.118,
+     "h1": 0.046,
+     "hb": 0.128,
+     "o1": 0.126,
+     "prior": -0.055
+    },
+    {
+     "bpm": 103.4,
+     "ratio": 0.667,
+     "score": 0.257,
+     "h1": 0.091,
+     "hb": 0.067,
+     "o1": 0.267,
+     "prior": -0.001
+    },
+    {
+     "bpm": 112.3,
+     "ratio": 0.75,
+     "score": 0.158,
+     "h1": 0.07,
+     "hb": 0.045,
+     "o1": 0.151,
+     "prior": -0.01
+    }
+   ],
+   "seq_root": 0.3261,
+   "seq_root_shift": 7,
+   "seq_majmin": 0.3191,
+   "seq_majmin_shift": 7,
+   "seq_ref_len": 40,
+   "seq_est_len": 92,
+   "seq_change_ratio": 2.333
+  },
+  {
+   "audio": "audio/sirvan-akharinrooz.mp3",
+   "engine": "v7-chordnet-beat",
+   "tempo": 136.0,
+   "bpb": 4,
+   "suspect": [],
+   "engine_ver": "7.1",
+   "tempo_candidates": [
+    {
+     "bpm": 136.0,
+     "ratio": 1.0,
+     "score": 0.076,
+     "h1": 0.021,
+     "hb": 0.127,
+     "o1": 0.119,
+     "prior": -0.069
+    },
+    {
+     "bpm": 69.8,
+     "ratio": 0.5,
+     "score": 0.043,
+     "h1": 0.069,
+     "hb": 0.058,
+     "o1": 0.078,
+     "prior": -0.094
+    },
+    {
+     "bpm": 92.3,
+     "ratio": 0.667,
+     "score": 0.127,
+     "h1": 0.061,
+     "hb": 0.037,
+     "o1": 0.104,
+     "prior": -0.005
+    },
+    {
+     "bpm": 184.6,
+     "ratio": 1.333,
+     "score": -0.157,
+     "h1": 0.052,
+     "hb": 0.031,
+     "o1": 0.099,
+     "prior": -0.274
+    },
+    {
+     "bpm": 103.4,
+     "ratio": 0.75,
+     "score": 0.093,
+     "h1": 0.03,
+     "hb": 0.047,
+     "o1": 0.081,
+     "prior": -0.001
+    }
+   ],
+   "seq_root": 0.3404,
+   "seq_root_shift": 4,
+   "seq_majmin": 0.266,
+   "seq_majmin_shift": 4,
+   "seq_ref_len": 58,
+   "seq_est_len": 94,
+   "seq_change_ratio": 1.632
+  },
+  {
+   "audio": "audio/sirvan-bargard.mp3",
+   "engine": "v7-chordnet-beat",
+   "tempo": 123.0,
+   "bpb": 4,
+   "suspect": [],
+   "engine_ver": "7.1",
+   "tempo_candidates": [
+    {
+     "bpm": 123.0,
+     "ratio": 1.0,
+     "score": 0.08,
+     "h1": 0.043,
+     "hb": 0.053,
+     "o1": 0.083,
+     "prior": -0.031
+    },
+    {
+     "bpm": 61.5,
+     "ratio": 0.5,
+     "score": 0.109,
+     "h1": 0.189,
+     "hb": 0.088,
+     "o1": 0.095,
+     "prior": -0.172
+    },
+    {
+     "bpm": 184.6,
+     "ratio": 1.5,
+     "score": -0.093,
+     "h1": 0.056,
+     "hb": 0.088,
+     "o1": 0.161,
+     "prior": -0.274
+    },
+    {
+     "bpm": 80.7,
+     "ratio": 0.667,
+     "score": 0.062,
+     "h1": 0.07,
+     "hb": 0.036,
+     "o1": 0.015,
+     "prior": -0.033
+    },
+    {
+     "bpm": 161.5,
+     "ratio": 1.333,
+     "score": -0.094,
+     "h1": 0.038,
+     "hb": 0.042,
+     "o1": 0.029,
+     "prior": -0.167
+    },
+    {
+     "bpm": 95.7,
+     "ratio": 0.75,
+     "score": 0.112,
+     "h1": 0.055,
+     "hb": 0.021,
+     "o1": 0.095,
+     "prior": -0.001
+    }
+   ],
+   "seq_root": 0.4943,
+   "seq_root_shift": 0,
+   "seq_majmin": 0.4526,
+   "seq_majmin_shift": 0,
+   "seq_ref_len": 87,
+   "seq_est_len": 71,
+   "seq_change_ratio": 0.814
+  },
+  {
+   "audio": "audio/sirvan-divoonegi.mp3",
+   "engine": "v7-chordnet-beat",
+   "tempo": 80.7,
+   "bpb": 4,
+   "suspect": [],
+   "engine_ver": "7.1",
+   "tempo_candidates": [
+    {
+     "bpm": 161.5,
+     "ratio": 1.0,
+     "score": 0.038,
+     "h1": 0.116,
+     "hb": 0.077,
+     "o1": 0.1,
+     "prior": -0.167
+    },
+    {
+     "bpm": 80.7,
+     "ratio": 0.5,
+     "score": 0.315,
+     "h1": 0.037,
+     "hb": 0.143,
+     "o1": 0.48,
+     "prior": -0.033
+    },
+    {
+     "bpm": 107.7,
+     "ratio": 0.667,
+     "score": 0.103,
+     "h1": 0.08,
+     "hb": 0.025,
+     "o1": 0.029,
+     "prior": -0.004
+    },
+    {
+     "bpm": 123.0,
+     "ratio": 0.75,
+     "score": 0.189,
+     "h1": 0.04,
+     "hb": 0.046,
+     "o1": 0.315,
+     "prior": -0.031
+    }
+   ],
+   "root": 0.6158,
+   "majmin": 0.5976,
+   "change_f": 0.6174,
+   "change_err_ms": 105.1,
+   "change_ratio": 1.129,
+   "seq_root": 0.4375,
+   "seq_root_shift": 10,
+   "seq_majmin": 0.4375,
+   "seq_majmin_shift": 10,
+   "seq_ref_len": 49,
+   "seq_est_len": 80,
+   "seq_change_ratio": 1.646
+  },
+  {
+   "audio": "audio/sirvan-oonrooza.mp3",
+   "engine": "v7-chordnet-beat",
+   "tempo": 117.5,
+   "bpb": 4,
+   "suspect": [],
+   "engine_ver": "7.1",
+   "tempo_candidates": [
+    {
+     "bpm": 117.5,
+     "ratio": 1.0,
+     "score": 0.67,
+     "h1": 0.249,
+     "hb": 0.1,
+     "o1": 0.78,
+     "prior": -0.019
+    },
+    {
+     "bpm": 60.1,
+     "ratio": 0.5,
+     "score": -0.023,
+     "h1": 0.073,
+     "hb": 0.139,
+     "o1": 0.048,
+     "prior": -0.189
+    },
+    {
+     "bpm": 80.7,
+     "ratio": 0.667,
+     "score": 0.067,
+     "h1": 0.036,
+     "hb": 0.095,
+     "o1": 0.034,
+     "prior": -0.033
+    },
+    {
+     "bpm": 161.5,
+     "ratio": 1.333,
+     "score": -0.069,
+     "h1": 0.049,
+     "hb": 0.091,
+     "o1": 0.008,
+     "prior": -0.167
+    },
+    {
+     "bpm": 92.3,
+     "ratio": 0.75,
+     "score": 0.169,
+     "h1": 0.086,
+     "hb": 0.076,
+     "o1": 0.1,
+     "prior": -0.005
+    }
+   ],
+   "seq_root": 0.2439,
+   "seq_root_shift": 3,
+   "seq_majmin": 0.1951,
+   "seq_majmin_shift": 10,
+   "seq_ref_len": 41,
+   "seq_est_len": 12,
+   "seq_change_ratio": 0.275
+  },
+  {
+   "audio": "audio/talischi-bepanahi.mp3",
+   "engine": "v7-chordnet-beat",
+   "tempo": 117.5,
+   "bpb": 4,
+   "suspect": [],
+   "engine_ver": "7.1",
+   "tempo_candidates": [
+    {
+     "bpm": 117.5,
+     "ratio": 1.0,
+     "score": 0.154,
+     "h1": 0.071,
+     "hb": 0.198,
+     "o1": 0.004,
+     "prior": -0.019
+    },
+    {
+     "bpm": 57.4,
+     "ratio": 0.5,
+     "score": 0.06,
+     "h1": 0.009,
+     "hb": 0.101,
+     "o1": 0.45,
+     "prior": -0.224
+    },
+    {
+     "bpm": 172.3,
+     "ratio": 1.5,
+     "score": 0.025,
+     "h1": 0.071,
+     "hb": 0.045,
+     "o1": 0.293,
+     "prior": -0.215
+    },
+    {
+     "bpm": 78.3,
+     "ratio": 0.667,
+     "score": 0.024,
+     "h1": 0.025,
+     "hb": 0.058,
+     "o1": 0.027,
+     "prior": -0.044
+    },
+    {
+     "bpm": 161.5,
+     "ratio": 1.333,
+     "score": -0.067,
+     "h1": 0.03,
+     "hb": 0.06,
+     "o1": 0.082,
+     "prior": -0.167
+    },
+    {
+     "bpm": 89.1,
+     "ratio": 0.75,
+     "score": 0.244,
+     "h1": 0.072,
+     "hb": 0.186,
+     "o1": 0.179,
+     "prior": -0.01
+    }
+   ],
+   "seq_root": 0.4658,
+   "seq_root_shift": 0,
+   "seq_majmin": 0.4189,
+   "seq_majmin_shift": 0,
+   "seq_ref_len": 72,
+   "seq_est_len": 73,
+   "seq_change_ratio": 1.014
+  },
+  {
+   "audio": "audio/talischi-biamanoboobin.mp3",
+   "engine": "v7-chordnet-beat",
+   "tempo": 129.2,
+   "bpb": 4,
+   "suspect": [],
+   "engine_ver": "7.1",
+   "tempo_candidates": [
+    {
+     "bpm": 129.2,
+     "ratio": 1.0,
+     "score": 0.421,
+     "h1": 0.346,
+     "hb": 0.05,
+     "o1": 0.196,
+     "prior": -0.048
+    },
+    {
+     "bpm": 64.6,
+     "ratio": 0.5,
+     "score": 0.227,
+     "h1": 0.307,
+     "hb": 0.052,
+     "o1": 0.066,
+     "prior": -0.139
+    },
+    {
+     "bpm": 198.8,
+     "ratio": 1.5,
+     "score": 0.214,
+     "h1": 0.252,
+     "hb": 0.212,
+     "o1": 0.399,
+     "prior": -0.344
+    },
+    {
+     "bpm": 86.1,
+     "ratio": 0.667,
+     "score": 0.052,
+     "h1": 0.029,
+     "hb": 0.046,
+     "o1": 0.033,
+     "prior": -0.016
+    },
+    {
+     "bpm": 172.3,
+     "ratio": 1.333,
+     "score": -0.162,
+     "h1": 0.006,
+     "hb": 0.076,
+     "o1": 0.019,
+     "prior": -0.215
+    },
+    {
+     "bpm": 99.4,
+     "ratio": 0.75,
+     "score": 0.153,
+     "h1": 0.088,
+     "hb": 0.079,
+     "o1": 0.052,
+     "prior": -0.0
+    }
+   ],
+   "seq_root": 0.3585,
+   "seq_root_shift": 6,
+   "seq_majmin": 0.3585,
+   "seq_majmin_shift": 6,
+   "seq_ref_len": 29,
+   "seq_est_len": 53,
+   "seq_change_ratio": 1.857
+  },
+  {
+   "audio": "audio/talischi-raazim.mp3",
+   "engine": "v7-chordnet-beat",
+   "tempo": 95.7,
+   "bpb": 4,
+   "suspect": [],
+   "engine_ver": "7.1",
+   "tempo_candidates": [
+    {
+     "bpm": 143.6,
+     "ratio": 1.0,
+     "score": -0.01,
+     "h1": 0.019,
+     "hb": 0.087,
+     "o1": 0.044,
+     "prior": -0.095
+    },
+    {
+     "bpm": 71.8,
+     "ratio": 0.5,
+     "score": 0.056,
+     "h1": 0.035,
+     "hb": 0.045,
+     "o1": 0.156,
+     "prior": -0.08
+    },
+    {
+     "bpm": 95.7,
+     "ratio": 0.667,
+     "score": 0.275,
+     "h1": 0.08,
+     "hb": 0.056,
+     "o1": 0.336,
+     "prior": -0.001
+    },
+    {
+     "bpm": 184.6,
+     "ratio": 1.333,
+     "score": -0.112,
+     "h1": 0.026,
+     "hb": 0.05,
+     "o1": 0.221,
+     "prior": -0.274
+    },
+    {
+     "bpm": 103.4,
+     "ratio": 0.75,
+     "score": 0.167,
+     "h1": 0.039,
+     "hb": 0.047,
+     "o1": 0.209,
+     "prior": -0.001
+    }
+   ],
+   "seq_root": 0.2857,
+   "seq_root_shift": 0,
+   "seq_majmin": 0.2857,
+   "seq_majmin_shift": 0,
+   "seq_ref_len": 20,
+   "seq_est_len": 63,
+   "seq_change_ratio": 3.263
+  },
+  {
+   "audio": "audio/yeganeh-behetgholmidam.mp3",
+   "engine": "v7-chordnet-beat",
+   "tempo": 95.7,
+   "bpb": 4,
+   "suspect": [],
+   "engine_ver": "7.1",
+   "tempo_candidates": [
+    {
+     "bpm": 95.7,
+     "ratio": 1.0,
+     "score": 0.354,
+     "h1": 0.082,
+     "hb": 0.134,
+     "o1": 0.411,
+     "prior": -0.001
+    },
+    {
+     "bpm": 184.6,
+     "ratio": 2.0,
+     "score": -0.019,
+     "h1": 0.013,
+     "hb": 0.182,
+     "o1": 0.301,
+     "prior": -0.274
+    },
+    {
+     "bpm": 143.6,
+     "ratio": 1.5,
+     "score": 0.053,
+     "h1": 0.031,
+     "hb": 0.122,
+     "o1": 0.113,
+     "prior": -0.095
+    },
+    {
+     "bpm": 63.0,
+     "ratio": 0.667,
+     "score": -0.105,
+     "h1": 0.03,
+     "hb": 0.029,
+     "o1": 0.011,
+     "prior": -0.155
+    },
+    {
+     "bpm": 129.2,
+     "ratio": 1.333,
+     "score": 0.021,
+     "h1": 0.048,
+     "hb": 0.011,
+     "o1": 0.03,
+     "prior": -0.048
+    },
+    {
+     "bpm": 73.8,
+     "ratio": 0.75,
+     "score": 0.041,
+     "h1": 0.033,
+     "hb": 0.07,
+     "o1": 0.081,
+     "prior": -0.067
+    }
+   ],
+   "seq_root": 0.5333,
+   "seq_root_shift": 10,
+   "seq_majmin": 0.5333,
+   "seq_majmin_shift": 10,
+   "seq_ref_len": 32,
+   "seq_est_len": 60,
+   "seq_change_ratio": 1.903
+  },
+  {
+   "audio": "audio/yeganeh-oskole.mp3",
+   "engine": "v7-chordnet-beat",
+   "tempo": 112.3,
+   "bpb": 4,
+   "suspect": [],
+   "engine_ver": "7.1",
+   "tempo_candidates": [
+    {
+     "bpm": 112.3,
+     "ratio": 1.0,
+     "score": 0.087,
+     "h1": 0.042,
+     "hb": 0.028,
+     "o1": 0.082,
+     "prior": -0.01
+    },
+    {
+     "bpm": 56.2,
+     "ratio": 0.5,
+     "score": -0.181,
+     "h1": 0.023,
+     "hb": 0.019,
+     "o1": 0.058,
+     "prior": -0.242
+    },
+    {
+     "bpm": 172.3,
+     "ratio": 1.5,
+     "score": 0.012,
+     "h1": 0.038,
+     "hb": 0.059,
+     "o1": 0.322,
+     "prior": -0.215
+    },
+    {
+     "bpm": 161.5,
+     "ratio": 1.333,
+     "score": 0.049,
+     "h1": 0.066,
+     "hb": 0.053,
+     "o1": 0.248,
+     "prior": -0.167
+    },
+    {
+     "bpm": 83.4,
+     "ratio": 0.75,
+     "score": 0.079,
+     "h1": 0.041,
+     "hb": 0.049,
+     "o1": 0.076,
+     "prior": -0.024
+    }
+   ],
+   "seq_root": 0.3051,
+   "seq_root_shift": 10,
+   "seq_majmin": 0.2373,
+   "seq_majmin_shift": 0,
+   "seq_ref_len": 27,
+   "seq_est_len": 59,
+   "seq_change_ratio": 2.231
+  },
+  {
+   "audio": "audio/zand-jodayi.mp3",
+   "engine": "v7-chordnet-beat",
+   "tempo": 107.7,
+   "bpb": 4,
+   "suspect": [],
+   "engine_ver": "7.1",
+   "tempo_candidates": [
+    {
+     "bpm": 107.7,
+     "ratio": 1.0,
+     "score": 0.177,
+     "h1": 0.058,
+     "hb": 0.044,
+     "o1": 0.203,
+     "prior": -0.004
+    },
+    {
+     "bpm": 53.8,
+     "ratio": 0.5,
+     "score": 0.086,
+     "h1": 0.115,
+     "hb": 0.117,
+     "o1": 0.383,
+     "prior": -0.279
+    },
+    {
+     "bpm": 161.5,
+     "ratio": 1.5,
+     "score": 0.132,
+     "h1": 0.045,
+     "hb": 0.112,
+     "o1": 0.395,
+     "prior": -0.167
+    },
+    {
+     "bpm": 73.8,
+     "ratio": 0.667,
+     "score": 0.053,
+     "h1": 0.056,
+     "hb": 0.055,
+     "o1": 0.074,
+     "prior": -0.067
+    },
+    {
+     "bpm": 143.6,
+     "ratio": 1.333,
+     "score": 0.06,
+     "h1": 0.054,
+     "hb": 0.053,
+     "o1": 0.149,
+     "prior": -0.095
+    },
+    {
+     "bpm": 80.7,
+     "ratio": 0.75,
+     "score": 0.019,
+     "h1": 0.033,
+     "hb": 0.018,
+     "o1": 0.02,
+     "prior": -0.033
+    }
+   ],
+   "seq_root": 0.4667,
+   "seq_root_shift": 9,
+   "seq_majmin": 0.4167,
+   "seq_majmin_shift": 9,
+   "seq_ref_len": 60,
+   "seq_est_len": 58,
+   "seq_change_ratio": 0.966
+  },
+  {
+   "audio": "audio/zand-royaye.mp3",
+   "engine": "v7-chordnet-beat",
+   "tempo": 161.5,
+   "bpb": 6,
+   "suspect": [],
+   "engine_ver": "7.1",
+   "tempo_candidates": [
+    {
+     "bpm": 161.5,
+     "ratio": 1.0,
+     "score": 0.232,
+     "h1": 0.095,
+     "hb": 0.088,
+     "o1": 0.521,
+     "prior": -0.167
+    },
+    {
+     "bpm": 80.7,
+     "ratio": 0.5,
+     "score": 0.08,
+     "h1": 0.025,
+     "hb": 0.063,
+     "o1": 0.114,
+     "prior": -0.033
+    },
+    {
+     "bpm": 107.7,
+     "ratio": 0.667,
+     "score": 0.151,
+     "h1": 0.027,
+     "hb": 0.096,
+     "o1": 0.162,
+     "prior": -0.004
+    },
+    {
+     "bpm": 123.0,
+     "ratio": 0.75,
+     "score": 0.108,
+     "h1": 0.052,
+     "hb": 0.028,
+     "o1": 0.146,
+     "prior": -0.031
+    }
+   ],
+   "seq_root": 0.5636,
+   "seq_root_shift": 0,
+   "seq_majmin": 0.5088,
+   "seq_majmin_shift": 0,
+   "seq_ref_len": 37,
+   "seq_est_len": 55,
+   "seq_change_ratio": 1.5
+  },
+  {
+   "audio": "audio/sad-gozashtam.mp3",
+   "engine": "v7-chordnet-beat",
+   "tempo": 95.7,
+   "bpb": 4,
+   "suspect": [
+    "lab made by an algorithm, not by ear"
+   ],
+   "engine_ver": "7.1",
+   "tempo_candidates": [
+    {
+     "bpm": 123.0,
+     "ratio": 1.0,
+     "score": 0.023,
+     "h1": 0.018,
+     "hb": 0.022,
+     "o1": 0.052,
+     "prior": -0.031
+    },
+    {
+     "bpm": 63.0,
+     "ratio": 0.5,
+     "score": -0.054,
+     "h1": 0.056,
+     "hb": 0.076,
+     "o1": 0.015,
+     "prior": -0.155
+    },
+    {
+     "bpm": 184.6,
+     "ratio": 1.5,
+     "score": -0.028,
+     "h1": 0.108,
+     "hb": 0.089,
+     "o1": 0.186,
+     "prior": -0.274
+    },
+    {
+     "bpm": 86.1,
+     "ratio": 0.667,
+     "score": 0.103,
+     "h1": 0.078,
+     "hb": 0.046,
+     "o1": 0.038,
+     "prior": -0.016
+    },
+    {
+     "bpm": 161.5,
+     "ratio": 1.333,
+     "score": -0.011,
+     "h1": 0.074,
+     "hb": 0.034,
+     "o1": 0.13,
+     "prior": -0.167
+    },
+    {
+     "bpm": 95.7,
+     "ratio": 0.75,
+     "score": 0.299,
+     "h1": 0.122,
+     "hb": 0.123,
+     "o1": 0.235,
+     "prior": -0.001
+    }
+   ],
+   "root": 0.5577,
+   "majmin": 0.5577,
+   "change_f": 0.381,
+   "change_err_ms": 312.7,
+   "change_ratio": 1.0
+  },
+  {
+   "audio": "audio/koo-beheshtemoon.mp3",
+   "engine": "v7-chordnet-beat",
+   "tempo": 112.3,
+   "bpb": 4,
+   "suspect": [
+    "lab made by an algorithm, not by ear"
+   ],
+   "engine_ver": "7.1",
+   "tempo_candidates": [
+    {
+     "bpm": 112.3,
+     "ratio": 1.0,
+     "score": 0.294,
+     "h1": 0.078,
+     "hb": 0.089,
+     "o1": 0.361,
+     "prior": -0.01
+    },
+    {
+     "bpm": 55.0,
+     "ratio": 0.5,
+     "score": -0.073,
+     "h1": 0.058,
+     "hb": 0.066,
+     "o1": 0.193,
+     "prior": -0.261
+    },
+    {
+     "bpm": 172.3,
+     "ratio": 1.5,
+     "score": -0.011,
+     "h1": 0.127,
+     "hb": 0.022,
+     "o1": 0.134,
+     "prior": -0.215
+    },
+    {
+     "bpm": 73.8,
+     "ratio": 0.667,
+     "score": 0.001,
+     "h1": 0.029,
+     "hb": 0.065,
+     "o1": 0.014,
+     "prior": -0.067
+    },
+    {
+     "bpm": 152.0,
+     "ratio": 1.333,
+     "score": -0.008,
+     "h1": 0.071,
+     "hb": 0.037,
+     "o1": 0.06,
+     "prior": -0.128
+    },
+    {
+     "bpm": 83.4,
+     "ratio": 0.75,
+     "score": 0.079,
+     "h1": 0.02,
+     "hb": 0.073,
+     "o1": 0.095,
+     "prior": -0.024
+    }
+   ],
+   "root": 0.4682,
+   "majmin": 0.3017,
+   "change_f": 0.256,
+   "change_err_ms": 32.9,
+   "change_ratio": 1.179
+  }
+ ]
+}
