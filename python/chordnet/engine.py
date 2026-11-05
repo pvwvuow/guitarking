@@ -12,6 +12,11 @@ v7.1: the network runs in overlapping windows (no OOM on long songs), its
 probabilities can be cached per song (GK_CACHE_DIR) so decode knobs can be
 swept without re-running the nets, and the decode knobs read environment
 overrides (GK_EM_TEMP, GK_KEY_PENALTY, GK_KEY_SLACK + the meter.py ones).
+
+v7.2 (bench round 2): defaults moved to the round-2 sweep winner
+(EM_TEMP 0.5, KEY_PENALTY 0.3); fast grids decode with 8-beat bars
+(meter.py); chord runs shorter than GK_MIN_BEATS beats are absorbed by
+the neighbour that explains them best (melody notes faked 1-beat chords).
 """
 import hashlib
 import math
@@ -24,9 +29,10 @@ from .complex_chord import Chord, NUM_TO_ABS_SCALE, shift_complex_chord_array
 
 SR = 22050
 HOP = 512
-EM_TEMP = 0.7      # beat-level emission temperature (one column per beat)
-KEY_PENALTY = 0.45  # emission multiplier for out-of-key templates
+EM_TEMP = 0.5      # beat-level emission temperature (one column per beat)
+KEY_PENALTY = 0.3  # emission multiplier for out-of-key templates
 KEY_SLACK = 0.03   # key-constrained decode adopted if it costs <= this
+MIN_BEATS = 2      # shortest chord run kept (beats); 1 = off
 CACHE_VER = "p71"
 SPEC_DIM = 252          # mirrors model.py (kept here: no torch on a cache hit)
 SHIFT_HIGH, SHIFT_STEP = 6, 3
@@ -256,6 +262,7 @@ def analyze_deep(y, dur, beats, silent, accent=None):
     em_temp = _knob("EM_TEMP", EM_TEMP)
     key_pen = _knob("KEY_PENALTY", KEY_PENALTY)
     key_slack = _knob("KEY_SLACK", KEY_SLACK)
+    min_beats = int(round(_knob("MIN_BEATS", MIN_BEATS)))
 
     probs, chroma = network_probs(y)
 
@@ -281,10 +288,11 @@ def analyze_deep(y, dur, beats, silent, accent=None):
             em[0, j] = -1e9
 
     em_t = em_temp * np.maximum(em, -1e6)
+    period = float(np.median(np.diff(beats))) if n_beats > 2 else None
 
     # ---- metrical decode; meter settled on the free decode ----
     disp_all = [display_label(n) for n in names]
-    free = mt.decode_meter(em_t, accent)
+    free = mt.decode_meter(em_t, accent, period=period)
     bpb = free["bpb"]
     path, pos = free["path"], free["pos"]
     frame_segs = _frame_segments(frame_labels, frame_t)
@@ -314,6 +322,7 @@ def analyze_deep(y, dur, beats, silent, accent=None):
                                              or sc > best_score):
             best_path, best_pos, best_key, best_score = p_k, q_k, k, sc
     path, pos, key = best_path, best_pos, best_key
+    path = mt.merge_short(path, em_t, min_beats)
 
     chosen = np.array([em[path[j], j] for j in range(n_beats)])
     conf = float(np.mean(np.exp(np.clip(chosen, -20.0, 0.0)))) if n_beats else 0.0
@@ -327,7 +336,8 @@ def analyze_deep(y, dur, beats, silent, accent=None):
             frame_beat[:m], weights=chroma[pc, :m], minlength=n_beats) / counts
 
     segs = _bars_to_segments(beats, dur, path, disp_all)
-    return segs, key, conf, beat_chroma, {"bpb": int(bpb), "pos": pos}
+    bpb_out, pos_out = mt.display_meter(bpb, pos)
+    return segs, key, conf, beat_chroma, {"bpb": bpb_out, "pos": pos_out}
 
 
 def _bars_to_segments(bars, dur, path, disp_all):

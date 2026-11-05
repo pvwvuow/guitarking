@@ -1,4 +1,4 @@
-"""Beat grid + metrical chord decoding (GuitarKing engine v7.1).
+"""Beat grid + metrical chord decoding (GuitarKing engine v7.2).
 
 Why: chords in pop music change ON a beat, almost always on the bar line
 and sometimes on the half bar. v7 decodes on the BEAT grid with a joint
@@ -17,10 +17,17 @@ v7.1 (bench round 1):
   * 6/8 meter: fast triple pulses (an eighth-note grid) no longer allow a
     change every half bar;
   * every decode knob can be overridden by an environment variable
-    (GK_CP4, GK_CP3, GK_CP6, GK_SLIP_P, GK_ACCENT_W, GK_METER_PRIOR,
-    GK_TEMPO_SELECT, GK_TEMPO_CENTER, GK_TEMPO_PRIOR_W, GK_TEMPO_MARGIN,
-    GK_TEMPO_RATIO_EVIDENCE)
+    (GK_CP4, GK_CP3, GK_CP6, GK_CP8, GK_SLIP_P, GK_ACCENT_W,
+    GK_METER_PRIOR, GK_TEMPO_SELECT, GK_TEMPO_CENTER, GK_TEMPO_PRIOR_W,
+    GK_TEMPO_MARGIN, GK_TEMPO_RATIO_EVIDENCE, GK_FAST_BPM)
     so python/sweep.py can tune them against the benchmark.
+
+v7.2 (bench round 2): on the trusted refs songs whose grid is fast
+(129-161 BPM) wrote ~2x the human sheet's chord changes, slower songs
+~1.0-1.3x: a fast grid simply offers twice the change slots. Above
+GK_FAST_BPM the decode uses 8-beat "bars" (two 4/4 bars, cheap change on
+1, moderate on 5) or 6/8 instead of 4/4 / 3/4. Defaults moved toward the
+round-2 sweep winner (lower mid-bar change probability).
 """
 import math
 import os
@@ -29,18 +36,21 @@ import numpy as np
 import librosa
 
 HOP = 512
-VERSION = "7.1"
+VERSION = "7.2"
 
 # P(chord change) when ARRIVING on bar position q (index 0 = downbeat)
 CHANGE_P = {
-    4: (0.30, 0.008, 0.05, 0.008),
+    4: (0.25, 0.005, 0.03, 0.005),
     3: (0.30, 0.012, 0.012),
     6: (0.30, 0.005, 0.005, 0.04, 0.005, 0.005),
+    8: (0.30, 0.004, 0.004, 0.004, 0.15, 0.004, 0.004, 0.004),
 }
 SLIP_P = 0.002        # beat tracker dropped / doubled a beat
 ACCENT_W = 0.35       # weight of the onset accent on the downbeat state
-METER_PRIOR = {4: 0.65, 3: 0.17, 6: 0.18}
+METER_PRIOR = {4: 0.65, 3: 0.17, 6: 0.18, 8: 0.65}
 METERS = (4, 3, 6)
+FAST_METERS = (8, 6)
+FAST_BPM = 125.0      # grids faster than this decode with FAST_METERS
 
 TEMPO_RATIOS = (1.0, 2.0, 0.5, 1.5, 2.0 / 3.0, 4.0 / 3.0, 0.75)
 TEMPO_MIN, TEMPO_MAX = 50.0, 200.0
@@ -411,8 +421,18 @@ def metrical_viterbi(logem, bpb, accent=None, change_prob=None):
     return path, pos, score
 
 
-def decode_meter(logem, accent=None, meters=METERS):
-    """Decode under every meter; keep the best (with a meter prior)."""
+def meters_for(period=None):
+    """Meters to decode with: fast grids get 8-beat bars / 6/8."""
+    if period and 60.0 / period > knob("FAST_BPM", FAST_BPM):
+        return FAST_METERS
+    return METERS
+
+
+def decode_meter(logem, accent=None, meters=None, period=None):
+    """Decode under every meter; keep the best (with a meter prior).
+    period (s) selects the fast-grid meters when given."""
+    if meters is None:
+        meters = meters_for(period)
     best = None
     pri = meter_prior()
     for b in meters:
@@ -426,6 +446,44 @@ def decode_meter(logem, accent=None, meters=METERS):
         path, pos, sc = metrical_viterbi(logem, 4, accent)
         best = {"path": path, "pos": pos, "score": sc, "bpb": 4}
     return best
+
+
+def display_meter(bpb, pos):
+    """8-beat decode bars are two 4/4 bars for the player."""
+    pos = np.asarray(pos)
+    if int(bpb) == 8:
+        return 4, pos % 4
+    return int(bpb), pos
+
+
+def merge_short(path, em, min_beats):
+    """Absorb chord runs shorter than min_beats beats into the neighbour
+    chord that explains those beats best (sum of beat log emissions).
+    Silence runs (state 0 = N) are never merged or merged into."""
+    path = np.array(path, dtype=np.int32)
+    if min_beats <= 1 or len(path) < 3:
+        return path
+    skip = set()
+    while True:
+        runs = []
+        s = 0
+        for i in range(1, len(path) + 1):
+            if i == len(path) or path[i] != path[s]:
+                runs.append((s, i, int(path[s])))
+                s = i
+        cand = [(e - a, a, k) for k, (a, e, c) in enumerate(runs)
+                if e - a < min_beats and c != 0 and a not in skip]
+        if not cand or len(runs) < 2:
+            break
+        _l, a, k = min(cand)
+        e = runs[k][1]
+        nbrs = [runs[j][2] for j in (k - 1, k + 1)
+                if 0 <= j < len(runs) and runs[j][2] != 0]
+        if not nbrs:
+            skip.add(a)
+            continue
+        path[a:e] = max(nbrs, key=lambda c: float(em[c, a:e].sum()))
+    return path
 
 
 def downbeat_times(beats, pos):

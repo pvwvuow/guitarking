@@ -29,6 +29,9 @@ song's chord order is flagged "suspect" and kept OUT of summary_clean:
   * a .lab whose note says it is a proxy (made by an algorithm, not by
     ear) - useful for debugging, never as ground truth.
 
+Every sequence row also carries "seq_est": the engine's collapsed chord
+order, so a bad score can be read against the sheet by eye.
+
 Usage:
   python3 python/bench.py manifest.json [--cache DIR] [--json out.json]
                           [--only name1,name2]
@@ -268,6 +271,8 @@ def main():
                         sequence_scores(it["sequence"], res["segments"]).items()})
             row["seq_change_ratio"] = round(
                 max(row["seq_est_len"] - 1, 0) / max(row["seq_ref_len"] - 1, 1), 3)
+            row["seq_est"] = " ".join(collapse(
+                [s["chord"] for s in res["segments"] if s["chord"] != "N"]))
         rows.append(row)
         print(json.dumps(row, ensure_ascii=False), file=sys.stderr)
     out = {"summary": summarize(rows),
