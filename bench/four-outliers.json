@@ -1,0 +1,26 @@
+{
+ "farzad-divooneh": {
+  "ratio": 2.739,
+  "sheet_key": "Cm",
+  "sheet40": "Cm Bb Ab Gm Bb Cm Bb Ab Gm Bb Gm Cm Ab G Bb Cm Ab Cm G Fm Cm Bb Ab Bb",
+  "est40": "Cm Bb Cm Ab Bb Gm Cm Bb Ab Bb Gm Cm Abmaj7 Bb Gm Ab Fm7 Bb Gm7 Cm Gm7 Abmaj7 Bb Gm Cm Ab Bb Gm Ab Fm7 Gsus4 G Cm Bb Ab Bb Cm Ab Bb Ab"
+ },
+ "sadeghi-babayebaroon": {
+  "ratio": 6.2,
+  "sheet_key": "Bm",
+  "sheet40": "C Bm C Am C Bm C Am Bm Am C D Bm Am C D Bm C Am C D",
+  "est40": "Cm Fm Eb C# C Fm Eb C# Bbm Cm Fm Eb C# C Fm Eb C# Bbm Cm C# Cm C# Bbm Eb/C# Cm C# Bbm C# Cm Eb C# Bbm Cm Eb C# Bbm Cm Eb Fm Bbm"
+ },
+ "sirvan-oonrooza": {
+  "ratio": 1.1,
+  "sheet_key": "Am",
+  "sheet40": "Em Dm Em Am Em Dm Em Am G F G C G F G C G Bm Em Bm Am Bm C Em Bm Em Dm Em Am Em Dm Em Am G F G C F G C",
+  "est40": "Gm F Gm7 Dm/F Gm F Eb Dm/F Gm Dm Gm Dm Eb Dm Gm7 Dm7 Eb Dm7 Gm7 Dm7 Gm Dm F Ebmaj7 Dm7 Eb Dm F Gm7 Dm7 Gm Dm7 Eb Dm7 Gm7 Dm7 F Ebmaj7 Dm7 Ebmaj7"
+ },
+ "talischi-raazim": {
+  "ratio": 3.053,
+  "sheet_key": "Dm",
+  "sheet40": "Dm Bb Am Dm Bb C Am Gm Bb C Dm C Bb Gm Bb Am Dm Am Bb C",
+  "est40": "Dm7 C Bbmaj7 Am F C Bbmaj7 Am7 Dm7 C7 Bbmaj7 Am7 Gm7 Bbmaj7 Am7 Dm7 Am7 C Gm7 Am7 Dm7 Am7 C Gm7 Am7 Dm7 Bbmaj7 Am7 Dm7 Bbmaj7 Am7 Gm7 Dm7 Am7 Gm7 Am Bbmaj7 Am Gm7 Am"
+ }
+}
