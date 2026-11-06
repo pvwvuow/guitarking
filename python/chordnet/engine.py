@@ -17,6 +17,8 @@ v7.2 (bench round 2): defaults moved to the round-2 sweep winner
 (EM_TEMP 0.5, KEY_PENALTY 0.3); fast grids decode with 8-beat bars
 (meter.py); chord runs shorter than GK_MIN_BEATS beats are absorbed by
 the neighbour that explains them best (melody notes faked 1-beat chords).
+v7.2.1 (bench round 3): MIN_BEATS default 4. Sweep on 28 trusted refs:
+0.402 -> 0.416, change ratio 1.61 -> 1.48; MIN_BEATS 1 and 2 were no-ops.
 """
 import hashlib
 import math
@@ -32,7 +34,7 @@ HOP = 512
 EM_TEMP = 0.5      # beat-level emission temperature (one column per beat)
 KEY_PENALTY = 0.3  # emission multiplier for out-of-key templates
 KEY_SLACK = 0.03   # key-constrained decode adopted if it costs <= this
-MIN_BEATS = 2      # shortest chord run kept (beats); 1 = off
+MIN_BEATS = 4      # shortest chord run kept (beats); 1 = off
 CACHE_VER = "p71"
 SPEC_DIM = 252          # mirrors model.py (kept here: no torch on a cache hit)
 SHIFT_HIGH, SHIFT_STEP = 6, 3
