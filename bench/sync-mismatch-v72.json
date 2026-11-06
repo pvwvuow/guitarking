@@ -1,0 +1,342 @@
+{
+ "sad-gozashtam": {
+  "bpb": 4,
+  "tempo": 95.7,
+  "ct_updated": 50,
+  "beats": 311,
+  "report": [
+   {
+    "type": "mismatch",
+    "section": "بند اول",
+    "line": 3,
+    "seg": 2,
+    "t": 42.574,
+    "sheet": "Fm",
+    "engine": "Cm7",
+    "share": 1.0,
+    "text": "—"
+   },
+   {
+    "type": "inside",
+    "section": "تکرار بند دوم",
+    "line": 1,
+    "seg": 0,
+    "t": 80.887,
+    "chord": "Ab",
+    "word": 7,
+    "text": "همه حرفام میمونه تو گلوم اون میاد میشینه درست پیشت"
+   },
+   {
+    "type": "inside",
+    "section": "سولو گیتار",
+    "line": 0,
+    "seg": 1,
+    "t": 93.634,
+    "chord": "Bbm7",
+    "word": 0,
+    "text": "—"
+   },
+   {
+    "type": "inside",
+    "section": "تکرار بند دوم",
+    "line": 1,
+    "seg": 0,
+    "t": 142.164,
+    "chord": "Ab",
+    "word": 5,
+    "text": "همه حرفام میمونه تو گلوم اون میاد میشینه درست پیشت"
+   },
+   {
+    "type": "inside",
+    "section": "تکرار بند دوم",
+    "line": 1,
+    "seg": 0,
+    "t": 162.575,
+    "chord": "Ab",
+    "word": 7,
+    "text": "همه حرفام میمونه تو گلوم اون میاد میشینه درست پیشت"
+   }
+  ]
+ },
+ "koo-beheshtemoon": {
+  "bpb": 4,
+  "tempo": 112.3,
+  "ct_updated": 66,
+  "beats": 389,
+  "report": [
+   {
+    "type": "inside",
+    "section": "اینترو",
+    "line": 0,
+    "seg": 2,
+    "t": 16.161,
+    "chord": "G",
+    "word": 0,
+    "text": "—"
+   },
+   {
+    "type": "inside",
+    "section": "بند اول",
+    "line": 0,
+    "seg": 0,
+    "t": 22.965,
+    "chord": "Em7",
+    "word": 6,
+    "text": "چه تفاهمی دوتایی میدیم به دست باد"
+   },
+   {
+    "type": "inside",
+    "section": "بند اول",
+    "line": 0,
+    "seg": 2,
+    "t": 31.695,
+    "chord": "G",
+    "word": 5,
+    "text": "تو موهاتو من خاطره هاتو وای"
+   },
+   {
+    "type": "inside",
+    "section": "بند اول",
+    "line": 1,
+    "seg": 0,
+    "t": 36.061,
+    "chord": "Fmaj7",
+    "word": 3,
+    "text": "چه تفاهمی دوتایی داریم"
+   },
+   {
+    "type": "inside",
+    "section": "بند اول",
+    "line": 1,
+    "seg": 1,
+    "t": 40.426,
+    "chord": "Em7",
+    "word": 1,
+    "text": "چشم میبندیم"
+   },
+   {
+    "type": "inside",
+    "section": "پیش‌همخوان",
+    "line": 0,
+    "seg": 0,
+    "t": 51.339,
+    "chord": "Am",
+    "word": 0,
+    "text": "یادته"
+   },
+   {
+    "type": "inside",
+    "section": "پیش‌همخوان",
+    "line": 0,
+    "seg": 2,
+    "t": 55.705,
+    "chord": "Dm",
+    "word": 3,
+    "text": "خیره به آسمون میگفتی"
+   },
+   {
+    "type": "inside",
+    "section": "همخوان",
+    "line": 0,
+    "seg": 0,
+    "t": 60.07,
+    "chord": "G",
+    "word": 3,
+    "text": "عشقم نگاه کن اونه ستارمون"
+   },
+   {
+    "type": "mismatch",
+    "section": "همخوان",
+    "line": 0,
+    "seg": 1,
+    "t": 62.253,
+    "sheet": "C/E",
+    "engine": "Em",
+    "share": 1.0,
+    "text": "ستارمون کو ستارمون"
+   },
+   {
+    "type": "inside",
+    "section": "همخوان",
+    "line": 1,
+    "seg": 0,
+    "t": 68.778,
+    "chord": "Dm7",
+    "word": 7,
+    "text": "یادته با شادی پاک میکردیم اشکامونو از گونه مون"
+   },
+   {
+    "type": "inside",
+    "section": "همخوان",
+    "line": 2,
+    "seg": 1,
+    "t": 74.234,
+    "chord": "G",
+    "word": 2,
+    "text": "ای نداره دیگه"
+   },
+   {
+    "type": "inside",
+    "section": "همخوان",
+    "line": 3,
+    "seg": 0,
+    "t": 82.965,
+    "chord": "G",
+    "word": 3,
+    "text": "کو بهشتمون کو بهشتمون …"
+   },
+   {
+    "type": "inside",
+    "section": "سولو",
+    "line": 0,
+    "seg": 8,
+    "t": 109.157,
+    "chord": "Em",
+    "word": 0,
+    "text": "—"
+   },
+   {
+    "type": "inside",
+    "section": "بند دوم",
+    "line": 0,
+    "seg": 2,
+    "t": 120.07,
+    "chord": "Em",
+    "word": 0,
+    "text": "—"
+   },
+   {
+    "type": "inside",
+    "section": "بند دوم",
+    "line": 1,
+    "seg": 0,
+    "t": 128.778,
+    "chord": "C",
+    "word": 3,
+    "text": "چه تفاهمی هنوز که عاشقیم"
+   },
+   {
+    "type": "inside",
+    "section": "بند دوم",
+    "line": 1,
+    "seg": 2,
+    "t": 134.235,
+    "chord": "Dm",
+    "word": 0,
+    "text": "—"
+   },
+   {
+    "type": "inside",
+    "section": "بند دوم",
+    "line": 1,
+    "seg": 2,
+    "t": 135.326,
+    "chord": "G",
+    "word": 0,
+    "text": "—"
+   },
+   {
+    "type": "inside",
+    "section": "پیش‌همخوان",
+    "line": 0,
+    "seg": 0,
+    "t": 148.422,
+    "chord": "Am",
+    "word": 0,
+    "text": "یادته"
+   },
+   {
+    "type": "inside",
+    "section": "پیش‌همخوان",
+    "line": 0,
+    "seg": 2,
+    "t": 152.787,
+    "chord": "Dm",
+    "word": 3,
+    "text": "خیره به آسمون میگفتی"
+   },
+   {
+    "type": "inside",
+    "section": "همخوان پایانی",
+    "line": 0,
+    "seg": 0,
+    "t": 156.061,
+    "chord": "F",
+    "word": 3,
+    "text": "عشقم نگاه کن اونه ستارمون"
+   },
+   {
+    "type": "inside",
+    "section": "همخوان پایانی",
+    "line": 0,
+    "seg": 1,
+    "t": 159.335,
+    "chord": "Em",
+    "word": 1,
+    "text": "ستارمون کو ستارمون"
+   },
+   {
+    "type": "inside",
+    "section": "همخوان پایانی",
+    "line": 0,
+    "seg": 1,
+    "t": 160.961,
+    "chord": "Am",
+    "word": 2,
+    "text": "ستارمون کو ستارمون"
+   },
+   {
+    "type": "inside",
+    "section": "همخوان پایانی",
+    "line": 1,
+    "seg": 0,
+    "t": 165.326,
+    "chord": "Dm",
+    "word": 6,
+    "text": "یادته با شادی پاک میکردیم اشکامونو از گونه مون"
+   },
+   {
+    "type": "inside",
+    "section": "همخوان پایانی",
+    "line": 2,
+    "seg": 1,
+    "t": 171.085,
+    "chord": "G",
+    "word": 2,
+    "text": "ای نداره دیگه"
+   },
+   {
+    "type": "inside",
+    "section": "همخوان پایانی",
+    "line": 3,
+    "seg": 0,
+    "t": 179.792,
+    "chord": "G",
+    "word": 4,
+    "text": "کو بهشتمون کو بهشتمون …"
+   },
+   {
+    "type": "mismatch",
+    "section": "پایان",
+    "line": 0,
+    "seg": 3,
+    "t": 188.523,
+    "sheet": "F",
+    "engine": "Dm7",
+    "share": 1.0,
+    "text": "—"
+   },
+   {
+    "type": "mismatch",
+    "section": "پایان",
+    "line": 0,
+    "seg": 8,
+    "t": 203.778,
+    "sheet": "F",
+    "engine": "G",
+    "share": 1.0,
+    "text": "—"
+   }
+  ]
+ }
+}
