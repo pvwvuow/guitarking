@@ -1,4 +1,4 @@
-"""Beat grid + metrical chord decoding (GuitarKing engine v7.2).
+"""Beat grid + metrical chord decoding (GuitarKing engine v7.3).
 
 Why: chords in pop music change ON a beat, almost always on the bar line
 and sometimes on the half bar. v7 decodes on the BEAT grid with a joint
@@ -28,6 +28,15 @@ v7.2 (bench round 2): on the trusted refs songs whose grid is fast
 GK_FAST_BPM the decode uses 8-beat "bars" (two 4/4 bars, cheap change on
 1, moderate on 5) or 6/8 instead of 4/4 / 3/4. Defaults moved toward the
 round-2 sweep winner (lower mid-bar change probability).
+
+v7.3 (bench round 3):
+  * repeat_pool(): a chorus that comes back must carry the same chords.
+    Beats whose surrounding 8-beat chroma window matches another place in
+    the song (>= 16 beats away) share their chord evidence, so one noisy
+    repetition (a vocal run, a fill) cannot flip its chords;
+  * merge_short() keeps a short chord when the audio clearly says so
+    (keep_gain): MIN_BEATS=4 won the round-3 sweep but would otherwise
+    delete every real half-bar chord.
 """
 import math
 import os
@@ -36,7 +45,7 @@ import numpy as np
 import librosa
 
 HOP = 512
-VERSION = "7.2"
+VERSION = "7.3"
 
 # P(chord change) when ARRIVING on bar position q (index 0 = downbeat)
 CHANGE_P = {
@@ -366,6 +375,67 @@ def pool_cells(M, cell_of_frame, n_cells, agg=np.median):
 
 
 # ----------------------------------------------------------------------
+# Repetition: a returning section shares its chord evidence
+# ----------------------------------------------------------------------
+
+def repeat_matches(feats, win=8, thr=0.75, min_lag=16, k=4):
+    """For every beat, up to k other beats whose centred win-beat feature
+    window matches (mean centred cosine >= thr) and lies >= min_lag beats away.
+    feats: (d, n_beats). -> list of index arrays."""
+    X = np.asarray(feats, dtype=float)
+    T = X.shape[1]
+    out = [np.array([], dtype=int) for _ in range(T)]
+    if T < 2 * min_lag or T < 2 * win:
+        return out
+    X = X - X.mean(axis=0, keepdims=True)   # centred: unrelated chords ~0
+    n = np.linalg.norm(X, axis=0, keepdims=True)
+    X = X / np.maximum(n, 1e-9)
+    G = X.T @ X
+    L = T - win + 1
+    S = np.zeros((L, L))
+    for d in range(win):
+        S += G[d:d + L, d:d + L]
+    S /= win
+    h = win // 2
+    idx = np.arange(L)
+    for i in range(T):
+        a = int(np.clip(i - h, 0, L - 1))
+        row = S[a].copy()
+        row[np.abs(idx - a) < min_lag] = -1.0
+        cand = np.where(row >= thr)[0]
+        if not len(cand):
+            continue
+        cand = cand[np.argsort(-row[cand])]
+        picked = []
+        for c in cand:              # one match per repetition, not 8
+            if all(abs(c - p) >= win for p in picked):
+                picked.append(c)
+            if len(picked) >= k:
+                break
+        out[i] = np.clip(np.array(picked, dtype=int) + (i - a), 0, T - 1)
+    return out
+
+
+def repeat_pool(logem, feats, weight=0.5, thr=0.75, win=8, min_lag=16,
+                k=4):
+    """Blend every beat's chord distribution with the beats that repeat
+    it (prob space). logem: (n_chords, n_beats) -> per-beat log probs."""
+    if weight <= 0:
+        return logem
+    T = logem.shape[1]
+    m = logem.max(axis=0, keepdims=True)
+    P = np.exp(logem - m)
+    P /= P.sum(axis=0, keepdims=True)
+    matches = repeat_matches(feats, win, thr, min_lag, k)
+    Q = P.copy()
+    for i in range(T):
+        js = matches[i]
+        if len(js):
+            Q[:, i] = (P[:, i] + weight * P[:, js].mean(axis=1)) / (1 + weight)
+    return np.log(np.maximum(Q, 1e-30))
+
+
+# ----------------------------------------------------------------------
 # Metrical Viterbi
 # ----------------------------------------------------------------------
 
@@ -456,9 +526,11 @@ def display_meter(bpb, pos):
     return int(bpb), pos
 
 
-def merge_short(path, em, min_beats):
+def merge_short(path, em, min_beats, keep_gain=None):
     """Absorb chord runs shorter than min_beats beats into the neighbour
     chord that explains those beats best (sum of beat log emissions).
+    A short run survives when its own chord beats the best neighbour by
+    >= keep_gain per beat (a real half-bar chord, not a melody blip).
     Silence runs (state 0 = N) are never merged or merged into."""
     path = np.array(path, dtype=np.int32)
     if min_beats <= 1 or len(path) < 3:
@@ -476,13 +548,18 @@ def merge_short(path, em, min_beats):
         if not cand or len(runs) < 2:
             break
         _l, a, k = min(cand)
-        e = runs[k][1]
+        e, c = runs[k][1], runs[k][2]
         nbrs = [runs[j][2] for j in (k - 1, k + 1)
                 if 0 <= j < len(runs) and runs[j][2] != 0]
         if not nbrs:
             skip.add(a)
             continue
-        path[a:e] = max(nbrs, key=lambda c: float(em[c, a:e].sum()))
+        best = max(nbrs, key=lambda q: float(em[q, a:e].sum()))
+        if keep_gain is not None and \
+                float((em[c, a:e] - em[best, a:e]).mean()) >= keep_gain:
+            skip.add(a)
+            continue
+        path[a:e] = best
     return path
 
 

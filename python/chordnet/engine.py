@@ -19,6 +19,13 @@ v7.2 (bench round 2): defaults moved to the round-2 sweep winner
 the neighbour that explains them best (melody notes faked 1-beat chords).
 v7.2.1 (bench round 3): MIN_BEATS default 4. Sweep on 28 trusted refs:
 0.402 -> 0.416, change ratio 1.61 -> 1.48; MIN_BEATS 1 and 2 were no-ops.
+
+v7.3: MIN_BEATS=4 alone deleted every real half-bar chord (synthetic
+loop with 2-beat changes: 95% -> 61% frame accuracy), so a short chord now
+survives when the audio clearly prefers it (GK_KEEP_GAIN, per-beat log
+advantage after EM_TEMP; 95% restored). Repeated sections share chord
+evidence before decoding (GK_REPEAT_W / GK_REPEAT_THR, meter.repeat_pool):
+one noisy chorus no longer flips its chords (synthetic: 92% -> 98%).
 """
 import hashlib
 import math
@@ -35,6 +42,9 @@ EM_TEMP = 0.5      # beat-level emission temperature (one column per beat)
 KEY_PENALTY = 0.3  # emission multiplier for out-of-key templates
 KEY_SLACK = 0.03   # key-constrained decode adopted if it costs <= this
 MIN_BEATS = 4      # shortest chord run kept (beats); 1 = off
+KEEP_GAIN = 1.0    # ...unless it beats its neighbour by this per beat
+REPEAT_W = 0.5     # weight of the repeats' evidence (0 = off)
+REPEAT_THR = 0.75  # centred chroma-window similarity for "a repeat"
 CACHE_VER = "p71"
 SPEC_DIM = 252          # mirrors model.py (kept here: no torch on a cache hit)
 SHIFT_HIGH, SHIFT_STEP = 6, 3
@@ -265,6 +275,10 @@ def analyze_deep(y, dur, beats, silent, accent=None):
     key_pen = _knob("KEY_PENALTY", KEY_PENALTY)
     key_slack = _knob("KEY_SLACK", KEY_SLACK)
     min_beats = int(round(_knob("MIN_BEATS", MIN_BEATS)))
+    keep_gain = _knob("KEEP_GAIN", KEEP_GAIN)
+    keep_gain = None if keep_gain >= 50 else keep_gain
+    repeat_w = _knob("REPEAT_W", REPEAT_W)
+    repeat_thr = _knob("REPEAT_THR", REPEAT_THR)
 
     probs, chroma = network_probs(y)
 
@@ -281,13 +295,25 @@ def analyze_deep(y, dur, beats, silent, accent=None):
     # ---- beat-grid emissions pooled from the same probabilities ----
     n_beats = len(beats)
     frame_beat = mt.cell_index(frame_t, beats)
-    em = beat_emissions(table, probs, frame_beat, frame_t, beats)
+    em_raw = beat_emissions(table, probs, frame_beat, frame_t, beats)
 
-    for j in range(min(n_beats, len(silent))):
-        if silent[j]:
-            em[1:, j] = -1e9
-        else:
-            em[0, j] = -1e9
+    m = min(chroma.shape[1], n_frames)
+    counts = np.maximum(np.bincount(frame_beat[:m], minlength=n_beats), 1)
+    beat_chroma = np.zeros((12, n_beats))
+    for pc in range(12):
+        beat_chroma[pc] = np.bincount(
+            frame_beat[:m], weights=chroma[pc, :m], minlength=n_beats) / counts
+
+    # ---- repeated sections share their chord evidence ----
+    em = mt.repeat_pool(em_raw, beat_chroma, weight=repeat_w,
+                        thr=repeat_thr) if repeat_w > 0 else em_raw.copy()
+
+    for e in (em, em_raw):
+        for j in range(min(n_beats, len(silent))):
+            if silent[j]:
+                e[1:, j] = -1e9
+            else:
+                e[0, j] = -1e9
 
     em_t = em_temp * np.maximum(em, -1e6)
     period = float(np.median(np.diff(beats))) if n_beats > 2 else None
@@ -324,18 +350,11 @@ def analyze_deep(y, dur, beats, silent, accent=None):
                                              or sc > best_score):
             best_path, best_pos, best_key, best_score = p_k, q_k, k, sc
     path, pos, key = best_path, best_pos, best_key
-    path = mt.merge_short(path, em_t, min_beats)
+    path = mt.merge_short(path, em_t, min_beats, keep_gain)
 
-    chosen = np.array([em[path[j], j] for j in range(n_beats)])
+    chosen = np.array([em_raw[path[j], j] for j in range(n_beats)])
     conf = float(np.mean(np.exp(np.clip(chosen, -20.0, 0.0)))) if n_beats else 0.0
     conf = float(np.clip(conf ** 0.45, 0.0, 1.0))
-
-    m = min(chroma.shape[1], n_frames)
-    counts = np.maximum(np.bincount(frame_beat[:m], minlength=n_beats), 1)
-    beat_chroma = np.zeros((12, n_beats))
-    for pc in range(12):
-        beat_chroma[pc] = np.bincount(
-            frame_beat[:m], weights=chroma[pc, :m], minlength=n_beats) / counts
 
     segs = _bars_to_segments(beats, dur, path, disp_all)
     bpb_out, pos_out = mt.display_meter(bpb, pos)
