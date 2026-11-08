@@ -1,66 +1,65 @@
-# Engine benchmark — round 3 (v7.2) status
+# Engine benchmark — round 4 (v7.3) status
 
-Per docs/BENCH_ROUND3.md. Audio stays local (gitignored). Defaults not
-changed; the sweep suggests MIN_BEATS=4 but v7.2 ships MIN_BEATS=2 and we
-left it as released.
+Per docs/BENCH_ROUND4.md. Audio stays local (gitignored). Defaults NOT
+changed: KEEP_GAIN=1, REPEAT_W=0.5, MIN_BEATS=4 ship as released.
+Sweep half 2 (REPEAT_W=1) is pending — exact continuation commands below.
 
-## summary_clean v7.1 vs v7.2 (28 trusted refs)
+## summary_clean v7.2 vs v7.3 (28 trusted refs)
 
 | ver  | root  | majmin | change_f | seq_root | seq_majmin | seq_change_ratio |
 |------|-------|--------|----------|----------|------------|------------------|
-| v7.1 | .5784 | .5054  | .5623    | .4153    | .3887      | 1.6485           |
 | v7.2 | .6024 | .5294  | .5588    | .4232    | .3987      | 1.6105           |
+| v7.3 | .5987 | .5258  | .5552    | .4259    | .4005      | 1.6000           |
 
-30 songs, 0 errors (results-v72.json). oonrooza un-stuck: x0.28 -> x1.1
-(45 engine chords vs 41 sheet).
+30 songs, 0 errors (results-v73.json). Frame metrics dip ~0.004 — expected:
+the sheets under-write half-bar chords (round-4 brief), so keeping real
+short chords reads as "wrong" against them. Sequence metrics and the change
+ratio both improve.
 
-## Sweep, structural knobs only (7 combos, trusted refs)
+## Sweep, structural knobs (12 combos; half 1 done = 9/13 rows incl. baseline)
 
-| score  | change x | knobs                                     |
-|--------|----------|-------------------------------------------|
-| 0.4161 | 1.478    | GK_FAST_BPM=125, GK_MIN_BEATS=4           |
-| 0.4146 | 1.452    | GK_FAST_BPM=999 (fast-grid off), MIN_BEATS=4 |
-| 0.4020 | 1.611    | defaults (FAST=125, MIN_BEATS=2)          |
-| 0.4020 | 1.611    | FAST=125, MIN_BEATS=1                     |
-| 0.4020 | 1.611    | FAST=125, MIN_BEATS=2                     |
-| 0.3997 | 1.624    | FAST=999, MIN_BEATS=1                     |
-| 0.3997 | 1.624    | FAST=999, MIN_BEATS=2                     |
+| score  | change x | knobs                                        |
+|--------|----------|----------------------------------------------|
+| 0.4161 | 1.478    | KEEP_GAIN=99, REPEAT_W=0 (= v7.2.1 merge-all) |
+| 0.4140 | 1.474    | KEEP_GAIN=99, REPEAT_W=0.5                   |
+| 0.4053 | 1.588    | KEEP_GAIN=2, REPEAT_W=0                      |
+| 0.4048 | 1.582    | KEEP_GAIN=2, REPEAT_W=0.5                    |
+| 0.4025 | 1.600    | defaults (KEEP_GAIN=1, REPEAT_W=0.5)         |
+| 0.4024 | 1.606    | KEEP_GAIN=1, REPEAT_W=0                      |
+| 0.4018 | 1.600    | KEEP_GAIN=0.5, REPEAT_W=0.5                  |
+| 0.4016 | 1.611    | KEEP_GAIN=0.5, REPEAT_W=0                    |
+| —      | —        | KEEP_GAIN 0.5/1/2/99 × REPEAT_W=1 → pending  |
 
-Read: the short-chord merge only pays off at MIN_BEATS=4 (+0.014, change
-x1.61 -> ~1.46-1.48); at 1 and 2 beats it is a no-op on this grid (identical
-scores). The fast-grid rule itself is near-neutral (0.4161 with vs 0.4146
-without), so keep it. MIN_BEATS=4 is the obvious next default candidate.
+Read (half 1):
 
-## Outliers, sheet vs engine (first ~40 collapsed chords each)
+* KEEP_GAIN=99 (merge every short chord, the v7.2.1 world) tops the table
+  and reproduces round 3's winner exactly (0.4161, x1.478). Against the
+  same REPEAT_W, KEEP_GAIN=1 costs 0.0137 (REPEAT_W=0) / 0.0115
+  (REPEAT_W=0.5) — above the brief's ~0.005 tolerance. But the brief itself
+  warns the sheets under-write half-bar chords, so this number is an upper
+  bound; the synthetic loop says the true musical cost of KEEP_GAIN=99 is
+  huge (95% -> 61% frame accuracy on real half-bar changes).
+* KEEP_GAIN=2 is the middle ground: +0.003 over default with change x1.58,
+  while still keeping strongly-evidenced short chords.
+* REPEAT_W is a wash on the sheets: at KEEP_GAIN=1, REPEAT_W=0.5 scores
+  0.4025 vs 0.4024 for 0 (stays, per the brief's ">= 0" criterion, barely);
+  it turns slightly negative when the merge is aggressive (99: -0.0021).
 
-The raw sequences are in bench/four-outliers.json.
+Decision stays with the maintainer; per instruction nothing was changed.
 
-farzad-divooneh (x2.74, sheet Cm):
-  SHEET : Cm Bb Ab Gm Bb Cm Bb Ab Gm Bb Gm Cm Ab G Bb Cm Ab Cm G Fm Cm Bb Ab Bb
-  ENGINE: Cm Bb Cm Ab Bb Gm Cm Bb Ab Bb Gm Cm Abmaj7 Bb Gm Ab Fm7 Bb Gm7 Cm Gm7
-          Abmaj7 Bb Gm Cm Ab Bb Gm Ab Fm7 Gsus4 G Cm Bb Ab Bb Cm Ab Bb Ab
-  Read: same Cm-Ab-Bb-Gm loop, engine adds 7ths + passing Gsus4/Fm7 per line
-  half -> the x2.7 is change-count, not wrong harmony.
+## Pending: sweep half 2 (REPEAT_W=1) — exact continuation
 
-sadeghi-babayebaroon (x6.2, sheet Bm shape):
-  SHEET : C Bm C Am C Bm C Am Bm Am C D Bm Am C D Bm C Am C D
-  ENGINE: Cm Fm Eb C# C Fm Eb C# Bbm Cm Fm Eb C# C Fm Eb C# Bbm Cm C# Cm C#
-          Bbm Eb/C# Cm C# Bbm C# Cm Eb C# Bbm Cm Eb C# Bbm Cm Eb Fm Bbm
-  Read: worst row. Engine lives in Cm/Fm/Eb and keeps writing C# passing
-  chords; sheet is a 4-chord C/Bm/Am loop. Key frame + thin sheet + dense
-  changes all at once.
+    python3 python/sweep.py bench/manifest.json --json bench/sweep-v73-1.json \
+      --grid "GK_KEEP_GAIN=0.5,1,2,99;GK_REPEAT_W=1"
+    python3 bench/merge_sweep73.py   # merges sweep-v73.json + sweep-v73-1.json
 
-sirvan-oonrooza (x1.1, sheet Am shape):
-  SHEET : Em Dm Em Am Em Dm Em Am G F G C G F G C G Bm Em Bm Am Bm C Em
-  ENGINE: Gm F Gm7 Dm/F Gm F Eb Dm/F Gm Dm Gm Dm Eb Dm Gm7 Dm7 Eb Dm7 Gm7 Dm7
-          Gm Dm F Ebmaj7 Dm7 Eb Dm F Gm7 Dm7 Gm Dm7 Eb Dm7 Gm7 Dm7 F Ebmaj7
-  Read: un-stuck (was 12 chords in v7.1, now 45 vs 41) and the loop shape
-  matches; the whole thing sits +3 semitones vs the sheet (sheet Em/Am shape
-  vs engine Gm/Dm) -> capo/key-frame, not structure.
+Then fold the 4 new rows into the table above and delete the pending row.
+~25-30 min with a warm prob cache.
 
-talischi-raazim (x3.05, sheet Dm):
-  SHEET : Dm Bb Am Dm Bb C Am Gm Bb C Dm C Bb Gm Bb Am Dm Am Bb C
-  ENGINE: Dm7 C Bbmaj7 Am F C Bbmaj7 Am7 Dm7 C7 Bbmaj7 Am7 Gm7 Bbmaj7 Am7 Dm7
-          Am7 C Gm7 Am7 Dm7 Am7 C Gm7 Am7 Dm7 Bbmaj7 Am7 Dm7 Bbmaj7 Am7 Gm7 Dm7
-          Am7 Gm7 Am Bbmaj7 Am Gm7 Am
-  Read: same Dm-Bb-Am-C loop with 7ths/maj7s and extra mid-bar turns.
+## Round 3 (v7.2) archive
+
+v7.2 shipped MIN_BEATS=4 (round-3 sweep winner 0.402 -> 0.416) and the
+fast-grid 8-beat bars; results-v72.json, 30 songs, 0 errors, seq_majmin
+0.3987, seq_change_ratio 1.61. Outlier sheet-vs-engine sequences
+(babayebaroon x6.2, raazim x3.05, divooneh x2.74, oonrooza x1.1) are in
+bench/four-outliers.json with the analysis in the round-3 README history.
