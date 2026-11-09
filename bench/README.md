@@ -2,7 +2,7 @@
 
 Per docs/BENCH_ROUND4.md. Audio stays local (gitignored). Defaults NOT
 changed: KEEP_GAIN=1, REPEAT_W=0.5, MIN_BEATS=4 ship as released.
-Sweep half 2 (REPEAT_W=1) is pending — exact continuation commands below.
+Sweep half 2 (REPEAT_W=1) was dropped by decision — see below.
 
 ## summary_clean v7.2 vs v7.3 (28 trusted refs)
 
@@ -28,7 +28,7 @@ ratio both improve.
 | 0.4024 | 1.606    | KEEP_GAIN=1, REPEAT_W=0                      |
 | 0.4018 | 1.600    | KEEP_GAIN=0.5, REPEAT_W=0.5                  |
 | 0.4016 | 1.611    | KEEP_GAIN=0.5, REPEAT_W=0                    |
-| —      | —        | KEEP_GAIN 0.5/1/2/99 × REPEAT_W=1 → pending  |
+| —      | —        | KEEP_GAIN 0.5/1/2/99 × REPEAT_W=1 → dropped   |
 
 Read (half 1):
 
@@ -47,14 +47,14 @@ Read (half 1):
 
 Decision stays with the maintainer; per instruction nothing was changed.
 
-## Pending: sweep half 2 (REPEAT_W=1) — exact continuation
+## Sweep half 2 (REPEAT_W=1): dropped by decision
 
-    python3 python/sweep.py bench/manifest.json --json bench/sweep-v73-1.json \
-      --grid "GK_KEEP_GAIN=0.5,1,2,99;GK_REPEAT_W=1"
-    python3 bench/merge_sweep73.py   # merges sweep-v73.json + sweep-v73-1.json
-
-Then fold the 4 new rows into the table above and delete the pending row.
-~25-30 min with a warm prob cache.
+Half 2 was never run. Decision (2026-11-09): keep the v7.3 defaults
+(KEEP_GAIN=1, REPEAT_W=0.5) and stop engine work here for now. Half 1
+already covers REPEAT_W 0 vs 0.5, which was a wash on the sheets, so the
+REPEAT_W=1 rows would not change the call. No further engine rounds are
+planned; bench/ holds results-v73.json and sweep-v73.json as the final
+record.
 
 ## Round 3 (v7.2) archive
 
