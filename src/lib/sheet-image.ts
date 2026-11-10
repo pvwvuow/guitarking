@@ -47,7 +47,7 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 
 async function loadEmblem(): Promise<HTMLImageElement | null> {
   try {
-    return await loadImage("/emblem.png");
+    return await loadImage("emblem.png");
   } catch {
     return null;
   }

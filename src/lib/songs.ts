@@ -70,7 +70,7 @@ export const SONGS: SongEntry[] = [
   key: 'Em',
   tempo: 118,
   difficulty: 'آسان',
-  poster: '/posters/bazi.jpg',
+  poster: 'posters/bazi.jpg',
   source: 'bot',
   audio: 'https://dl.hamavayetaraneh.com/music/Valayar-Bazi-128.mp3',
   sourceRef: {
@@ -869,7 +869,7 @@ export const SONGS: SongEntry[] = [
   key: 'Am',
   tempo: 96,
   difficulty: 'متوسط',
-  poster: '/posters/taghas.jpg',
+  poster: 'posters/taghas.jpg',
   source: 'bot',
   audio: 'https://media.tebyan.net/old2/1397/07/291189_291189.mp4',
   sourceRef: {
@@ -1884,7 +1884,7 @@ export const SONGS: SongEntry[] = [
     key: "Fm",
     tempo: 123,
     difficulty: "متوسط",
-    poster: "/posters/sad-gozashtam.jpg",
+    poster: "posters/sad-gozashtam.jpg",
     source: "bot",
     audio:
       "https://dl.rozmusic.com/Music/1405/08/08/Ramin%20Bibak%20-%20Sad%20Gozashtam%20%28128%29.mp3",
@@ -2065,9 +2065,9 @@ export const SONGS: SongEntry[] = [
     key: "Am",
     tempo: 112,
     difficulty: "متوسط",
-    poster: "/posters/koo-beheshtemoon.jpg",
+    poster: "posters/koo-beheshtemoon.jpg",
     source: "bot",
-    audio: "/demo/koo-beheshtemoon.mp3",
+    audio: "demo/koo-beheshtemoon.mp3",
     sourceRef: {
       name: "رسانه آهنگ (ahaang.com)",
       url: "https://ahaang.com/lyric/متن-آهنگ-کو-بهشتمون-امین-قباد",

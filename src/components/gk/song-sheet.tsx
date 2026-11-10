@@ -334,7 +334,7 @@ export function SongSheet({ song, onBack, onPlayDemo }: Props) {
           />
           {/* emblem watermark behind the text */}
           <img
-            src="/emblem.png"
+            src="emblem.png"
             alt=""
             aria-hidden
             className="pointer-events-none absolute left-1/2 top-1/2 w-64 -translate-x-1/2 -translate-y-1/2 select-none opacity-[0.05] sm:w-80"

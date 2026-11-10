@@ -31,7 +31,11 @@ import { cn } from "@/lib/utils";
 
 const DEMO_SONG = demoAnalysis as unknown as AnalysisResult;
 const DEMO_NAME = "Amin Ghobad - Koo Beheshtemoon.mp3";
-const DEMO_URL = "/demo/koo-beheshtemoon.mp3";
+const DEMO_URL = "demo/koo-beheshtemoon.mp3";
+
+/* GitHub Pages (static) build: no server behind /api/analyze.
+   NEXT_PUBLIC_STATIC is set only by `bun run build:pages`. */
+const STATIC_DEPLOY = process.env.NEXT_PUBLIC_STATIC === "1";
 
 type Phase = "idle" | "uploading" | "analyzing" | "done" | "error";
 const GENRES = ["همه", "پاپ", "فولک", "راک"] as const;
@@ -237,7 +241,7 @@ export default function Home() {
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
           <a href="#top" className="flex items-center gap-2.5 shrink-0">
             { }
-            <img src="/emblem.png" alt="لوگوی گیتار کینگ" className="w-8 h-auto" />
+            <img src="emblem.png" alt="لوگوی گیتار کینگ" className="w-8 h-auto" />
             <span className="font-display font-bold text-lg tracking-wide">
               Guitar King
             </span>
@@ -394,7 +398,7 @@ export default function Home() {
                       className="gk-spin-slow absolute left-1/2 top-1/2 h-[172px] w-[172px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-dashed border-[oklch(0.617_0.093_62/0.55)] sm:h-[204px] sm:w-[204px]"
                     />
                     <img
-                      src="/emblem.png"
+                      src="emblem.png"
                       alt="نشان گیتار کینگ: تاج و گیتار"
                       className="relative h-auto w-36 drop-shadow-[0_18px_28px_oklch(0.235_0.012_60/0.25)] sm:w-44"
                     />
@@ -597,7 +601,13 @@ export default function Home() {
                     </div>
                   </div>
                   <div className="bg-card text-card-foreground rounded-2xl p-4 sm:p-5 shadow-2xl shadow-black/25">
-                    <UploadZone onFile={handleFile} />
+                    <UploadZone onFile={handleFile} disabled={STATIC_DEPLOY} />
+                    {STATIC_DEPLOY && (
+                      <p className="text-xs text-muted-foreground text-center leading-6 mt-3">
+                        در نسخه‌ی استاتیک (GitHub Pages) پردازش اکوردنویس سروری در دسترس نیست؛
+                        نمونه‌ی آماده را ببین یا برگه‌ی آکورد آهنگ‌ها را از آرشیو باز کن.
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -672,7 +682,7 @@ export default function Home() {
                 <div>
                   <span className="flex items-center gap-2.5">
                     { }
-                    <img src="/emblem.png" alt="" className="w-7 h-auto" aria-hidden />
+                    <img src="emblem.png" alt="" className="w-7 h-auto" aria-hidden />
                     <b className="font-display text-base tracking-wide">Guitar King</b>
                   </span>
                   <p className="text-muted-foreground mt-3 leading-7">
