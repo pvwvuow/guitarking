@@ -1,0 +1,4 @@
+:HL["/guitarking/_next/static/chunks/ff4d265bc047dcaf.css","style"]
+:HL["https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css","style"]
+:HL["https://fonts.googleapis.com/css2?family=Gulzar&family=Cinzel+Decorative:wght@400;700;900&display=swap","style"]
+0:{"buildId":"KDcz79OD_4EXBsDPCQ24y","tree":{"name":"","paramType":null,"paramKey":"","hasRuntimePrefetch":false,"slots":{"children":{"name":"/_not-found","paramType":null,"paramKey":"/_not-found","hasRuntimePrefetch":false,"slots":{"children":{"name":"__PAGE__","paramType":null,"paramKey":"__PAGE__","hasRuntimePrefetch":false,"slots":null,"isRootLayout":false}},"isRootLayout":false}},"isRootLayout":true},"staleTime":300}
