@@ -15,6 +15,8 @@ declare module "./songs" {
     ct?: number;
     /** optional per-word start times (s) for exact karaoke */
     w?: number[];
+    /** chord added by the engine inside a sheet line (sheet_sync --fill) */
+    auto?: boolean;
   }
   interface SongEntry {
     /** engine beat grid (python/sheet_sync.py output) */
