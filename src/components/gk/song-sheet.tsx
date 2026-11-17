@@ -387,7 +387,7 @@ export function SongSheet({ song, onBack, onPlayDemo }: Props) {
                 key={row.key}
                 id={`sheet-row-${ri}`}
                 className={cn(
-                  "flex flex-wrap gap-x-8 gap-y-3 scroll-mt-32",
+                  "flex flex-wrap gap-x-4 gap-y-2 sm:gap-x-8 sm:gap-y-3 scroll-mt-32",
                   ri > 0 && (row.newSection ? "mt-7" : "mt-3")
                 )}
               >
@@ -425,7 +425,7 @@ export function SongSheet({ song, onBack, onPlayDemo }: Props) {
                       }
                       disabled={!seekable}
                       className={cn(
-                        "inline-flex flex-col min-w-14 items-start rounded-lg px-2 py-1 -mx-2 text-start transition-colors duration-200",
+                        "inline-flex flex-col min-w-10 sm:min-w-14 items-start rounded-lg px-2 py-1 -mx-2 text-start transition-colors duration-200",
                         seekable && "cursor-pointer hover:bg-secondary/60",
                         isNow && "bg-primary/10 ring-1 ring-primary/25"
                       )}
