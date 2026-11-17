@@ -1,4 +1,4 @@
-:HL["/guitarking/_next/static/chunks/3f313be957389fac.css","style"]
+:HL["/guitarking/_next/static/chunks/481e7bbbbb0f64c6.css","style"]
 :HL["https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css","style"]
 :HL["https://fonts.googleapis.com/css2?family=Gulzar&family=Cinzel+Decorative:wght@400;700;900&display=swap","style"]
-0:{"buildId":"nYN6DFWZCnx2yWddHdVum","tree":{"name":"","paramType":null,"paramKey":"","hasRuntimePrefetch":false,"slots":{"children":{"name":"/_not-found","paramType":null,"paramKey":"/_not-found","hasRuntimePrefetch":false,"slots":{"children":{"name":"__PAGE__","paramType":null,"paramKey":"__PAGE__","hasRuntimePrefetch":false,"slots":null,"isRootLayout":false}},"isRootLayout":false}},"isRootLayout":true},"staleTime":300}
+0:{"buildId":"8omE8bZ2jmS9CtbsLqa2b","tree":{"name":"","paramType":null,"paramKey":"","hasRuntimePrefetch":false,"slots":{"children":{"name":"/_not-found","paramType":null,"paramKey":"/_not-found","hasRuntimePrefetch":false,"slots":{"children":{"name":"__PAGE__","paramType":null,"paramKey":"__PAGE__","hasRuntimePrefetch":false,"slots":null,"isRootLayout":false}},"isRootLayout":false}},"isRootLayout":true},"staleTime":300}
