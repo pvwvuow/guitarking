@@ -33,6 +33,8 @@ git worktree prune >/dev/null 2>&1
 git worktree add --detach "$GHP" origin/gh-pages >/dev/null 2>&1
 find "$GHP" -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
 cp -r out/. "$GHP"/
+# without .nojekyll, GitHub Pages runs Jekyll and drops every _next/* path
+touch "$GHP/.nojekyll"
 cd "$GHP"
 git add -A
 git commit -q -m "pages build from $SRC" || echo "no changes to publish"
