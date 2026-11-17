@@ -1,5 +1,27 @@
 # Lyrics, chords and music out of sync (lyric_align.py) - do this BEFORE docs/SHEET_QA.md
 
+## Next run (Brain, 17 Nov, after Z's local cf88194)
+Z's SHEET_QA run (cf88194, not pushed: expired token) ran harmonize on the
+hand-typed lyric times. Two of its results show why the alignment comes
+first: bazi «عیبی نداره چشمتو وا کن» (outro) and «حیفه بخوایم» (verse 2)
+were skipped as "does not fit before the next line" - the typed times make
+those lines shorter than they are sung. And taghas «بگو واسه کی میمیری»
+lost the E of the laminor sheet. sheet_sync v7.5 now never drops a chord of
+the human sheet and ignores instrumental lines («بداهه‌ی گیتار») as repeats.
+1. New token first (the owner gives it to Z directly, never in a chat or a
+   repo): fine-grained, only pvwvuow/guitarking, Contents read+write.
+2. `git fetch origin`; keep scripts/ from cf88194 (engine-all.py,
+   export-sheets.ts, merge-songs.py, gh-pages-publish.sh) but take
+   src/lib/songs.ts from origin/main (the pre-harmonize sheets): one commit
+   with the scripts only, rebased on origin/main.
+3. Then the steps below for all 4 songs: align -> plain sync -> --harmonize
+   (v7.5) -> songs.ts -> tsc + build:pages -> push main, then gh-pages.
+4. The stash on /home/z/my-project (stash@{0}) is not ours: leave it.
+5. Your env could not fully decode the mp3s: the site plays those mp3s, so
+   decode them with ffmpeg (`ffmpeg -i x.mp3 -ar 44100 x.wav`), compare
+   the wav length with the mp3's own duration (ffprobe) and report both;
+   a decoder that drops frames shifts every time after the drop.
+
 The owner (17 Nov): «تقاص» and the other songs: chords, lyrics and music
 are not together.
 

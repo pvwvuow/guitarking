@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-GuitarKing — sheet sync (v7.4)
+GuitarKing — sheet sync (v7.5)
 ==============================
 Puts the chords of a hand-written / lyric-aligned sheet ON THE BEAT.
 
@@ -45,6 +45,10 @@ at the word sung on that beat and the new segment gets `auto: true`
   occurrence's own beat grid. It is applied only when the engine agrees
   with the new pattern at least as well as with the old one there and it
   fits before the next line; otherwise it is reported as skipped.
+  v7.5: a chord of the human sheet (not `auto`) is never dropped by it -
+  the source sheet beats the engine; instrumental placeholder lines
+  («بداهه‌ی گیتار», «سولوی گیتار», ...) and lines of < 3 words are not
+  treated as repeated lyrics.
 
 It also emits the song's beat grid (beats / downbeats / bpb) so the
 player can pulse with the beat.
@@ -465,12 +469,22 @@ def _same_pattern(p, q):
                for a, b in zip(p, q))
 
 
+# words that mark an instrumental placeholder line, not a sung lyric
+INSTRUMENTAL = ("بداهه", "بداههی", "سولو", "سولوی", "سلو", "گیتار", "اینترو",
+                "پیانو", "ویولن", "بیکلام", "instrumental", "solo", "intro")
+
+
+def _is_instrumental(key):
+    words = key.split()
+    return any(w in INSTRUMENTAL for w in words) and len(words) <= 3
+
+
 def _repeat_groups(sheet):
     groups = {}
     for sec in sheet["sections"]:
         for li, line in enumerate(sec["lines"]):
             key = _line_text(line)
-            if len(key.split()) < 2 or not _changes(line):
+            if len(key.split()) < 3 or _is_instrumental(key) or not _changes(line):
                 continue
             groups.setdefault(key, []).append((sec, li))
     return {k: v for k, v in groups.items() if len(v) > 1}
@@ -560,6 +574,13 @@ def harmonize(sheet, res):
             if ok and new and new[-1]["ct"] > limit - 0.5 * period:
                 ok = False
             why = "does not fit before the next line"
+            # v7.5: the human sheet beats the engine - never drop one of its chords
+            kept = {sg["chord"] for sg in new}
+            lost = [sg["chord"] for sg in _changes(dst)
+                    if not sg.get("auto") and not any(same_chord(sg["chord"], c, True) for c in kept)]
+            if ok and lost:
+                ok = False
+                why = "would drop a chord of the source sheet: " + ", ".join(lost)
             if ok:
                 old_s = scores[j]
                 ends2 = dict(ends)
