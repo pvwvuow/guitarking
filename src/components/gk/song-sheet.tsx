@@ -13,7 +13,7 @@ import {
   RotateCcw,
   Sparkles,
 } from "lucide-react";
-import type { SongEntry } from "@/lib/songs";
+import type { SheetSeg, SongEntry } from "@/lib/songs";
 import { songChords } from "@/lib/songs";
 import { transposeChord } from "@/lib/transpose";
 import { downloadSongSheetImage } from "@/lib/sheet-image";
@@ -51,6 +51,15 @@ interface TimedSeg {
   chord: string;
   text: string;
   w?: number[];
+  /** same chord as the previous segment of the same line: no new change */
+  cont: boolean;
+}
+
+/** a segment that only continues the chord of the segment before it in the
+    same line (web sheets repeat the chord over every bar). It is drawn
+    without a chord label and never counts as a chord change. */
+function isContinuation(line: SheetSeg[], si: number) {
+  return si > 0 && !!line[si] && line[si - 1]?.chord === line[si]?.chord;
 }
 
 /** flat timed entries of a sheet: one per segment that carries a time.
@@ -70,6 +79,7 @@ function buildTimed(song: SongEntry): TimedSeg[] {
             chord: seg.chord,
             text: seg.text,
             w: seg.w,
+            cont: isContinuation(line, si),
           });
       });
       li++;
@@ -103,7 +113,14 @@ export function SongSheet({ song, onBack, onPlayDemo }: Props) {
   // lyric clock (t) and chord clock (ct) are separate: singers push or
   // delay a syllable, the band changes chord on the beat
   const lyricStarts = useMemo(() => timed.map((e) => e.t), [timed]);
-  const byChord = useMemo(() => [...timed].sort((a, b) => a.ct - b.ct), [timed]);
+  const byChord = useMemo(
+    () => timed.filter((e) => !e.cont).sort((a, b) => a.ct - b.ct),
+    [timed]
+  );
+  const hasAuto = useMemo(
+    () => song.sections.some((sec) => sec.lines.some((ln) => ln.some((sg) => sg.auto))),
+    [song]
+  );
   const chordStarts = useMemo(() => byChord.map((e) => e.ct), [byChord]);
 
   const toggle = () => {
@@ -352,6 +369,7 @@ export function SongSheet({ song, onBack, onPlayDemo }: Props) {
                   const isChordNow =
                     !!chordNow && chordNow.li === li && chordNow.si === si;
                   const seekable = typeof seg.t === "number" && hasSync;
+                  const cont = isContinuation(line, si);
                   return (
                     <button
                       key={si}
@@ -379,10 +397,19 @@ export function SongSheet({ song, onBack, onPlayDemo }: Props) {
                       <b
                         className={cn(
                           "chord-latin text-lg font-black leading-6 transition-colors duration-100",
-                          isChordNow ? "text-primary" : "text-primary/60"
+                          isChordNow ? "text-primary" : "text-primary/60",
+                          seg.auto &&
+                            !cont &&
+                            "underline decoration-dotted decoration-1 underline-offset-4"
                         )}
+                        title={
+                          seg.auto && !cont
+                            ? "این اکورد را موتور گیتارکینگ وسط خط شنیده"
+                            : undefined
+                        }
+                        aria-hidden={cont || undefined}
                       >
-                        {t(seg.chord)}
+                        {cont ? "\u00a0" : t(seg.chord)}
                       </b>
                       {isNow && karaoke ? (
                         <span className="text-sm leading-6">
@@ -423,6 +450,8 @@ export function SongSheet({ song, onBack, onPlayDemo }: Props) {
           {song.source === "bot"
             ? "اکوردها بر پایه‌ی شنیده‌ی گیتارکینگ است. "
             : "اکوردها توسط تحریریه‌ی گیتارکینگ نوشته شده. "}
+          {hasAuto &&
+            "اکوردهای نقطه‌چین را موتور گیتارکینگ وسط خط شنیده و به برگه افزوده است. "}
           {!song.officialLyrics && SEG_NOTE}
         </p>
         {song.sourceRef && (
@@ -449,10 +478,18 @@ export function SongSheet({ song, onBack, onPlayDemo }: Props) {
             تحلیل خودکار گیتارکینگ
           </p>
           <div className="flex flex-wrap gap-2 mt-3">
-            <Chip>مدت: <b className="chord-latin">{song.bot.duration}</b></Chip>
+            {song.bot.duration ? (
+              <Chip>مدت: <b className="chord-latin">{song.bot.duration}</b></Chip>
+            ) : null}
             <Chip>تمپو: <b>{song.bot.tempo}</b></Chip>
             <Chip>کلید: <b className="chord-latin">{song.bot.key}</b></Chip>
-            <Chip>اطمینان: <b>{song.bot.confidence}٪</b></Chip>
+            <Chip>
+              اطمینان:{" "}
+              <b>
+                {botConfidence(song.bot.confidence)}
+                ٪
+              </b>
+            </Chip>
           </div>
           <div className="mt-4 space-y-2">
             {song.bot.sections.map((bs, i) => (
@@ -460,7 +497,7 @@ export function SongSheet({ song, onBack, onPlayDemo }: Props) {
                 key={i}
                 className="flex flex-wrap items-center gap-2.5 rounded-lg border bg-card px-3 py-2"
               >
-                <span className="chord-latin w-6 h-6 rounded-md bg-primary text-primary-foreground text-[11px] font-black flex items-center justify-center">
+                <span className="chord-latin min-w-6 h-6 px-1.5 rounded-md bg-primary text-primary-foreground text-[11px] font-black flex items-center justify-center whitespace-nowrap">
                   {bs.label}
                 </span>
                 <span className="chord-latin text-xs text-muted-foreground" dir="ltr">
@@ -488,6 +525,13 @@ export function SongSheet({ song, onBack, onPlayDemo }: Props) {
       )}
     </div>
   );
+}
+
+/** engine confidence as a whole percent (data may carry 0-1 or 0-100) */
+function botConfidence(v: unknown): number {
+  const n = Number(v);
+  if (!Number.isFinite(n) || n <= 0) return 0;
+  return Math.round(n <= 1 ? n * 100 : n);
 }
 
 function Chip({ children }: { children: React.ReactNode }) {

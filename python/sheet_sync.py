@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-GuitarKing — sheet sync (v7.3)
+GuitarKing — sheet sync (v7.4)
 ==============================
 Puts the chords of a hand-written / lyric-aligned sheet ON THE BEAT.
 
@@ -31,12 +31,28 @@ at the word sung on that beat and the new segment gets `auto: true`
   * an inserted chord must last >= --min-beats beats (default 2) and the
     sheet chord itself is never changed.
 
+--check / --harmonize (v7.4): QA for a sheet that is already synced
+(every timed segment has ct; then the ct are kept, no re-sync).
+  --check reports: the same chord written twice in a row inside a line
+  (`repeat_chord`), a chord shorter than one beat (`too_short`), a chord
+  more than a bar away from its lyric (`far_from_lyric`), an engine-added
+  chord on one tiny word (`tiny_split`), and a lyric line that repeats
+  (chorus, outro) with a DIFFERENT chord pattern (`repeat_differs`, with
+  the engine agreement of every occurrence).
+  --harmonize fixes `repeat_differs`: the occurrence the engine agrees
+  with most becomes the pattern (chords + their beat offsets + the word
+  splits) for every other occurrence of that line, beat-exact on that
+  occurrence's own beat grid. It is applied only when the engine agrees
+  with the new pattern at least as well as with the old one there and it
+  fits before the next line; otherwise it is reported as skipped.
+
 It also emits the song's beat grid (beats / downbeats / bpb) so the
 player can pulse with the beat.
 
 Usage:
   python3 python/sheet_sync.py song.mp3 sheet.json [--analysis a.json]
-                               [--fill] [--min-beats 2] > out.json
+                               [--fill] [--min-beats 2]
+                               [--check] [--harmonize] > out.json
 
 sheet.json: {"sections": [{"label": "...", "lines": [[{"chord", "text", "t"}]]}]}
             (same shape as SongEntry.sections in src/lib/songs.ts)
@@ -366,6 +382,205 @@ def fill_inside(sheet, res, key_label=None, min_beats=2):
     return report
 
 
+# ----------------------------------------------------------------------
+# --check / --harmonize (v7.4)
+# ----------------------------------------------------------------------
+
+def _silent(text):
+    t = str(text or "").strip()
+    return not t or t == "—"
+
+
+def _norm_text(text):
+    t = str(text or "").replace("\u200c", "").replace("—", " ")
+    for ch in "،,.!?؟:;«»\"'()":
+        t = t.replace(ch, " ")
+    return " ".join(t.split())
+
+
+def _line_text(line):
+    return _norm_text(" ".join(str(sg.get("text", "")) for sg in line
+                               if not _silent(sg.get("text"))))
+
+
+def _beat_index(beats, t):
+    return int(np.argmin(np.abs(beats - float(t))))
+
+
+def _ends(sheet, dur):
+    order = sheet_flat(sheet)
+    out = {}
+    for i, s in enumerate(order):
+        out[id(s)] = float(order[i + 1].get("ct", order[i + 1].get("t"))) \
+            if i + 1 < len(order) else dur
+    return out
+
+
+def _changes(line):
+    """the chord-change segments of a line (in-line repeats folded)"""
+    out = []
+    for si, sg in enumerate(line):
+        if si > 0 and line[si - 1].get("chord") == sg.get("chord"):
+            continue
+        if isinstance(sg.get("ct"), (int, float)):
+            out.append(sg)
+    return out
+
+
+def _agree(segs_e, spans):
+    """engine agreement (0..1, duration-weighted) for [(chord, a, b)]"""
+    tot = ok = 0.0
+    for ch, a, b in spans:
+        if b - a <= 0.05:
+            continue
+        dom, _share = dominant(segs_e, a, b)
+        tot += b - a
+        if same_chord(dom, ch):
+            ok += b - a
+    return ok / tot if tot else 0.0
+
+
+def _line_spans(line, ends):
+    ch = _changes(line)
+    spans = []
+    for i, sg in enumerate(ch):
+        a = float(sg["ct"])
+        b = float(ch[i + 1]["ct"]) if i + 1 < len(ch) else ends.get(id(line[-1]), a)
+        spans.append((sg["chord"], a, b))
+    return spans
+
+
+def _pattern(line, beats):
+    ch = _changes(line)
+    if not ch:
+        return []
+    b0 = _beat_index(beats, ch[0]["ct"])
+    return [(sg["chord"], _beat_index(beats, sg["ct"]) - b0) for sg in ch]
+
+
+def _same_pattern(p, q):
+    if len(p) != len(q):
+        return False
+    return all(same_chord(a[0], b[0], True) and abs(a[1] - b[1]) <= 1
+               for a, b in zip(p, q))
+
+
+def _repeat_groups(sheet):
+    groups = {}
+    for sec in sheet["sections"]:
+        for li, line in enumerate(sec["lines"]):
+            key = _line_text(line)
+            if len(key.split()) < 2 or not _changes(line):
+                continue
+            groups.setdefault(key, []).append((sec, li))
+    return {k: v for k, v in groups.items() if len(v) > 1}
+
+
+def check_sheet(sheet, res):
+    beats = np.asarray(res["beats"], dtype=float)
+    segs_e = [s for s in res["segments"] if s["chord"] != "N"]
+    period = 60.0 / float(res["tempo"]) if res.get("tempo") else 0.5
+    bar = period * int(res.get("bpb") or 4)
+    ends = _ends(sheet, float(res["duration"]))
+    rep = []
+    for sec in sheet["sections"]:
+        for li, line in enumerate(sec["lines"]):
+            for si, sg in enumerate(line):
+                if not isinstance(sg.get("ct"), (int, float)):
+                    continue
+                where = {"section": sec["label"], "line": li, "seg": si,
+                         "t": sg["ct"], "chord": sg["chord"],
+                         "text": sg.get("text", "")}
+                if si > 0 and line[si - 1].get("chord") == sg["chord"]:
+                    rep.append(dict(where, type="repeat_chord"))
+                    continue
+                ln = ends.get(id(sg), sg["ct"]) - float(sg["ct"])
+                if ln < 0.9 * period:
+                    rep.append(dict(where, type="too_short",
+                                    beats=round(ln / period, 2)))
+                if isinstance(sg.get("t"), (int, float)) and \
+                        abs(float(sg["t"]) - float(sg["ct"])) > bar:
+                    rep.append(dict(where, type="far_from_lyric",
+                                    gap=round(float(sg["t"]) - float(sg["ct"]), 2)))
+                txt = str(sg.get("text", "")).strip()
+                if sg.get("auto") and not _silent(txt) and len(txt.split()) == 1 \
+                        and len(txt) <= 2:
+                    rep.append(dict(where, type="tiny_split"))
+    for key, occ in _repeat_groups(sheet).items():
+        pats = [_pattern(sec["lines"][li], beats) for sec, li in occ]
+        if all(_same_pattern(pats[0], p) for p in pats[1:]):
+            continue
+        rep.append({"type": "repeat_differs", "text": key, "occurrences": [
+            {"section": sec["label"], "line": li,
+             "t": _changes(sec["lines"][li])[0]["ct"],
+             "pattern": [f"{c}@{d}" for c, d in pats[j]],
+             "engine": round(_agree(segs_e, _line_spans(sec["lines"][li], ends)), 2)}
+            for j, (sec, li) in enumerate(occ)]})
+    return rep
+
+
+def harmonize(sheet, res):
+    beats = np.asarray(res["beats"], dtype=float)
+    segs_e = [s for s in res["segments"] if s["chord"] != "N"]
+    period = 60.0 / float(res["tempo"]) if res.get("tempo") else 0.5
+    rep = []
+    for key, occ in _repeat_groups(sheet).items():
+        ends = _ends(sheet, float(res["duration"]))
+        pats = [_pattern(sec["lines"][li], beats) for sec, li in occ]
+        if all(_same_pattern(pats[0], p) for p in pats[1:]):
+            continue
+        scores = [_agree(segs_e, _line_spans(sec["lines"][li], ends))
+                  for sec, li in occ]
+        j0 = int(np.argmax(scores))
+        ssec, sli = occ[j0]
+        src = ssec["lines"][sli]
+        s_b0 = _beat_index(beats, _changes(src)[0]["ct"])
+        for j, (sec, li) in enumerate(occ):
+            if j == j0 or _same_pattern(pats[j0], pats[j]):
+                continue
+            dst = sec["lines"][li]
+            d_first = _changes(dst)[0]
+            d_b0 = _beat_index(beats, d_first["ct"])
+            limit = ends.get(id(dst[-1]), float(res["duration"]))
+            new, ok = [], True
+            for sg in src:
+                if not isinstance(sg.get("ct"), (int, float)):
+                    ok = False
+                    break
+                bi = d_b0 + _beat_index(beats, sg["ct"]) - s_b0
+                if bi < 0 or bi >= len(beats):
+                    ok = False
+                    break
+                ct = float(beats[bi])
+                piece = {k: v for k, v in sg.items() if k != "w"}
+                piece["ct"] = round(ct, 3)
+                if isinstance(sg.get("t"), (int, float)):
+                    piece["t"] = round(ct + float(sg["t"]) - float(sg["ct"]), 3)
+                new.append(piece)
+            if ok and new and new[-1]["ct"] > limit - 0.5 * period:
+                ok = False
+            why = "does not fit before the next line"
+            if ok:
+                old_s = scores[j]
+                ends2 = dict(ends)
+                ends2[id(new[-1])] = limit
+                new_s = _agree(segs_e, _line_spans(new, ends2))
+                if new_s + 1e-6 < old_s:
+                    ok = False
+                    why = f"engine prefers the old pattern ({old_s:.2f} > {new_s:.2f})"
+            item = {"section": sec["label"], "line": li, "t": d_first["ct"],
+                    "text": key, "from": {"section": ssec["label"], "line": sli,
+                                          "engine": round(scores[j0], 2)},
+                    "old": [f"{c}@{d}" for c, d in pats[j]],
+                    "new": [f"{c}@{d}" for c, d in pats[j0]]}
+            if ok:
+                sec["lines"][li] = new
+                rep.append(dict(item, type="harmonized"))
+            else:
+                rep.append(dict(item, type="harmonize_skipped", why=why))
+    return rep
+
+
 def main():
     args = sys.argv[1:]
     if len(args) < 2:
@@ -382,7 +597,17 @@ def main():
     if not res.get("ok"):
         print(json.dumps(res, ensure_ascii=False))
         sys.exit(2)
-    out = sync(sheet, res)
+    timed = [sg for sec in sheet["sections"] for line in sec["lines"]
+             for sg in line if isinstance(sg.get("t"), (int, float))]
+    qa = "--check" in args or "--harmonize" in args
+    if qa and "--fill" not in args and timed and \
+            all(isinstance(sg.get("ct"), (int, float)) for sg in timed):
+        # an already synced sheet: keep its ct, only run the QA
+        out = {"bpb": res.get("bpb", 4), "tempo": res.get("tempo"),
+               "beats": res["beats"], "downbeats": res["downbeats"],
+               "sections": sheet["sections"], "report": []}
+    else:
+        out = sync(sheet, res)
     n_add = 0
     if "--fill" in args:
         mb = int(args[args.index("--min-beats") + 1]) \
@@ -391,12 +616,23 @@ def main():
         out["sections"] = sheet["sections"]
         out["report"] = out["report"] + fill_rep
         n_add = sum(1 for r in fill_rep if r["type"] == "added")
+    if "--harmonize" in args:
+        out["report"] = out["report"] + harmonize(sheet, res)
+        out["sections"] = sheet["sections"]
+    if qa:
+        out["report"] = out["report"] + check_sheet(sheet, res)
     print(json.dumps(out, ensure_ascii=False, indent=1))
     n_mis = sum(1 for r in out["report"] if r["type"] == "mismatch")
     n_in = sum(1 for r in out["report"] if r["type"] == "inside")
     print(f"engine={res.get('engine')} tempo={res.get('tempo')} bpb={res.get('bpb')}"
           f" mismatches={n_mis} inside-line-changes={n_in} added={n_add}",
           file=sys.stderr)
+    if qa:
+        cnt = {}
+        for r in out["report"]:
+            cnt[r["type"]] = cnt.get(r["type"], 0) + 1
+        print("qa: " + " ".join(f"{k}={v}" for k, v in sorted(cnt.items())),
+              file=sys.stderr)
 
 
 if __name__ == "__main__":
