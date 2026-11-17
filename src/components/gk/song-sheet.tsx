@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowRight,
   Bot,
@@ -25,6 +25,7 @@ import {
   lastAtOrBefore,
   wordTimes,
 } from "@/lib/sheet-sync";
+import { beytRows } from "@/lib/sheet-rows";
 import { ChordDiagram } from "./chord-diagram";
 import { PlayerCard } from "./player-card";
 import { Button } from "@/components/ui/button";
@@ -170,13 +171,37 @@ export function SongSheet({ song, onBack, onPlayDemo }: Props) {
   const beatsToNext =
     chordNext && beats.length > 1 ? beatsBetween(beats, time, chordNext.ct) : null;
 
-  // keep the active line in view while playing (very smooth scroll)
+  // the sheet in rows: the two short halves of a beyt share one row, never
+  // across a section (verse / chorus) - src/lib/sheet-rows.ts
+  const sheetRows = useMemo(() => {
+    const out: { key: string; newSection: boolean; lines: { li: number; line: SheetSeg[] }[] }[] = [];
+    let base = 0;
+    song.sections.forEach((sec, s) => {
+      beytRows(sec.lines).forEach((grp, r) => {
+        out.push({
+          key: `${s}-${r}`,
+          newSection: s > 0 && r === 0,
+          lines: grp.map((i) => ({ li: base + i, line: sec.lines[i] })),
+        });
+      });
+      base += sec.lines.length;
+    });
+    return out;
+  }, [song]);
+  const rowOfLine = useMemo(() => {
+    const m = new Map<number, number>();
+    sheetRows.forEach((row, ri) => row.lines.forEach((l) => m.set(l.li, ri)));
+    return m;
+  }, [sheetRows]);
+
+  // keep the active row in view while playing (very smooth scroll)
   const activeLi = active?.li ?? -1;
+  const activeRow = activeLi >= 0 ? rowOfLine.get(activeLi) ?? -1 : -1;
   useEffect(() => {
-    if (!playing || activeLi < 0) return;
-    const el = document.getElementById(`sheet-line-${activeLi}`);
+    if (!playing || activeRow < 0) return;
+    const el = document.getElementById(`sheet-row-${activeRow}`);
     el?.scrollIntoView({ behavior: "smooth", block: "center" });
-  }, [activeLi, playing]);
+  }, [activeRow, playing]);
 
   const handleExport = async () => {
     setExporting(true);
@@ -356,13 +381,24 @@ export function SongSheet({ song, onBack, onPlayDemo }: Props) {
             aria-hidden
             className="pointer-events-none absolute left-1/2 top-1/2 w-64 -translate-x-1/2 -translate-y-1/2 select-none opacity-[0.05] sm:w-80"
           />
-          <div className="relative space-y-3 p-5 sm:p-8">
-            {song.sections.flatMap((sec) => sec.lines).map((line, li) => (
+          <div className="relative p-5 sm:p-8">
+            {sheetRows.map((row, ri) => (
               <div
-                key={li}
-                id={`sheet-line-${li}`}
-                className="flex flex-wrap gap-x-8 gap-y-3 scroll-mt-32"
+                key={row.key}
+                id={`sheet-row-${ri}`}
+                className={cn(
+                  "flex flex-wrap gap-x-8 gap-y-3 scroll-mt-32",
+                  ri > 0 && (row.newSection ? "mt-7" : "mt-3")
+                )}
               >
+                {row.lines.map(({ li, line }, k) => (
+                <Fragment key={li}>
+                {k > 0 && (
+                  <i
+                    aria-hidden
+                    className="self-center w-1.5 h-1.5 border border-primary/40 rotate-45 inline-block"
+                  />
+                )}
                 {line.map((seg, si) => {
                   const isNow =
                     !!active && active.li === li && active.si === si;
@@ -379,7 +415,7 @@ export function SongSheet({ song, onBack, onPlayDemo }: Props) {
                           ? () => {
                               seek(seg.t! + 0.01);
                               document
-                                .getElementById(`sheet-line-${li}`)
+                                .getElementById(`sheet-row-${ri}`)
                                 ?.scrollIntoView({
                                   behavior: "smooth",
                                   block: "center",
@@ -442,6 +478,8 @@ export function SongSheet({ song, onBack, onPlayDemo }: Props) {
                     </button>
                   );
                 })}
+                </Fragment>
+                ))}
               </div>
             ))}
           </div>

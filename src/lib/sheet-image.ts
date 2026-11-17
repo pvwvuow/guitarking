@@ -7,7 +7,8 @@
    chords above lyrics, guitarking.ir credit at the foot. */
 
 import type { AnalysisResult, ChordSegment } from "./types";
-import type { SongEntry } from "./songs";
+import type { SheetSeg, SongEntry } from "./songs";
+import { beytRows } from "./sheet-rows";
 import { transposeChord } from "./transpose";
 import { fmtTime, keyLabelLatin } from "./format";
 
@@ -104,7 +105,7 @@ function fa(ctx: Ctx) {
   ctx.direction = "rtl";
 }
 
-/* ── page furniture ─────────────────────────────────────────────────── */
+/* ── page furniture ───────────────────────────────────────────────────── */
 
 function drawFrame(ctx: Ctx) {
   ctx.save();
@@ -213,7 +214,7 @@ function metaLine(ctx: Ctx, parts: string[], y: number): number {
   return y;
 }
 
-/* ── download ───────────────────────────────────────────────────────── */
+/* ── download ─────────────────────────────────────────────────────────────────── */
 
 async function savePng(canvas: HTMLCanvasElement, name: string) {
   const blob = await new Promise<Blob | null>((res) =>
@@ -273,6 +274,8 @@ interface Seg {
   w: number;
   /** local shrink factor for over-wide segments (rare) */
   k: number;
+  /** the small diamond between the two halves of a beyt */
+  spacer?: boolean;
 }
 
 function layoutSongRows(
@@ -309,8 +312,17 @@ function layoutSongRows(
 
   const rows: Row[] = [];
 
-  for (const sec of song.sections) {
-    for (const line of sec.lines) {
+  for (let s = 0; s < song.sections.length; s++) {
+    const sec = song.sections[s];
+    // a little more air between sections (verse / chorus), like the page
+    if (s > 0 && rows.length) rows.push({ h: F * 0.9, paint: () => {} });
+    // two short lines of a beyt share one row (src/lib/sheet-rows.ts)
+    for (const grp of beytRows(sec.lines)) {
+      const line: (SheetSeg | null)[] = [];
+      grp.forEach((i, n) => {
+        if (n > 0) line.push(null);
+        line.push(...sec.lines[i]);
+      });
       // measure segments; wrap into visual lines within colW
       let cur: Seg[] = [];
       let curW = 0;
@@ -324,6 +336,11 @@ function layoutSongRows(
             for (const sg of segs) {
               const cx = x - sg.w / 2;
               const k = sg.k;
+              if (sg.spacer) {
+                diamond(c2, cx, y + lyricOff - F * 0.35, Math.max(2.5, F * 0.12), WOOD);
+                x -= sg.w + segGap;
+                continue;
+              }
               // chord
               latin(c2);
               c2.textAlign = "center";
@@ -343,6 +360,15 @@ function layoutSongRows(
         curW = 0;
       };
       for (const seg of line) {
+        if (!seg) {
+          // the beyt divider; dropped when the row wraps right here
+          const w = segPad * 2;
+          if (cur.length && curW + w <= colW) {
+            cur.push({ chord: "", text: "", w, k: 1, spacer: true });
+            curW += w + segGap;
+          }
+          continue;
+        }
         const tw = textW(seg.text);
         const chw = chordW(seg.chord);
         let w = Math.max(tw, chw) + segPad * 2;
