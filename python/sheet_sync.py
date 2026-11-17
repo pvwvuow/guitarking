@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-GuitarKing — sheet sync (v7.5)
+GuitarKing — sheet sync (v7.6)
 ==============================
 Puts the chords of a hand-written / lyric-aligned sheet ON THE BEAT.
 
@@ -49,6 +49,9 @@ at the word sung on that beat and the new segment gets `auto: true`
   the source sheet beats the engine; instrumental placeholder lines
   («بداهه‌ی گیتار», «سولوی گیتار», ...) and lines of < 3 words are not
   treated as repeated lyrics.
+  v7.6: only the CHORDS move - every word keeps the lyric time measured
+  for its own occurrence (lyric_align `w` / `t`); the source occurrence
+  only gives where the chords change and how the line is split.
 
 It also emits the song's beat grid (beats / downbeats / bpb) so the
 player can pulse with the beat.
@@ -533,6 +536,48 @@ def check_sheet(sheet, res):
     return rep
 
 
+def _word_times(line):
+    """(normalized words, their measured start times or None) of a line"""
+    words, times = [], []
+    for sg in line:
+        if _silent(sg.get("text")):
+            continue
+        ws = [w for w in str(sg["text"]).split() if w]
+        w = sg.get("w")
+        if isinstance(w, list) and len(w) == len(ws):
+            tt = [float(x) for x in w]
+        elif isinstance(sg.get("t"), (int, float)):
+            tt = [float(sg["t"])] + [None] * (len(ws) - 1)
+        else:
+            tt = [None] * len(ws)
+        words += [_norm_text(x) for x in ws]
+        times += tt
+    return words, times
+
+
+def _keep_lyric_times(new, src, dst):
+    """give the re-patterned segments the dst line's own word times.
+    Returns False when the two lines' words do not match one to one."""
+    s_words, _ = _word_times(src)
+    d_words, d_times = _word_times(dst)
+    if s_words != d_words:
+        return False
+    pos = 0
+    for piece in new:
+        if _silent(piece.get("text")):
+            continue
+        n = len([w for w in str(piece["text"]).split() if w])
+        tt = d_times[pos:pos + n]
+        pos += n
+        if tt and tt[0] is not None:
+            piece["t"] = round(tt[0], 3)
+        if tt and all(x is not None for x in tt):
+            piece["w"] = [round(x, 3) for x in tt]
+        else:
+            piece.pop("w", None)
+    return True
+
+
 def harmonize(sheet, res):
     beats = np.asarray(res["beats"], dtype=float)
     segs_e = [s for s in res["segments"] if s["chord"] != "N"]
@@ -589,6 +634,7 @@ def harmonize(sheet, res):
                 if new_s + 1e-6 < old_s:
                     ok = False
                     why = f"engine prefers the old pattern ({old_s:.2f} > {new_s:.2f})"
+            same_words = ok and _keep_lyric_times(new, src, dst)
             item = {"section": sec["label"], "line": li, "t": d_first["ct"],
                     "text": key, "from": {"section": ssec["label"], "line": sli,
                                           "engine": round(scores[j0], 2)},
@@ -596,6 +642,8 @@ def harmonize(sheet, res):
                     "new": [f"{c}@{d}" for c, d in pats[j0]]}
             if ok:
                 sec["lines"][li] = new
+                if not same_words:
+                    item["note"] = "words differ: lyric times shifted from the source line"
                 rep.append(dict(item, type="harmonized"))
             else:
                 rep.append(dict(item, type="harmonize_skipped", why=why))
