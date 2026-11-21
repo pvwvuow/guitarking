@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-GuitarKing — sheet sync (v7.7)
+GuitarKing — sheet sync (v7.8)
 ==============================
 Puts the chords of a hand-written / lyric-aligned sheet ON THE BEAT.
 
@@ -79,6 +79,17 @@ exactly on THAT word"; "one-beat chords are missed"):
   * --check also reports `out_of_order` (times run backwards inside a
     line) and `off_word` (a chord sits on a different word than the one
     sung at its change, with the suggested word).
+
+v7.8 (Z's run of 21 Nov: off_word 11 / 9, "the chord sits one word
+off"; place moved chords inside «سولوی گیتار»):
+  * --harmonize re-splits every line it re-patterns with word_at() on
+    THAT line's own word times (it used to copy the source line's word
+    splits, so a chord landed on the source singer's word, often one
+    word off);
+  * --fill / --place skip instrumental placeholder lines;
+  * --check `off_word` uses the same rule as --fill / --place (the word
+    search starts at the piece before) and only judges chords the engine
+    confirms at their `ct` (others: a bar-line guess, nothing to judge).
 
 It also emits the song's beat grid (beats / downbeats / bpb) so the
 player can pulse with the beat.
@@ -351,25 +362,33 @@ def word_ends(starts, period):
 def word_at(starts, s0, period, lo=0):
     """index (lo..n) of the word a chord change at s0 belongs on; n means
     after the last word (an instrumental '—' piece).
-      1. the word that starts on the change, or up to half a beat after
-         it (the singer lands a little late);
-      2. else the word still being sung when the chord changes (held),
-         as long as that is not the first word of the piece before;
-      3. else the next word if it comes within a beat;
-      4. else the held first word (two chords on one held word);
-      5. else the next word / the end."""
+    v7.8: the word whose START is nearest the change wins -
+      * the next word, if it starts within a beat after the change (or
+        up to EARLY_TOL before it: the singer lands a little late);
+      * the word still being sung, if it started within a beat before
+        the change (the singer anticipates the chord);
+      both -> the nearer start (tie: the next word). Neither -> the word
+    still being sung (a long held note; never the first word of the
+    piece before, it keeps its own chord), else the next word / the end.
+    (v7.7 preferred a held word even when it started 1.4 s before the
+    change and the next word came 0.3 s after it: one word early.)"""
     n = len(starts)
     lo = max(0, min(lo, n))
     nxt = next((i for i in range(lo, n) if starts[i] >= s0 - EARLY_TOL), n)
-    if nxt < n and starts[nxt] <= s0 + max(0.2, 0.5 * period):
-        return nxt
     ends = word_ends(starts, period)
     held = nxt - 1
-    if held > lo and s0 < ends[held]:
-        return held
-    if nxt < n and starts[nxt] - s0 <= period:
+    held_ok = held > lo and s0 < ends[held]
+    d_next = starts[nxt] - s0 if nxt < n else None
+    d_held = s0 - starts[held] if held_ok else None
+    near_next = d_next is not None and d_next <= max(period, 0.25)
+    near_held = d_held is not None and d_held <= max(period, 0.25)
+    if near_next and near_held:
+        return held if d_held < d_next else nxt
+    if near_next:
         return nxt
-    if held == lo and held < n and s0 < ends[held]:
+    if near_held:
+        return held
+    if held_ok:
         return held
     return nxt
 
@@ -396,6 +415,8 @@ def fill_inside(sheet, res, key_label=None, min_beats=1):
 
     for sec in sheet["sections"]:
         for li, line in enumerate(sec["lines"]):
+            if _is_instrumental(_line_text(line)):
+                continue            # «سولوی گیتار»: no words to split
             new_line = []
             for seg in line:
                 if seg.get("ct") is None or seg.get("auto"):
@@ -556,6 +577,8 @@ def place_chords(sheet, res):
         for li, line in enumerate(sec["lines"]):
             if any(sg.get("carry") for sg in line):
                 continue            # already placed: --refill first
+            if _is_instrumental(_line_text(line)):
+                continue
             ws = [_seg_w(sg) for sg in line]
             if not any(ws) or any(w is None for w in ws):
                 continue            # needs measured word times
@@ -808,7 +831,11 @@ def check_sheet(sheet, res):
                     continue
                 if si == 0 or not _seg_words(sg):
                     continue
-                want = word_at(starts, float(sg["ct"]), period)
+                if not sg.get("auto") and \
+                        not _engine_has_change(segs_e, float(sg["ct"]), sg["chord"]):
+                    continue        # ct is a bar-line guess
+                lo = g[si - 1]
+                want = word_at(starts, float(sg["ct"]), period, lo)
                 if want != g[si] and abs(want - g[si]) >= 1:
                     rep.append({"type": "off_word", "section": sec["label"],
                                 "line": li, "seg": si, "chord": sg["chord"],
@@ -866,6 +893,48 @@ def _keep_lyric_times(new, src, dst):
             piece["w"] = [round(x, 3) for x in tt]
         else:
             piece.pop("w", None)
+    return True
+
+
+def _resplit(line, period):
+    """v7.8: put every chord change of a line on the word sung at its ct
+    (word_at), using the line's own measured word times. Carry pieces
+    keep their words. -> True when the line was re-split."""
+    ws = [_seg_w(sg) for sg in line]
+    if not any(ws) or any(w is None for w in ws):
+        return False
+    words, starts = [], []
+    for sg in line:
+        words += _seg_words(sg)
+        starts += _seg_w(sg) or []
+    n = len(words)
+    cuts, cur = [], 0
+    first = True
+    for sg in line:
+        if sg.get("carry"):
+            cur += len(_seg_words(sg))
+            cuts.append(cur - len(_seg_words(sg)))
+            continue
+        if first:
+            cuts.append(cur)
+            first = False
+            continue
+        ct = sg.get("ct")
+        if not isinstance(ct, (int, float)):
+            cuts.append(cur)
+            continue
+        cur = min(max(word_at(starts, float(ct), period, cur), cur), n)
+        cuts.append(cur)
+    cuts.append(n)
+    for k, sg in enumerate(line):
+        a0, b0 = cuts[k], max(cuts[k], cuts[k + 1])
+        if b0 > a0:
+            sg["text"] = " ".join(words[a0:b0])
+            sg["w"] = [round(x, 3) for x in starts[a0:b0]]
+            sg["t"] = round(starts[a0], 3)
+        else:
+            sg["text"] = "—"
+            sg.pop("w", None)
     return True
 
 
@@ -932,6 +1001,8 @@ def harmonize(sheet, res):
                     ok = False
                     why = f"engine prefers the old pattern ({old_s:.2f} > {new_s:.2f})"
             same_words = ok and _keep_lyric_times(new, src, dst)
+            if same_words:
+                _resplit(new, period)   # v7.8: this line's own singer
             item = {"section": sec["label"], "line": li, "t": d_first["ct"],
                     "text": key, "from": {"section": ssec["label"], "line": sli,
                                           "engine": round(scores[j0], 2)},

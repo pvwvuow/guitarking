@@ -93,3 +93,47 @@ Site (src/lib/sheet-fold.ts, song-sheet.tsx, player-card.tsx, sheet-image.ts)
    repeat card further down; bazi desktop with the «پایان» card.
 6. Report: the bench table, per song the qa line, placed / one-beat
    added lists and 5 lines before -> after.
+
+## Round 2 (v7.8, after Z's run of 21 Nov, main 3ec9205)
+Z's run: taghas placed 0 / off_word 11, bazi placed 17 / off_word 9, the
+same pattern in both ("the chord sits one word off"); sad-gozashtam
+stopped by the rule (added 6 > 2 x 0 old auto). Bench not possible: the
+28 reference audios were lost in the rollback (decision: engine defaults
+stay GK_RESCUE_GAIN=3.0 etc.; only bazi triggers rescue, 4 chords).
+
+Causes found and fixed in python/sheet_sync.py v7.8:
+- --harmonize copied the SOURCE line's word splits onto every other
+  occurrence; with each occurrence keeping its own word times, the chord
+  landed on the source singer's word -> off_word. Now every re-patterned
+  line is re-split with word_at() on its own times.
+- word_at() preferred a still-held word even when it started 1.4 s
+  before the change and the next word came 0.3 s after it. Now the word
+  whose start is NEAREST the change wins (next word within a beat after,
+  or the held word if it started within a beat before; tie: next word);
+  a long held note keeps the fallback. The first word of the piece
+  before is never taken (v7.7 could leave that chord with no word).
+- --fill / --place skip instrumental placeholder lines (sad: Fm was
+  moved inside «سولوی گیتار»).
+- --check off_word uses the same rule and only judges chords the engine
+  confirms at their ct.
+- Note: `mismatch` / `inside` are counted by the re-sync BEFORE the fill
+  (after --refill the sheet has one chord per line again), so they are
+  expected to be high; judge by the qa line.
+
+Steps for Z (round 2)
+1. `git pull`. No new engine run: reuse the a.json of round 1 for all
+   three songs (same engine, same env).
+2. For taghas and bazi: start again from the sheet in songs.ts at
+   3ec9205 (--refill undoes round 1), for sad-gozashtam from the sheet
+   at 3ec9205 too: `python3 python/sheet_sync.py audio sheet.json
+   --analysis a.json --refill --place --harmonize --check > final.json`.
+3. Stop rules (replace the old ones): out_of_order must be 0; off_word
+   must be <= 2 per song; stop when placed > 40 % of the chord changes or
+   added > max(2 x old auto, 25 % of the chord changes). sad-gozashtam is
+   approved under these rules (owner/Brain: its 6 adds are in key).
+4. List per song: the qa line, every placed (chord, from -> to), every
+   one-beat add, every remaining off_word, and 5 lines before -> after.
+5. songs.ts (sections + beats/downbeats/bpb), `bun x tsc --noEmit`, push
+   main, publish ONLY via /home/z/my-project/scripts/gh-pages-publish.sh.
+6. Screenshots (viewport): taghas 2nd chorus (1:35) and bazi at 2:14
+   («تو هم», the one-beat F) on a phone; sad-gozashtam chorus on desktop.
