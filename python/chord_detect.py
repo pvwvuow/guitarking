@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-GuitarKing — Chord detection engine (v7)
-========================================
+GuitarKing — Chord detection engine (v7.4)
+==========================================
 Detects the chords of every section of a song.
 
 Primary engine (v7, deep):
@@ -16,6 +16,11 @@ Primary engine (v7, deep):
      line, half-bar changes allowed, bar phase + 4/4 vs 3/4 inferred.
   5. Chords are mapped onto guitar-friendly labels (maj, m, 7, m7, maj7,
      sus, dim, real slash inversions kept, weak colour tones collapsed).
+
+v7.4: one-beat chords survive (chordnet/engine.py rescue_short +
+min_segment; the old 1.1-beat / 0.8 s fold deleted all of them). The
+output carries "rescued" (how many short runs the rescue added).
+GK_RESCUE=0 reproduces v7.3.
 
 Fallback engine (v7, DSP): wide-band chroma + the same metrical beat
 Viterbi + key competition + repeat pooling — used automatically when
@@ -1071,7 +1076,8 @@ def deep_engine(path):
     segs, key, conf, beat_chroma, meter = de.analyze_deep(
         y, dur, beats, silent, accent)
 
-    min_len = float(np.clip(1.1 * period, MIN_SEG, 1.7))
+    # v7.4: keep one-beat chords (was 1.1 beats with a 0.8 s floor)
+    min_len = de.min_segment(period, MIN_SEG)
     segs = dedupe_and_cover(absorb_short_N(fold_short(segs, min_len), dur),
                             dur)
     segs = dedupe_and_cover(quality_simplify(segs, F_lite(beats, beat_chroma,
@@ -1081,7 +1087,8 @@ def deep_engine(path):
     F = {"dur": dur, "tuning": 0.0, "bars": beats, "beats": beats,
          "period": period, "bpb": meter["bpb"], "pos": meter["pos"],
          "cell": period, "Cb": beat_chroma, "Bb": np.ones((12, 1)) / 12.0,
-         "silent": silent, "C": beat_chroma, "y_h": y, "y": y, "sr": sr}
+         "silent": silent, "C": beat_chroma, "y_h": y, "y": y, "sr": sr,
+         "rescued": int(de.LAST_INFO.get("rescued", 0))}
     return segs, key, conf, F
 
 
@@ -1343,6 +1350,7 @@ def analyze(path):
         "downbeats": r3(downbeats),
         "key": key,
         "confidence": confidence,
+        "rescued": int(F.get("rescued", 0)),
         "sections": sections,
         "segments": segments,
         "chordSeconds": chord_seconds,
