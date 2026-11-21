@@ -8,8 +8,10 @@ import {
   ExternalLink,
   ImageDown,
   Loader2,
+  LocateFixed,
   Minus,
   Plus,
+  Repeat,
   RotateCcw,
   Sparkles,
 } from "lucide-react";
@@ -26,6 +28,19 @@ import {
   wordTimes,
 } from "@/lib/sheet-sync";
 import { beytRows } from "@/lib/sheet-rows";
+import {
+  faNum,
+  foldSections,
+  hidesChord,
+  isSilent,
+  mapChord,
+  mapWord,
+  runChords,
+  runPreview,
+  segWords,
+  wordOffsets,
+  type SectionView,
+} from "@/lib/sheet-fold";
 import { ChordDiagram } from "./chord-diagram";
 import { PlayerCard } from "./player-card";
 import { Button } from "@/components/ui/button";
@@ -41,6 +56,8 @@ const SEG_NOTE =
   "متن‌های داخل برگه برای نمایش چیدمان اکورد نمونه‌سازی شده‌اند و به‌زودی با متن رسمی ترانه جایگزین می‌شوند.";
 
 const SUNG = "text-[oklch(0.545_0.212_26)]";
+const OFFSET_KEY = "gk-sync-offset";
+const FOLLOW_PAUSE_MS = 4000;
 
 interface TimedSeg {
   li: number;
@@ -52,15 +69,9 @@ interface TimedSeg {
   chord: string;
   text: string;
   w?: number[];
-  /** same chord as the previous segment of the same line: no new change */
+  /** no new chord here: the same chord as the piece before it in the
+      line, or the previous line's chord (carry) */
   cont: boolean;
-}
-
-/** a segment that only continues the chord of the segment before it in the
-    same line (web sheets repeat the chord over every bar). It is drawn
-    without a chord label and never counts as a chord change. */
-function isContinuation(line: SheetSeg[], si: number) {
-  return si > 0 && !!line[si] && line[si - 1]?.chord === line[si]?.chord;
 }
 
 /** flat timed entries of a sheet: one per segment that carries a time.
@@ -80,7 +91,7 @@ function buildTimed(song: SongEntry): TimedSeg[] {
             chord: seg.chord,
             text: seg.text,
             w: seg.w,
-            cont: isContinuation(line, si),
+            cont: hidesChord(line, si),
           });
       });
       li++;
@@ -89,14 +100,41 @@ function buildTimed(song: SongEntry): TimedSeg[] {
   return out.sort((a, b) => a.t - b.t);
 }
 
-function isSilentText(text: string) {
-  return !text.trim() || text.trim() === "—";
+type RepeatView = Extract<SectionView, { kind: "repeat" }>;
+
+type SheetItem =
+  | {
+      type: "row";
+      key: string;
+      newSection: boolean;
+      vi: number;
+      lines: { li: number; line: SheetSeg[] }[];
+      /** last row of a block that is played several times in a row */
+      times?: number;
+    }
+  | {
+      type: "card";
+      key: string;
+      newSection: boolean;
+      vi: number;
+      view: RepeatView;
+      label: string;
+      lines: SheetSeg[][];
+      seekT: number | null;
+    };
+
+/** «تکرار بند دوم» -> «بند دوم» (the card already says "repeat") */
+function cardLabel(label: string) {
+  return label.replace(/^تکرار\s+/, "").trim() || label;
 }
 
 export function SongSheet({ song, onBack, onPlayDemo }: Props) {
   const [semi, setSemi] = useState(0);
   const [exporting, setExporting] = useState(false);
   const [exportErr, setExportErr] = useState(false);
+  const [folded, setFolded] = useState(true);
+  const [follow, setFollow] = useState(true);
+  const [syncOffset, setSyncOffset] = useState(0);
   const t = useMemo(() => (c: string) => transposeChord(c, semi), [semi]);
   const currentKey = t(song.key);
   const diagrams = useMemo(() => songChords(song).map(t), [song, t]);
@@ -107,9 +145,41 @@ export function SongSheet({ song, onBack, onPlayDemo }: Props) {
     audioRef,
     song.audio
   );
-  const time = clock + VISUAL_LEAD;
+  // the user's own latency fix (wireless headphones) on top of the lead
+  const time = clock + VISUAL_LEAD + syncOffset;
   const timed = useMemo(() => buildTimed(song), [song]);
   const hasSync = !!song.audio && timed.length > 1;
+
+  useEffect(() => {
+    try {
+      const v = Number(window.localStorage.getItem(OFFSET_KEY));
+      if (Number.isFinite(v) && Math.abs(v) <= 0.5) setSyncOffset(v);
+    } catch {
+      /* private mode */
+    }
+  }, []);
+  const changeOffset = (v: number) => {
+    const c = Math.max(-0.5, Math.min(0.5, Math.round(v * 100) / 100));
+    setSyncOffset(c);
+    try {
+      window.localStorage.setItem(OFFSET_KEY, String(c));
+    } catch {
+      /* private mode */
+    }
+  };
+
+  // repeats written once (src/lib/sheet-fold.ts)
+  const fold = useMemo(() => foldSections(song.sections, folded), [song, folded]);
+  const canFold = useMemo(
+    () => foldSections(song.sections, true).views.some((v) => v.kind !== "full"),
+    [song]
+  );
+  const flatLines = useMemo(() => song.sections.flatMap((sec) => sec.lines), [song]);
+  const sectionOfLine = useMemo(() => {
+    const out: number[] = [];
+    song.sections.forEach((sec, s) => sec.lines.forEach(() => out.push(s)));
+    return out;
+  }, [song]);
 
   // lyric clock (t) and chord clock (ct) are separate: singers push or
   // delay a syllable, the band changes chord on the beat
@@ -124,6 +194,20 @@ export function SongSheet({ song, onBack, onPlayDemo }: Props) {
   );
   const chordStarts = useMemo(() => byChord.map((e) => e.ct), [byChord]);
 
+  // beat grid (engine), for the pulse and the "next chord" countdown
+  const beats = useMemo(() => song.beats ?? [], [song.beats]);
+  const bpb = song.bpb ?? 4;
+  const period = useMemo(() => {
+    if (beats.length > 2) {
+      const d = beats
+        .slice(1)
+        .map((x, i) => x - beats[i])
+        .sort((a, b) => a - b);
+      return d[d.length >> 1] || 0.5;
+    }
+    return song.tempo ? 60 / song.tempo : 0.5;
+  }, [beats, song.tempo]);
+
   const toggle = () => {
     const a = audioRef.current;
     if (!a) return;
@@ -135,6 +219,8 @@ export function SongSheet({ song, onBack, onPlayDemo }: Props) {
     if (!duration) return;
     seekTo(Math.min(Math.max(sec, 0), duration - 0.2));
   };
+  /** jump so that the sheet lights up exactly at lyric time `lt` */
+  const seekLyric = (lt: number) => seek(lt + 0.01 - VISUAL_LEAD - syncOffset);
 
   // which lyric segment is being sung right now?
   const activeIdx = hasSync ? lastAtOrBefore(lyricStarts, time) : -1;
@@ -153,16 +239,49 @@ export function SongSheet({ song, onBack, onPlayDemo }: Props) {
 
   // word-by-word progress inside the active lyric segment
   const karaoke = useMemo(() => {
-    if (!active || isSilentText(active.text)) return null;
+    if (!active || isSilent(active.text)) return null;
     const next = timed[activeIdx + 1];
     const tNext = next ? next.t : duration || active.t + 6;
-    return wordTimes(active.text, active.t, tNext, active.w);
+    return { ...wordTimes(active.text, active.t, tNext, active.w), tNext };
   }, [active, activeIdx, timed, duration]);
   const wordIdx = karaoke ? lastAtOrBefore(karaoke.starts, time) : -1;
+  let wordP = 0;
+  if (karaoke && wordIdx >= 0) {
+    const s0 = karaoke.starts[wordIdx];
+    const s1 =
+      karaoke.starts[wordIdx + 1] ??
+      Math.min(karaoke.tNext, s0 + Math.max(0.45, karaoke.words[wordIdx].length * 0.13));
+    wordP = s1 > s0 ? Math.min(1, Math.max(0, (time - s0) / (s1 - s0))) : 1;
+  }
+
+  // where that is on the DRAWN sheet (a folded repeat lights its original)
+  let liveLi = -1;
+  let liveSi = -1;
+  let liveG = -1;
+  const liveCur = !!karaoke && wordIdx >= 0;
+  if (active) {
+    liveLi = fold.alias[active.li] ?? active.li;
+    const m = mapWord(
+      flatLines[active.li],
+      active.si,
+      liveCur ? wordIdx : 0,
+      flatLines[liveLi]
+    );
+    liveSi = m.si;
+    liveG = m.g;
+  }
+  const drawnChord = (e: TimedSeg | null) => {
+    if (!e) return { li: -1, si: -1 };
+    const li = fold.alias[e.li] ?? e.li;
+    return { li, si: mapChord(flatLines[e.li], e.si, flatLines[li]) };
+  };
+  const chordAt = drawnChord(chordNow);
+  const nextAt = drawnChord(chordNext);
+  const toNext = chordNext ? chordNext.ct - time : Infinity;
+  const nextP =
+    chordNext && toNext > 0 && toNext <= 2 * period ? 1 - toNext / (2 * period) : 0;
 
   // beat pulse (engine beat grid, when the sheet was synced)
-  const beats = useMemo(() => song.beats ?? [], [song.beats]);
-  const bpb = song.bpb ?? 4;
   const beatPos = useMemo(
     () => beatPositions(beats, song.downbeats, bpb),
     [beats, song.downbeats, bpb]
@@ -171,37 +290,102 @@ export function SongSheet({ song, onBack, onPlayDemo }: Props) {
   const beatsToNext =
     chordNext && beats.length > 1 ? beatsBetween(beats, time, chordNext.ct) : null;
 
-  // the sheet in rows: the two short halves of a beyt share one row, never
-  // across a section (verse / chorus) - src/lib/sheet-rows.ts
-  const sheetRows = useMemo(() => {
-    const out: { key: string; newSection: boolean; lines: { li: number; line: SheetSeg[] }[] }[] = [];
-    let base = 0;
-    song.sections.forEach((sec, s) => {
-      beytRows(sec.lines).forEach((grp, r) => {
+  // the sheet: beyt rows (src/lib/sheet-rows.ts) + one card per folded repeat
+  const sheetItems = useMemo(() => {
+    const out: SheetItem[] = [];
+    fold.views.forEach((view, vi) => {
+      if (view.kind === "again") return;
+      const sec = song.sections[view.s];
+      const base = fold.base[view.s];
+      if (view.kind === "repeat") {
+        const firstT = sec.lines
+          .flat()
+          .map((sg) => sg.t)
+          .find((x): x is number => typeof x === "number");
         out.push({
-          key: `${s}-${r}`,
-          newSection: s > 0 && r === 0,
+          type: "card",
+          key: `c-${vi}`,
+          newSection: out.length > 0,
+          vi,
+          view,
+          label: cardLabel(song.sections[view.of].label),
+          lines: song.sections[view.of].lines.slice(view.from, view.from + view.count),
+          seekT: firstT ?? null,
+        });
+        return;
+      }
+      const rows = beytRows(sec.lines);
+      rows.forEach((grp, r) => {
+        out.push({
+          type: "row",
+          key: `${view.s}-${r}`,
+          newSection: out.length > 0 && r === 0,
+          vi,
           lines: grp.map((i) => ({ li: base + i, line: sec.lines[i] })),
+          times: r === rows.length - 1 && view.times > 1 ? view.times : undefined,
         });
       });
-      base += sec.lines.length;
     });
     return out;
-  }, [song]);
+  }, [song, fold]);
   const rowOfLine = useMemo(() => {
     const m = new Map<number, number>();
-    sheetRows.forEach((row, ri) => row.lines.forEach((l) => m.set(l.li, ri)));
+    sheetItems.forEach((it, ri) => {
+      if (it.type === "row") it.lines.forEach((l) => m.set(l.li, ri));
+    });
     return m;
-  }, [sheetRows]);
+  }, [sheetItems]);
 
-  // keep the active row in view while playing (very smooth scroll)
-  const activeLi = active?.li ?? -1;
-  const activeRow = activeLi >= 0 ? rowOfLine.get(activeLi) ?? -1 : -1;
+  // which pass of a repeated block is playing (×N badges, repeat cards)
+  const activeView = active ? fold.viewOfLine[active.li] ?? -1 : -1;
+  const liveViewRoot =
+    activeView >= 0
+      ? (() => {
+          const v = fold.views[activeView];
+          return v.kind === "again" ? v.view : activeView;
+        })()
+      : -1;
+  const passOf = (vi: number) => {
+    if (!active || liveViewRoot !== vi) return 0;
+    const secs = [fold.views[vi].s].concat(
+      fold.views
+        .filter((v): v is Extract<SectionView, { kind: "again" }> => v.kind === "again" && v.view === vi)
+        .map((v) => v.s)
+    );
+    return secs.indexOf(sectionOfLine[active.li]) + 1;
+  };
+
+  // keep the active row in view while playing - unless the user is
+  // scrolling the page himself (then follow again after a few seconds)
   useEffect(() => {
-    if (!playing || activeRow < 0) return;
-    const el = document.getElementById(`sheet-row-${activeRow}`);
-    el?.scrollIntoView({ behavior: "smooth", block: "center" });
-  }, [activeRow, playing]);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const hold = () => {
+      setFollow(false);
+      clearTimeout(timer);
+      timer = setTimeout(() => setFollow(true), FOLLOW_PAUSE_MS);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End"].includes(e.key)) hold();
+    };
+    window.addEventListener("wheel", hold, { passive: true });
+    window.addEventListener("touchmove", hold, { passive: true });
+    window.addEventListener("keydown", onKey);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("wheel", hold);
+      window.removeEventListener("touchmove", hold);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, []);
+  const activeRow = liveLi >= 0 ? rowOfLine.get(liveLi) ?? -1 : -1;
+  const scrollToRow = (ri: number) =>
+    document
+      .getElementById(`sheet-row-${ri}`)
+      ?.scrollIntoView({ behavior: "smooth", block: "center" });
+  useEffect(() => {
+    if (!playing || !follow || activeRow < 0) return;
+    scrollToRow(activeRow);
+  }, [activeRow, playing, follow]);
 
   const handleExport = async () => {
     setExporting(true);
@@ -213,6 +397,42 @@ export function SongSheet({ song, onBack, onPlayDemo }: Props) {
     } finally {
       setExporting(false);
     }
+  };
+
+  /** one lyric word; the word being sung fills from right to left */
+  const renderWord = (w: string, gi: number, last: boolean, live: boolean) => {
+    const sp = last ? "" : " ";
+    if (!live || gi > liveG || (gi === liveG && !liveCur)) {
+      return (
+        <Fragment key={gi}>
+          <span className="text-foreground/90 transition-colors duration-100">{w}</span>
+          {sp}
+        </Fragment>
+      );
+    }
+    if (gi < liveG) {
+      return (
+        <Fragment key={gi}>
+          <span className={SUNG}>{w}</span>
+          {sp}
+        </Fragment>
+      );
+    }
+    return (
+      <Fragment key={gi}>
+        <span className="relative inline-block">
+          <span className="text-foreground/90">{w}</span>
+          <span
+            aria-hidden
+            className={`absolute inset-0 ${SUNG} underline decoration-2 underline-offset-[6px]`}
+            style={{ clipPath: `inset(0 0 0 ${Math.round((1 - wordP) * 100)}%)` }}
+          >
+            {w}
+          </span>
+        </span>
+        {sp}
+      </Fragment>
+    );
   };
 
   return (
@@ -355,11 +575,14 @@ export function SongSheet({ song, onBack, onPlayDemo }: Props) {
             beatsToNext={beatsToNext}
             beatInBar={beatNow ? beatNow.inBar : null}
             bpb={beats.length > 1 ? bpb : undefined}
+            syncOffset={syncOffset}
+            onSyncOffset={changeOffset}
           />
           <p className="text-[11px] text-muted-foreground mt-2.5 leading-6">
-            پخش کن؛ متن کلمه‌به‌کلمه همراه صدا قرمز می‌شود، اکورد هر بخش سرِ ضربش
-            روشن می‌شود و صفحه خودش همراهی می‌کند. روی هر بخش برگه هم کلیک کنی،
-            پخش از همان‌جا شروع می‌شود.
+            پخش کن؛ هر کلمه همان لحظه که خوانده می‌شود پر می‌شود، اکورد هر بخش سرِ
+            ضربش روشن می‌شود و اکورد بعدی دو ضرب قبل خبر می‌دهد. صفحه خودش همراهی
+            می‌کند (اگر خودت اسکرول کنی، چند ثانیه صبر می‌کند). روی هر بخش برگه
+            کلیک کنی، پخش از همان‌جا شروع می‌شود.
           </p>
         </section>
       )}
@@ -367,6 +590,18 @@ export function SongSheet({ song, onBack, onPlayDemo }: Props) {
       {/* sheet — one uniform flow, no section labels, faint circular rays behind */}
       <section className="mt-10">
         <SectionTitle>برگه‌ی اکورد</SectionTitle>
+        {canFold && (
+          <button
+            type="button"
+            onClick={() => setFolded((f) => !f)}
+            className="-mt-2 mb-3 inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors"
+          >
+            <Repeat className="w-3.5 h-3.5" aria-hidden />
+            {folded
+              ? "بخش‌های تکراری با همان اکوردها یک بار نوشته شده‌اند · نمایش کامل"
+              : "جمع کردن بخش‌های تکراری"}
+          </button>
+        )}
         <div className="relative overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm">
           {/* faint circular light rays behind the text — square canvas +
               radial mask so no rectangle edge ever shows */}
@@ -382,106 +617,184 @@ export function SongSheet({ song, onBack, onPlayDemo }: Props) {
             className="pointer-events-none absolute left-1/2 top-1/2 w-64 -translate-x-1/2 -translate-y-1/2 select-none opacity-[0.05] sm:w-80"
           />
           <div className="relative p-5 sm:p-8">
-            {sheetRows.map((row, ri) => (
-              <div
-                key={row.key}
-                id={`sheet-row-${ri}`}
-                className={cn(
-                  "flex flex-wrap gap-x-4 gap-y-2 sm:gap-x-8 sm:gap-y-3 scroll-mt-32",
-                  ri > 0 && (row.newSection ? "mt-7" : "mt-3")
-                )}
-              >
-                {row.lines.map(({ li, line }, k) => (
-                <Fragment key={li}>
-                {k > 0 && (
-                  <i
-                    aria-hidden
-                    className="self-center w-1.5 h-1.5 border border-primary/40 rotate-45 inline-block"
-                  />
-                )}
-                {line.map((seg, si) => {
-                  const isNow =
-                    !!active && active.li === li && active.si === si;
-                  const isChordNow =
-                    !!chordNow && chordNow.li === li && chordNow.si === si;
-                  const seekable = typeof seg.t === "number" && hasSync;
-                  const cont = isContinuation(line, si);
-                  return (
-                    <button
-                      key={si}
-                      type="button"
-                      onClick={
-                        seekable
-                          ? () => {
-                              seek(seg.t! + 0.01);
-                              document
-                                .getElementById(`sheet-row-${ri}`)
-                                ?.scrollIntoView({
-                                  behavior: "smooth",
-                                  block: "center",
-                                });
-                            }
-                          : undefined
-                      }
-                      disabled={!seekable}
-                      className={cn(
-                        "inline-flex flex-col min-w-10 sm:min-w-14 items-start rounded-lg px-2 py-1 -mx-2 text-start transition-colors duration-200",
-                        seekable && "cursor-pointer hover:bg-secondary/60",
-                        isNow && "bg-primary/10 ring-1 ring-primary/25"
+            {sheetItems.map((item, ri) => {
+              const gap = ri > 0 && (item.newSection ? "mt-7" : "mt-3");
+              if (item.type === "card") {
+                const live = liveViewRoot === item.vi;
+                const pass = passOf(item.vi);
+                const chords = runChords(item.lines);
+                return (
+                  <button
+                    key={item.key}
+                    id={`sheet-row-${ri}`}
+                    type="button"
+                    onClick={
+                      hasSync && item.seekT !== null
+                        ? () => seekLyric(item.seekT as number)
+                        : undefined
+                    }
+                    className={cn(
+                      "w-full text-start rounded-xl border border-dashed px-3 py-2.5 flex flex-wrap items-center gap-x-3 gap-y-1.5 scroll-mt-32 transition-colors duration-200",
+                      gap,
+                      live && playing
+                        ? "border-primary/60 bg-primary/5 ring-1 ring-primary/25"
+                        : "border-border bg-card/60 hover:bg-secondary/50"
+                    )}
+                  >
+                    <span className="inline-flex items-center gap-1.5 text-sm font-bold">
+                      <Repeat className="w-4 h-4 text-primary" aria-hidden />
+                      تکرار «{item.label}»
+                      {item.view.count < song.sections[item.view.of].lines.length && (
+                        <span className="font-normal text-xs text-muted-foreground">
+                          ({faNum(item.view.count)} خط)
+                        </span>
                       )}
-                    >
-                      <b
-                        className={cn(
-                          "chord-latin text-lg font-black leading-6 transition-colors duration-100",
-                          isChordNow ? "text-primary" : "text-primary/60",
-                          seg.auto &&
-                            !cont &&
-                            "underline decoration-dotted decoration-1 underline-offset-4"
+                    </span>
+                    {item.view.times > 1 && (
+                      <span className="rounded-full bg-primary text-primary-foreground text-[11px] px-2 py-0.5">
+                        {live && pass > 0
+                          ? `دور ${faNum(pass)} از ${faNum(item.view.times)}`
+                          : `${faNum(item.view.times)} بار`}
+                      </span>
+                    )}
+                    {live && playing && (
+                      <span className="text-[11px] text-primary">در حال پخش، همان بالا را بخوان</span>
+                    )}
+                    <span className="flex flex-wrap gap-1" dir="ltr">
+                      {chords.map((c, i) => (
+                        <span
+                          key={`${c}-${i}`}
+                          className="chord-latin text-xs font-bold rounded-md bg-secondary px-2 py-0.5 border"
+                        >
+                          {t(c)}
+                        </span>
+                      ))}
+                    </span>
+                    <span className="w-full text-xs text-muted-foreground truncate">
+                      {runPreview(item.lines)}
+                    </span>
+                  </button>
+                );
+              }
+              const rowLive = playing && item.lines.some((l) => l.li === liveLi);
+              const pass = item.times ? passOf(item.vi) : 0;
+              return (
+                <div
+                  key={item.key}
+                  id={`sheet-row-${ri}`}
+                  className={cn(
+                    "flex flex-wrap gap-x-4 gap-y-2 sm:gap-x-8 sm:gap-y-3 scroll-mt-32 rounded-xl px-2 -mx-2 transition-colors duration-300",
+                    gap,
+                    rowLive && "bg-primary/[0.04]"
+                  )}
+                >
+                  {item.lines.map(({ li, line }, k) => {
+                    const off = wordOffsets(line);
+                    const isLiveLine = li === liveLi;
+                    return (
+                      <Fragment key={li}>
+                        {k > 0 && (
+                          <i
+                            aria-hidden
+                            className="self-center w-1.5 h-1.5 border border-primary/40 rotate-45 inline-block"
+                          />
                         )}
-                        title={
-                          seg.auto && !cont
-                            ? "این اکورد را موتور گیتارکینگ وسط خط شنیده"
-                            : undefined
-                        }
-                        aria-hidden={cont || undefined}
-                      >
-                        {cont ? "\u00a0" : t(seg.chord)}
-                      </b>
-                      {isNow && karaoke ? (
-                        <span className="text-sm leading-6">
-                          {karaoke.words.map((w, wi) => (
-                            <span
-                              key={wi}
+                        {line.map((seg, si) => {
+                          const isNow = isLiveLine && si === liveSi;
+                          const isChordNow = li === chordAt.li && si === chordAt.si;
+                          const isChordNext =
+                            nextP > 0 && li === nextAt.li && si === nextAt.si && !isChordNow;
+                          const seekable = typeof seg.t === "number" && hasSync;
+                          const hide = hidesChord(line, si);
+                          const words = segWords(seg);
+                          return (
+                            <button
+                              key={si}
+                              type="button"
+                              onClick={
+                                seekable
+                                  ? () => {
+                                      seekLyric(seg.t!);
+                                      setFollow(true);
+                                      scrollToRow(ri);
+                                    }
+                                  : undefined
+                              }
+                              disabled={!seekable}
                               className={cn(
-                                "transition-colors duration-100",
-                                wi < wordIdx && SUNG,
-                                wi === wordIdx &&
-                                  `${SUNG} underline decoration-2 underline-offset-[6px]`,
-                                wi > wordIdx && "text-foreground/90"
+                                "inline-flex flex-col min-w-10 sm:min-w-14 items-start rounded-lg px-2 py-1 -mx-2 text-start transition-colors duration-200",
+                                seekable && "cursor-pointer hover:bg-secondary/60",
+                                isNow && "bg-primary/10 ring-1 ring-primary/25"
                               )}
                             >
-                              {w}
-                              {wi < karaoke.words.length - 1 ? " " : ""}
-                            </span>
-                          ))}
-                        </span>
-                      ) : (
-                        <span
-                          className={cn(
-                            "text-sm leading-6 transition-colors duration-200",
-                            isNow ? SUNG : "text-foreground/90"
-                          )}
-                        >
-                          {seg.text}
-                        </span>
+                              <b
+                                className={cn(
+                                  "relative inline-block origin-right chord-latin text-lg font-black leading-6 transition-[color,transform] duration-150",
+                                  isChordNow
+                                    ? "text-primary scale-110"
+                                    : isChordNext
+                                      ? "text-primary/85"
+                                      : "text-primary/60",
+                                  seg.auto &&
+                                    !hide &&
+                                    "underline decoration-dotted decoration-1 underline-offset-4"
+                                )}
+                                title={
+                                  seg.auto && !hide
+                                    ? "این اکورد را موتور گیتارکینگ وسط خط شنیده"
+                                    : undefined
+                                }
+                                aria-hidden={hide || undefined}
+                              >
+                                {hide ? "\u00a0" : t(seg.chord)}
+                                {isChordNext && !hide && (
+                                  <i
+                                    aria-hidden
+                                    className="absolute -bottom-0.5 right-0 h-0.5 rounded-full bg-primary/70"
+                                    style={{ width: `${Math.round(nextP * 100)}%` }}
+                                  />
+                                )}
+                              </b>
+                              {isLiveLine && words.length ? (
+                                <span className="text-sm leading-6">
+                                  {words.map((w, wi) =>
+                                    renderWord(w, off[si] + wi, wi === words.length - 1, true)
+                                  )}
+                                </span>
+                              ) : (
+                                <span
+                                  className={cn(
+                                    "text-sm leading-6 transition-colors duration-200",
+                                    isNow ? SUNG : "text-foreground/90"
+                                  )}
+                                >
+                                  {seg.text}
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </Fragment>
+                    );
+                  })}
+                  {item.times && (
+                    <span
+                      className={cn(
+                        "self-end inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] transition-colors",
+                        pass > 0 && playing
+                          ? "border-primary/50 text-primary"
+                          : "text-muted-foreground"
                       )}
-                    </button>
-                  );
-                })}
-                </Fragment>
-                ))}
-              </div>
-            ))}
+                    >
+                      <Repeat className="w-3 h-3" aria-hidden />
+                      {pass > 0 && playing
+                        ? `دور ${faNum(pass)} از ${faNum(item.times)}`
+                        : `${faNum(item.times)} بار`}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
         <p className="text-[11px] text-muted-foreground mt-3 leading-6">
@@ -507,6 +820,21 @@ export function SongSheet({ song, onBack, onPlayDemo }: Props) {
           </p>
         )}
       </section>
+
+      {/* back to the line that is playing (after the user scrolled away) */}
+      {hasSync && playing && !follow && activeRow >= 0 && (
+        <button
+          type="button"
+          onClick={() => {
+            setFollow(true);
+            scrollToRow(activeRow);
+          }}
+          className="fixed bottom-5 left-1/2 -translate-x-1/2 z-40 inline-flex items-center gap-1.5 rounded-full bg-primary text-primary-foreground px-4 py-2 text-xs shadow-lg shadow-primary/30"
+        >
+          <LocateFixed className="w-4 h-4" aria-hidden />
+          برگرد به خطی که پخش می‌شود
+        </button>
+      )}
 
       {/* bot analysis card */}
       {song.bot && (
