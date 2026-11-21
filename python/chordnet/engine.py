@@ -26,6 +26,27 @@ survives when the audio clearly prefers it (GK_KEEP_GAIN, per-beat log
 advantage after EM_TEMP; 95% restored). Repeated sections share chord
 evidence before decoding (GK_REPEAT_W / GK_REPEAT_THR, meter.repeat_pool):
 one noisy chorus no longer flips its chords (synthetic: 92% -> 98%).
+
+v7.4 (one-beat chords): the owner: "many chords that are played for ONE
+beat are not detected". Three things deleted them: the metrical decode
+(a change off the bar line costs log 0.005), merge_short (runs < 4 beats)
+and, last, chord_detect.fold_short (1.1 beats with a 0.8 s floor - it
+removed every one-beat chord even when the audio was clear, and above
+150 BPM even two-beat chords). Now, after the decode:
+  rescue_short(): a run of 1..GK_RESCUE_MAX beats becomes the chord the
+  network clearly hears there when ALL of these hold
+    * its beat log-prob (repeat-pooled) beats the decoded chord by
+      >= GK_RESCUE_GAIN, and BOTH half beats agree by >= GK_RESCUE_HALF
+      (a melody note on one eighth is not a chord);
+    * it is a different chord family (root or major/minor changes:
+      C -> Cmaj7 / C7 / Csus4 is colour, not a change);
+    * its bass moves (Fmaj7/A over Am = the same bass + a melody note);
+    * it fits the song: diatonic to the decoded key, or used >= 4 beats
+      elsewhere in the decode;
+    * at most GK_RESCUE_CAP of the beats are rescued (strongest first).
+  min_segment(): the deep path keeps a chord of >= GK_MIN_SEG_BEATS
+  beats (0.7, floor 0.2 s). GK_RESCUE=0 gives back v7.3 exactly (bench
+  baseline). LAST_INFO["rescued"] counts the rescued runs.
 """
 import hashlib
 import math
@@ -45,6 +66,12 @@ MIN_BEATS = 4      # shortest chord run kept (beats); 1 = off
 KEEP_GAIN = 1.0    # ...unless it beats its neighbour by this per beat
 REPEAT_W = 0.5     # weight of the repeats' evidence (0 = off)
 REPEAT_THR = 0.75  # centred chroma-window similarity for "a repeat"
+RESCUE = 1          # v7.4 one-beat chord rescue (0 = v7.3 behaviour)
+RESCUE_GAIN = 3.0   # beat log-prob advantage over the decoded chord
+RESCUE_HALF = 1.0   # ...and on each half of the beat
+RESCUE_MAX = 2      # longest rescued run (beats)
+RESCUE_CAP = 0.08   # at most this share of the beats is rescued
+MIN_SEG_BEATS = 0.7  # deep path: shortest chord segment kept (beats)
 CACHE_VER = "p71"
 SPEC_DIM = 252          # mirrors model.py (kept here: no torch on a cache hit)
 SHIFT_HIGH, SHIFT_STEP = 6, 3
@@ -65,6 +92,7 @@ _DEGREE_SEMIS = {"1": 0, "2": 2, "b3": 3, "3": 4, "4": 5, "b5": 6, "5": 7,
 
 _TABLE_CACHE = None
 _NETS_CACHE = None
+LAST_INFO = {}
 
 
 def _knob(name, default):
@@ -263,6 +291,149 @@ def beat_emissions(table, probs, frame_beat, frame_t, beats):
     return lp.T
 
 
+# ------------------------------------------------------ one-beat chords ---
+def half_beat_emissions(table, probs, frame_t, beats, dur, cell_index):
+    """(n_chord, 2 * n_beats) log emissions: column 2j = first half of
+    beat j, 2j + 1 = second half."""
+    b = np.asarray(beats, dtype=float)
+    if not len(b):
+        return None
+    nxt = np.append(b[1:], max(float(dur), float(b[-1]) + 1e-3))
+    grid = np.empty(2 * len(b))
+    grid[0::2] = b
+    grid[1::2] = 0.5 * (b + nxt)
+    cell = cell_index(frame_t, grid)
+    return beat_emissions(table, probs, cell, frame_t, grid)
+
+
+_NOTE_PC = {n: i for i, n in enumerate(
+    "C C# D D# E F F# G G# A A# B".split())}
+_NOTE_PC.update({"Db": 1, "Eb": 3, "Gb": 6, "Ab": 8, "Bb": 10})
+
+
+def _root_pc(txt):
+    txt = txt or ""
+    if len(txt) >= 2 and txt[:2] in _NOTE_PC:
+        return _NOTE_PC[txt[:2]], txt[2:]
+    if txt[:1] in _NOTE_PC:
+        return _NOTE_PC[txt[:1]], txt[1:]
+    return None, ""
+
+
+def chord_family(label):
+    """'Am7' -> (9, 'min'); 'Csus4'/'Cmaj7'/'C7' -> (0, 'maj'); N -> None."""
+    if not label or label == "N":
+        return None
+    pc, q = _root_pc(label.split("/")[0])
+    if pc is None:
+        return None
+    if q.startswith("dim") or q.startswith("m7b5"):
+        kind = "dim"
+    elif q.startswith("aug"):
+        kind = "aug"
+    elif q.startswith("m") and not q.startswith("maj"):
+        kind = "min"
+    else:
+        kind = "maj"
+    return pc, kind
+
+
+def chord_bass(label):
+    """bass pitch class: the slash bass, else the root (None for N)."""
+    if not label or label == "N":
+        return None
+    parts = label.split("/")
+    if len(parts) > 1:
+        pc, _q = _root_pc(parts[1])
+        if pc is not None:
+            return pc
+    pc, _q = _root_pc(parts[0])
+    return pc
+
+
+def rescue_allowed(disp_all, key, path, min_beats_total=4):
+    """states a rescue may use: diatonic to the key or used >= 4 beats"""
+    base = [d.split("/")[0] for d in disp_all]
+    allowed_key = set()
+    if key:
+        try:
+            allowed_key = _key_allowed_set(key["tonic"], key["mode"])
+        except Exception:
+            allowed_key = set()
+    counts = {}
+    for st in path:
+        b = base[int(st)]
+        counts[b] = counts.get(b, 0) + 1
+    vocab = {b for b, c in counts.items() if c >= min_beats_total and b != "N"}
+    ok = np.array([(b in allowed_key or b in vocab) and b != "N"
+                   for b in base], dtype=bool)
+    if len(ok):
+        ok[0] = False
+    return ok
+
+
+def rescue_short(path, em, em_half, allowed, disp_all, gain=RESCUE_GAIN,
+                 half_gain=RESCUE_HALF, max_beats=RESCUE_MAX, cap=RESCUE_CAP):
+    """Give 1..max_beats beat runs the chord the network clearly hears there.
+    em: (n_chord, T) beat log emissions (silence already masked);
+    em_half: (n_chord, 2T) half-beat log emissions or None.
+    -> (new path, number of rescued runs)"""
+    path = np.array(path, dtype=np.int32)
+    T = len(path)
+    if T < 3 or allowed is None or not np.any(allowed):
+        return path, 0
+    fam = [chord_family(d) for d in disp_all]
+    bass = [chord_bass(d) for d in disp_all]
+    cand = np.where(np.asarray(allowed)[:, None], em, -np.inf)
+    best = np.argmax(cand, axis=0)
+    cols = np.arange(T)
+    adv = cand[best, cols] - em[path, cols]
+    ok = np.zeros(T, dtype=bool)
+    for j in range(T):
+        b, c = int(best[j]), int(path[j])
+        if b == c or not np.isfinite(adv[j]) or adv[j] < gain:
+            continue
+        if fam[b] is None or fam[c] is None or fam[b] == fam[c]:
+            continue
+        if bass[b] is not None and bass[b] == bass[c]:
+            continue        # same bass + a melody note on top
+        ok[j] = True
+    if em_half is not None and em_half.shape[1] >= 2 * T:
+        h0 = em_half[best, 2 * cols] - em_half[path, 2 * cols]
+        h1 = em_half[best, 2 * cols + 1] - em_half[path, 2 * cols + 1]
+        ok &= (h0 >= half_gain) & (h1 >= half_gain)
+    runs = []
+    i = 0
+    while i < T:
+        if not ok[i]:
+            i += 1
+            continue
+        j = i
+        while j + 1 < T and ok[j + 1] and fam[int(best[j + 1])] == fam[int(best[i])]:
+            j += 1
+        if j - i + 1 <= max_beats:
+            runs.append((float(np.mean(adv[i:j + 1])), i, j))
+        i = j + 1
+    if cap > 0:
+        runs.sort(key=lambda r: -r[0])
+        runs = runs[:max(int(cap * T), 0)]
+    for _g, i, j in runs:
+        path[i:j + 1] = best[i]
+    return path, len(runs)
+
+
+def rescue_on():
+    return _knob("RESCUE", RESCUE) > 0
+
+
+def min_segment(period, floor_s):
+    """shortest chord segment the deep path keeps (s); v7.3 when off"""
+    if rescue_on():
+        return float(np.clip(_knob("MIN_SEG_BEATS", MIN_SEG_BEATS) * period,
+                             0.2, 1.7))
+    return float(np.clip(1.1 * period, floor_s, 1.7))
+
+
 # ------------------------------------------------------------------ main ---
 def analyze_deep(y, dur, beats, silent, accent=None):
     """Deep analysis on the beat grid.
@@ -351,6 +522,24 @@ def analyze_deep(y, dur, beats, silent, accent=None):
             best_path, best_pos, best_key, best_score = p_k, q_k, k, sc
     path, pos, key = best_path, best_pos, best_key
     path = mt.merge_short(path, em_t, min_beats, keep_gain)
+
+    # ---- v7.4: chords that last one (or two) beats ----
+    rescued = 0
+    if rescue_on():
+        try:
+            em_half = half_beat_emissions(table, probs, frame_t, beats, dur,
+                                          mt.cell_index)
+            allowed = rescue_allowed(disp_all, key, path)
+            path, rescued = rescue_short(
+                path, em, em_half, allowed, disp_all,
+                gain=_knob("RESCUE_GAIN", RESCUE_GAIN),
+                half_gain=_knob("RESCUE_HALF", RESCUE_HALF),
+                max_beats=int(round(_knob("RESCUE_MAX", RESCUE_MAX))),
+                cap=_knob("RESCUE_CAP", RESCUE_CAP))
+        except Exception:
+            rescued = -1    # rescue failed: the v7.3 path stays
+    LAST_INFO.clear()
+    LAST_INFO["rescued"] = int(rescued)
 
     chosen = np.array([em_raw[path[j], j] for j in range(n_beats)])
     conf = float(np.mean(np.exp(np.clip(chosen, -20.0, 0.0)))) if n_beats else 0.0
