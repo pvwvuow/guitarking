@@ -22,6 +22,18 @@ interface Props {
   beatInBar?: number | null;
   /** beats per bar */
   bpb?: number;
+  /** lyric/chord highlight offset (s): + earlier, - later (wireless
+      headphones play late, so the sheet must follow later) */
+  syncOffset?: number;
+  onSyncOffset?: (v: number) => void;
+}
+
+const STEP = 0.05;
+
+function offsetLabel(v: number) {
+  if (Math.abs(v) < 0.005) return "هم‌زمان";
+  const s = Math.abs(v).toFixed(2);
+  return v > 0 ? `${s} ثانیه زودتر` : `${s} ثانیه دیرتر`;
 }
 
 export function PlayerCard({
@@ -36,10 +48,13 @@ export function PlayerCard({
   beatsToNext,
   beatInBar,
   bpb,
+  syncOffset = 0,
+  onSyncOffset,
 }: Props) {
   const isN = currentChord === "N";
   const showBeats = typeof beatInBar === "number" && !!bpb && bpb > 1;
   const showNext = !!nextChord && nextChord !== "N" && nextChord !== currentChord;
+  const soon = showNext && typeof beatsToNext === "number" && beatsToNext > 0 && beatsToNext <= 2;
 
   return (
     <div className="rounded-2xl border bg-card p-4 sm:p-6">
@@ -54,9 +69,10 @@ export function PlayerCard({
           <div className="text-center">
             <p className="text-[11px] text-muted-foreground mb-1">آکورد همین حالا</p>
             <p
-              className={`chord-latin text-4xl sm:text-5xl font-black leading-none ${
+              key={currentChord}
+              className={`chord-latin text-4xl sm:text-5xl font-black leading-none transition-transform duration-150 ${
                 isN ? "text-muted-foreground" : "text-primary"
-              }`}
+              } ${playing && !isN ? "animate-in zoom-in-90 fade-in-0 duration-150" : ""}`}
             >
               {chordDisplay(currentChord)}
             </p>
@@ -80,7 +96,11 @@ export function PlayerCard({
               </div>
             )}
             {showNext && (
-              <p className="text-[11px] text-muted-foreground mt-1.5">
+              <p
+                className={`text-[11px] mt-1.5 transition-colors ${
+                  soon ? "text-primary font-bold" : "text-muted-foreground"
+                }`}
+              >
                 بعدی:{" "}
                 <b className="chord-latin text-foreground">{chordDisplay(nextChord as string)}</b>
                 {typeof beatsToNext === "number" && beatsToNext > 0 && beatsToNext <= 16 && (
@@ -125,6 +145,39 @@ export function PlayerCard({
           <p className="text-[11px] text-muted-foreground mt-2">
             روی هر آکورد در بخش‌ها یا خط زمانی کلیک کن تا پخش از همان‌جا شروع شود.
           </p>
+          {onSyncOffset && (
+            <div className="flex flex-wrap items-center gap-1.5 mt-2.5 text-[11px] text-muted-foreground">
+              <span>هماهنگی متن با صدا:</span>
+              <button
+                type="button"
+                onClick={() => onSyncOffset(syncOffset - STEP)}
+                className="rounded-md border px-2 py-0.5 hover:border-primary hover:text-primary transition-colors"
+                title="متن و آکورد کمی دیرتر روشن شوند (مثلاً با هدفون بی‌سیم)"
+              >
+                دیرتر
+              </button>
+              <span className="min-w-24 text-center tabular-nums text-foreground">
+                {offsetLabel(syncOffset)}
+              </span>
+              <button
+                type="button"
+                onClick={() => onSyncOffset(syncOffset + STEP)}
+                className="rounded-md border px-2 py-0.5 hover:border-primary hover:text-primary transition-colors"
+                title="متن و آکورد کمی زودتر روشن شوند"
+              >
+                زودتر
+              </button>
+              {Math.abs(syncOffset) >= 0.005 && (
+                <button
+                  type="button"
+                  onClick={() => onSyncOffset(0)}
+                  className="px-1.5 py-0.5 hover:text-primary transition-colors"
+                >
+                  بازنشانی
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
       <audio ref={audioRef} preload="auto" className="hidden" />
