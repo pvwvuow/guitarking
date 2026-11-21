@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-GuitarKing — sheet sync (v7.6)
+GuitarKing — sheet sync (v7.7)
 ==============================
 Puts the chords of a hand-written / lyric-aligned sheet ON THE BEAT.
 
@@ -53,12 +53,40 @@ at the word sung on that beat and the new segment gets `auto: true`
   for its own occurrence (lyric_align `w` / `t`); the source occurrence
   only gives where the chords change and how the line is split.
 
+v7.7 (the owner: "when the chord changes on a word, put the chord
+exactly on THAT word"; "one-beat chords are missed"):
+  * word_at(): one rule decides which word a chord change belongs on -
+    the word that starts on the change (or up to half a beat after it:
+    the singer is a little late), else the word still being sung when
+    the chord changes (held), else the next word. Used by --fill (it
+    used to take the first word starting after the change, so a change
+    under a held word landed one word late) and by --place.
+  * --place: a chord of the sheet (not auto) whose change the engine
+    hears at `ct` moves onto the word sung at `ct` - words before it go
+    to the chord before (inside the line) or to a `carry: true` piece
+    (the previous line's chord, drawn without a chord label; only for a
+    pickup of about a beat or more); a chord that changes early takes
+    the tail words of the piece before it.
+    Only lines whose words all have measured times (lyric_align `w`).
+    In-line repeats of the same chord are merged first.
+  * --refill: undo an earlier --fill / --place (auto pieces merge back
+    into the piece before them, carry pieces into the piece after
+    them), re-sync every chord, then fill again with the current engine.
+    Stale auto pieces of an old engine (out of order in the line, bazi
+    «بند دوم») disappear this way.
+  * --min-beats default 1: the engine (v7.4) now keeps one-beat chords
+    only when the audio clearly says so; the vocab guard stays.
+  * --check also reports `out_of_order` (times run backwards inside a
+    line) and `off_word` (a chord sits on a different word than the one
+    sung at its change, with the suggested word).
+
 It also emits the song's beat grid (beats / downbeats / bpb) so the
 player can pulse with the beat.
 
 Usage:
   python3 python/sheet_sync.py song.mp3 sheet.json [--analysis a.json]
-                               [--fill] [--min-beats 2]
+                               [--fill] [--refill] [--place]
+                               [--min-beats 1]
                                [--check] [--harmonize] > out.json
 
 sheet.json: {"sections": [{"label": "...", "lines": [[{"chord", "text", "t"}]]}]}
@@ -74,6 +102,8 @@ import chord_detect as cd
 NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
 FLATS = {"C#": "Db", "D#": "Eb", "F#": "Gb", "G#": "Ab", "A#": "Bb"}
 SEC_PER_CHAR = 0.16   # same fallback as src/lib/sheet-sync.ts
+HELD_MAX = 1.6        # s: longest a word counts as "still sung"
+EARLY_TOL = 0.15      # s: a word starting this much before the change is ON it
 
 
 def same_chord(a, b, strict=False):
@@ -133,6 +163,8 @@ def sync(sheet, res):
     for sec in sheet["sections"]:
         for li, line in enumerate(sec["lines"]):
             for si, seg in enumerate(line):
+                if seg.get("carry"):
+                    continue        # the previous chord, no change here
                 if isinstance(seg.get("t"), (int, float)):
                     flat.append((float(seg["t"]), seg, sec["label"], li, si))
     flat.sort(key=lambda x: x[0])
@@ -219,6 +251,8 @@ def sheet_flat(sheet):
     for sec in sheet["sections"]:
         for line in sec["lines"]:
             for seg in line:
+                if seg.get("carry"):
+                    continue
                 if isinstance(seg.get("ct", seg.get("t")), (int, float)):
                     flat.append(seg)
     flat.sort(key=lambda s: float(s.get("ct", s.get("t"))))
@@ -303,7 +337,44 @@ def _word_starts(seg, t_next):
     return words, starts
 
 
-def fill_inside(sheet, res, key_label=None, min_beats=2):
+def word_ends(starts, period):
+    """rough end of every word: the next word's start, the last word
+    one beat (>= 0.6 s); never more than HELD_MAX after its start"""
+    n = len(starts)
+    out = []
+    for i, st in enumerate(starts):
+        e = starts[i + 1] if i + 1 < n else st + max(0.6, period)
+        out.append(min(e, st + HELD_MAX))
+    return out
+
+
+def word_at(starts, s0, period, lo=0):
+    """index (lo..n) of the word a chord change at s0 belongs on; n means
+    after the last word (an instrumental '—' piece).
+      1. the word that starts on the change, or up to half a beat after
+         it (the singer lands a little late);
+      2. else the word still being sung when the chord changes (held),
+         as long as that is not the first word of the piece before;
+      3. else the next word if it comes within a beat;
+      4. else the held first word (two chords on one held word);
+      5. else the next word / the end."""
+    n = len(starts)
+    lo = max(0, min(lo, n))
+    nxt = next((i for i in range(lo, n) if starts[i] >= s0 - EARLY_TOL), n)
+    if nxt < n and starts[nxt] <= s0 + max(0.2, 0.5 * period):
+        return nxt
+    ends = word_ends(starts, period)
+    held = nxt - 1
+    if held > lo and s0 < ends[held]:
+        return held
+    if nxt < n and starts[nxt] - s0 <= period:
+        return nxt
+    if held == lo and held < n and s0 < ends[held]:
+        return held
+    return nxt
+
+
+def fill_inside(sheet, res, key_label=None, min_beats=1):
     """Split sheet lines where the engine hears a chord change.
     Mutates sheet; returns a report list."""
     segs_e = [s for s in res["segments"] if s["chord"] != "N"]
@@ -358,9 +429,8 @@ def fill_inside(sheet, res, key_label=None, min_beats=2):
                     len(seg["w"]) == len(words) else None
                 cuts = []
                 for s0, _ch in inserts:
-                    idx = next((i for i, st in enumerate(starts)
-                                if st >= s0 - 0.12), len(words))
-                    cuts.append(idx)
+                    lo = cuts[-1] if cuts else 0
+                    cuts.append(max(word_at(starts, s0, period, lo), lo))
                 bounds = [0] + cuts + [len(words)]
                 chords = [seg["chord"]] + [c for _, c in inserts]
                 times = [float(seg.get("t", a))] + [s for s, _ in inserts]
@@ -387,6 +457,189 @@ def fill_inside(sheet, res, key_label=None, min_beats=2):
                     new_line.append(piece)
             sec["lines"][li] = new_line
     return report
+
+
+# ----------------------------------------------------------------------
+# --refill / --place (v7.7)
+# ----------------------------------------------------------------------
+
+def _seg_words(seg):
+    if _silent(seg.get("text")):
+        return []
+    return [w for w in str(seg.get("text", "")).split() if w]
+
+
+def _seg_w(seg):
+    """measured word times of a piece, [] for '—', None when unknown"""
+    words = _seg_words(seg)
+    w = seg.get("w")
+    if not words:
+        return []
+    if isinstance(w, list) and len(w) == len(words):
+        return [float(x) for x in w]
+    return None
+
+
+def _join(a, b):
+    """merge piece b's words into piece a (in place); keeps a's chord"""
+    wa, wb = _seg_words(a), _seg_words(b)
+    ta, tb = _seg_w(a), _seg_w(b)
+    words = wa + wb
+    a["text"] = " ".join(words) if words else "—"
+    if ta is not None and tb is not None and words:
+        a["w"] = [round(x, 3) for x in ta + tb]
+    else:
+        a.pop("w", None)
+    if not wa and wb and isinstance(b.get("t"), (int, float)) and \
+            not isinstance(a.get("t"), (int, float)):
+        a["t"] = b["t"]
+
+
+def unfill(sheet):
+    """undo --fill / --place: auto pieces back into the piece before them,
+    carry pieces into the piece after them. -> number of pieces merged"""
+    n = 0
+    for sec in sheet["sections"]:
+        for li, line in enumerate(sec["lines"]):
+            out = []
+            pending = None          # a carry piece waiting for its chord
+            for sg in line:
+                sg = dict(sg)
+                if sg.get("carry"):
+                    if pending is None:
+                        pending = sg
+                    else:
+                        _join(pending, sg)
+                    n += 1
+                    continue
+                if pending is not None:
+                    merged = dict(pending)
+                    merged.pop("carry", None)
+                    _join(merged, sg)
+                    for k in ("chord", "ct", "auto"):
+                        if k in sg:
+                            merged[k] = sg[k]
+                        else:
+                            merged.pop(k, None)
+                    if _silent(pending.get("text")) and \
+                            isinstance(sg.get("t"), (int, float)):
+                        merged["t"] = sg["t"]
+                    sg, pending = merged, None
+                if sg.get("auto") and out:
+                    _join(out[-1], sg)
+                    n += 1
+                    continue
+                out.append(sg)
+            if pending is not None:     # carry with nothing after it
+                pending.pop("carry", None)
+                out.append(pending)
+            sec["lines"][li] = out
+    return n
+
+
+def _engine_has_change(segs_e, ct, chord):
+    return any(abs(float(s["start"]) - ct) < 0.03 and same_chord(s["chord"], chord)
+               for s in segs_e)
+
+
+def place_chords(sheet, res):
+    """--place: move every engine-confirmed sheet chord onto the word sung
+    at its change. Mutates sheet; returns a report list."""
+    segs_e = [s for s in res["segments"] if s["chord"] != "N"]
+    period = 60.0 / float(res["tempo"]) if res.get("tempo") else 0.5
+    order = sheet_flat(sheet)
+    prev_chord = {}
+    for i, sg in enumerate(order):
+        prev_chord[id(sg)] = order[i - 1]["chord"] if i > 0 else None
+    rep = []
+    for sec in sheet["sections"]:
+        for li, line in enumerate(sec["lines"]):
+            if any(sg.get("carry") for sg in line):
+                continue            # already placed: --refill first
+            ws = [_seg_w(sg) for sg in line]
+            if not any(ws) or any(w is None for w in ws):
+                continue            # needs measured word times
+            first_prev = prev_chord.get(id(line[0]))
+            # in-line repeats of a chord are one chord: merge them
+            pieces = []
+            for sg in line:
+                if pieces and pieces[-1].get("chord") == sg.get("chord") and \
+                        not sg.get("auto") and not pieces[-1].get("auto"):
+                    _join(pieces[-1], sg)
+                    continue
+                pieces.append(dict(sg))
+            words, starts, g = [], [], []
+            for pc in pieces:
+                g.append(len(words))
+                words += _seg_words(pc)
+                starts += _seg_w(pc) or []
+            n = len(words)
+            g.append(n)
+            new_g = list(g)
+            moved = []
+            for k, pc in enumerate(pieces):
+                ct = pc.get("ct")
+                if n < 2 or pc.get("auto") or not isinstance(ct, (int, float)):
+                    continue
+                ct = float(ct)
+                if not _engine_has_change(segs_e, ct, pc["chord"]):
+                    continue
+                dom, share = dominant(segs_e, ct, ct + max(2 * period, 0.6))
+                if not same_chord(dom, pc["chord"]) or share < 0.5:
+                    continue
+                if k == 0:
+                    # late at the start of a line: the words before the
+                    # change still sound on the previous line's chord
+                    if not first_prev or same_chord(first_prev, pc["chord"], True):
+                        continue
+                    # a pickup is at least ~a beat before the change; a
+                    # first word a few tenths early is the singer / the
+                    # aligner, not a pickup (choruses would differ)
+                    if ct - starts[0] < max(0.35, 0.9 * period):
+                        continue
+                    lo, word_lo = 0, 0
+                else:
+                    prev_words = g[k] - new_g[k - 1]   # piece k-1 right now
+                    lo = new_g[k - 1] + (1 if prev_words > 0 else 0)
+                    word_lo = new_g[k - 1]
+                hi = g[k + 1] - 1 if g[k + 1] > g[k] else g[k + 1]
+                if hi < lo:
+                    continue
+                tgt = word_at(starts, ct, period, word_lo)
+                tgt = min(max(tgt, lo), hi)
+                if tgt != g[k]:
+                    new_g[k] = tgt
+                    moved.append((k, g[k], tgt))
+            if not moved:
+                sec["lines"][li] = pieces
+                continue
+            out = []
+            if new_g[0] > 0:
+                out.append({"chord": first_prev,
+                            "text": " ".join(words[:new_g[0]]),
+                            "t": round(starts[0], 3),
+                            "w": [round(x, 3) for x in starts[:new_g[0]]],
+                            "carry": True})
+            for k, pc in enumerate(pieces):
+                a0, b0 = new_g[k], max(new_g[k], new_g[k + 1])
+                pc = dict(pc)
+                if b0 > a0:
+                    pc["text"] = " ".join(words[a0:b0])
+                    pc["w"] = [round(x, 3) for x in starts[a0:b0]]
+                    pc["t"] = round(starts[a0], 3)
+                else:
+                    pc["text"] = "—"
+                    pc.pop("w", None)
+                out.append(pc)
+            for k, old, new in moved:
+                rep.append({"type": "placed", "section": sec["label"],
+                            "line": li, "chord": pieces[k]["chord"],
+                            "ct": pieces[k].get("ct"),
+                            "from": words[old] if old < n else "—",
+                            "to": words[new] if new < n else "—",
+                            "words": new - old})
+            sec["lines"][li] = out
+    return rep
 
 
 # ----------------------------------------------------------------------
@@ -427,7 +680,10 @@ def _changes(line):
     """the chord-change segments of a line (in-line repeats folded)"""
     out = []
     for si, sg in enumerate(line):
-        if si > 0 and line[si - 1].get("chord") == sg.get("chord"):
+        if sg.get("carry"):
+            continue
+        if si > 0 and line[si - 1].get("chord") == sg.get("chord") and \
+                not line[si - 1].get("carry"):
             continue
         if isinstance(sg.get("ct"), (int, float)):
             out.append(sg)
@@ -523,6 +779,41 @@ def check_sheet(sheet, res):
                 if sg.get("auto") and not _silent(txt) and len(txt.split()) == 1 \
                         and len(txt) <= 2:
                     rep.append(dict(where, type="tiny_split"))
+    for sec in sheet["sections"]:
+        for li, line in enumerate(sec["lines"]):
+            cts = [float(sg["ct"]) for sg in line
+                   if isinstance(sg.get("ct"), (int, float))]
+            ts = []
+            for sg in line:
+                ts += _seg_w(sg) or ([float(sg["t"])] if isinstance(
+                    sg.get("t"), (int, float)) and not _silent(sg.get("text"))
+                    else [])
+            if any(b < a - 1e-3 for a, b in zip(cts, cts[1:])) or \
+                    any(b < a - 0.05 for a, b in zip(ts, ts[1:])):
+                rep.append({"type": "out_of_order", "section": sec["label"],
+                            "line": li, "text": _line_text(line)})
+                continue
+            ws = [_seg_w(sg) for sg in line]
+            if not any(ws) or any(w is None for w in ws):
+                continue
+            starts, words, g = [], [], []
+            for sg in line:
+                g.append(len(words))
+                words += _seg_words(sg)
+                starts += _seg_w(sg) or []
+            for si, sg in enumerate(line):
+                if sg.get("carry") or not isinstance(sg.get("ct"), (int, float)):
+                    continue
+                if si > 0 and line[si - 1].get("chord") == sg["chord"]:
+                    continue
+                if si == 0 or not _seg_words(sg):
+                    continue
+                want = word_at(starts, float(sg["ct"]), period)
+                if want != g[si] and abs(want - g[si]) >= 1:
+                    rep.append({"type": "off_word", "section": sec["label"],
+                                "line": li, "seg": si, "chord": sg["chord"],
+                                "t": sg["ct"], "on": words[g[si]],
+                                "sung": words[want] if want < len(words) else "—"})
     for key, occ in _repeat_groups(sheet).items():
         pats = [_pattern(sec["lines"][li], beats) for sec, li in occ]
         if all(_same_pattern(pats[0], p) for p in pats[1:]):
@@ -602,7 +893,13 @@ def harmonize(sheet, res):
             d_b0 = _beat_index(beats, d_first["ct"])
             limit = ends.get(id(dst[-1]), float(res["duration"]))
             new, ok = [], True
+            s_t0 = float(_changes(src)[0]["ct"])
             for sg in src:
+                if sg.get("carry") and isinstance(sg.get("t"), (int, float)):
+                    piece = {k: v for k, v in sg.items() if k != "w"}
+                    piece["t"] = round(float(d_first["ct"]) + float(sg["t"]) - s_t0, 3)
+                    new.append(piece)
+                    continue
                 if not isinstance(sg.get("ct"), (int, float)):
                     ok = False
                     break
@@ -616,7 +913,7 @@ def harmonize(sheet, res):
                 if isinstance(sg.get("t"), (int, float)):
                     piece["t"] = round(ct + float(sg["t"]) - float(sg["ct"]), 3)
                 new.append(piece)
-            if ok and new and new[-1]["ct"] > limit - 0.5 * period:
+            if ok and new and new[-1].get("ct", 0.0) > limit - 0.5 * period:
                 ok = False
             why = "does not fit before the next line"
             # v7.5: the human sheet beats the engine - never drop one of its chords
@@ -666,10 +963,13 @@ def main():
     if not res.get("ok"):
         print(json.dumps(res, ensure_ascii=False))
         sys.exit(2)
+    refill = "--refill" in args
+    n_unfill = unfill(sheet) if refill else 0
     timed = [sg for sec in sheet["sections"] for line in sec["lines"]
-             for sg in line if isinstance(sg.get("t"), (int, float))]
+             for sg in line if isinstance(sg.get("t"), (int, float))
+             and not sg.get("carry")]
     qa = "--check" in args or "--harmonize" in args
-    if qa and "--fill" not in args and timed and \
+    if qa and "--fill" not in args and not refill and timed and \
             all(isinstance(sg.get("ct"), (int, float)) for sg in timed):
         # an already synced sheet: keep its ct, only run the QA
         out = {"bpb": res.get("bpb", 4), "tempo": res.get("tempo"),
@@ -677,10 +977,15 @@ def main():
                "sections": sheet["sections"], "report": []}
     else:
         out = sync(sheet, res)
+    if refill:
+        out["report"].append({"type": "unfilled", "pieces": n_unfill})
+    if "--place" in args:
+        out["report"] = out["report"] + place_chords(sheet, res)
+        out["sections"] = sheet["sections"]
     n_add = 0
-    if "--fill" in args:
+    if "--fill" in args or refill:
         mb = int(args[args.index("--min-beats") + 1]) \
-            if "--min-beats" in args else 2
+            if "--min-beats" in args else 1
         fill_rep = fill_inside(sheet, res, sheet.get("key"), mb)
         out["sections"] = sheet["sections"]
         out["report"] = out["report"] + fill_rep
@@ -693,8 +998,10 @@ def main():
     print(json.dumps(out, ensure_ascii=False, indent=1))
     n_mis = sum(1 for r in out["report"] if r["type"] == "mismatch")
     n_in = sum(1 for r in out["report"] if r["type"] == "inside")
+    n_pl = sum(1 for r in out["report"] if r["type"] == "placed")
     print(f"engine={res.get('engine')} tempo={res.get('tempo')} bpb={res.get('bpb')}"
-          f" mismatches={n_mis} inside-line-changes={n_in} added={n_add}",
+          f" rescued={res.get('rescued')} mismatches={n_mis}"
+          f" inside-line-changes={n_in} added={n_add} placed={n_pl}",
           file=sys.stderr)
     if qa:
         cnt = {}
