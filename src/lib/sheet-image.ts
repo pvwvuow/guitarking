@@ -4,11 +4,16 @@
    (1 → 2 → 3) and only then steps the type size down until everything
    fits the single sheet. No section captions — one continuous piece.
    Paper look: warm white, ink+wood double frame, watermark emblem,
-   chords above lyrics, guitarking.ir credit at the foot. */
+   chords above lyrics, guitarking.ir credit at the foot.
+   Repeats are written once, like on the page (src/lib/sheet-fold.ts):
+   a block played twice in a row gets "↻ ×۲", a later repeat is one
+   line "↻ تکرار «همخوان» Am Em7 Dm". A chord label is drawn only where
+   the chord changes (not over an in-line repeat or a carried pickup). */
 
 import type { AnalysisResult, ChordSegment } from "./types";
 import type { SheetSeg, SongEntry } from "./songs";
 import { beytRows } from "./sheet-rows";
+import { faNum, foldSections, hidesChord, runChords } from "./sheet-fold";
 import { transposeChord } from "./transpose";
 import { fmtTime, keyLabelLatin } from "./format";
 
@@ -35,7 +40,7 @@ export const SHEET_CREDIT = "guitarking.ir";
 
 type Ctx = CanvasRenderingContext2D;
 
-/* ── low-level helpers ──────────────────────────────────────────────── */
+/* ── low-level helpers ──────────────────────────────────────────────────────────────── */
 
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((res, rej) => {
@@ -283,7 +288,8 @@ function layoutSongRows(
   song: SongEntry,
   semi: number,
   F: number,
-  colW: number
+  colW: number,
+  folded = true
 ): Row[] {
   const t = (c: string) => transposeChord(c, semi);
   const chordFont = (k = 1) => `800 ${Math.max(13, (F + 2) * k)}px ${F_BODY}`;
@@ -311,17 +317,54 @@ function layoutSongRows(
   };
 
   const rows: Row[] = [];
+  const fold = foldSections(song.sections, folded);
+  const noteH = F * 1.45;
+  /** one muted note line: "↻ …" (Persian) + chords (Latin, red) */
+  const noteRow = (label: string, chords: string[]) =>
+    rows.push({
+      h: noteH + rowGap * 0.6,
+      paint: (c2, colRight, _cw, y) => {
+        const base = y + F * 0.55;
+        fa(c2);
+        c2.textAlign = "right";
+        c2.font = `500 ${Math.max(12, F * 0.82)}px ${F_BODY}`;
+        c2.fillStyle = MUTED;
+        c2.fillText(label, colRight, base);
+        const lw = c2.measureText(label).width;
+        if (chords.length) {
+          latin(c2);
+          c2.textAlign = "right";
+          c2.font = `800 ${Math.max(12, F * 0.82)}px ${F_BODY}`;
+          c2.fillStyle = RED;
+          c2.fillText(chords.map(t).join("   "), colRight - lw - F * 0.6, base);
+        }
+      },
+    });
 
-  for (let s = 0; s < song.sections.length; s++) {
-    const sec = song.sections[s];
+  for (const view of fold.views) {
+    if (view.kind === "again") continue;
+    const sec = song.sections[view.s];
     // a little more air between sections (verse / chorus), like the page
-    if (s > 0 && rows.length) rows.push({ h: F * 0.9, paint: () => {} });
+    if (rows.length) rows.push({ h: F * 0.9, paint: () => {} });
+    if (view.kind === "repeat") {
+      const src = song.sections[view.of];
+      const name = src.label.replace(/^تکرار\s+/, "").trim() || src.label;
+      const part = view.count < src.lines.length ? ` (${faNum(view.count)} خط)` : "";
+      const times = view.times > 1 ? ` ×${faNum(view.times)}` : "";
+      noteRow(
+        `↻ تکرار «${name}»${part}${times}`,
+        runChords(src.lines.slice(view.from, view.from + view.count))
+      );
+      continue;
+    }
     // two short lines of a beyt share one row (src/lib/sheet-rows.ts)
     for (const grp of beytRows(sec.lines)) {
       const line: (SheetSeg | null)[] = [];
       grp.forEach((i, n) => {
         if (n > 0) line.push(null);
-        line.push(...sec.lines[i]);
+        sec.lines[i].forEach((sg, si) =>
+          line.push(hidesChord(sec.lines[i], si) ? { ...sg, chord: "" } : sg)
+        );
       });
       // measure segments; wrap into visual lines within colW
       let cur: Seg[] = [];
@@ -341,12 +384,14 @@ function layoutSongRows(
                 x -= sg.w + segGap;
                 continue;
               }
-              // chord
-              latin(c2);
-              c2.textAlign = "center";
-              c2.font = chordFont(k);
-              c2.fillStyle = RED;
-              c2.fillText(t(sg.chord), cx, y);
+              // chord (none over an in-line repeat / a carried pickup)
+              if (sg.chord) {
+                latin(c2);
+                c2.textAlign = "center";
+                c2.font = chordFont(k);
+                c2.fillStyle = RED;
+                c2.fillText(t(sg.chord), cx, y);
+              }
               // lyric
               fa(c2);
               c2.font = textFont(k);
@@ -370,7 +415,7 @@ function layoutSongRows(
           continue;
         }
         const tw = textW(seg.text);
-        const chw = chordW(seg.chord);
+        const chw = seg.chord ? chordW(t(seg.chord)) : 0;
         let w = Math.max(tw, chw) + segPad * 2;
         let k = 1;
         if (w > colW) {
@@ -384,6 +429,7 @@ function layoutSongRows(
       }
       flush();
     }
+    if (view.times > 1) noteRow(`↻ ×${faNum(view.times)}`, []);
   }
   return rows;
 }
@@ -423,7 +469,8 @@ function paintSongHeader(ctx: Ctx, song: SongEntry, semi: number): number {
 
 export async function downloadSongSheetImage(
   song: SongEntry,
-  semi: number
+  semi: number,
+  folded = true
 ): Promise<void> {
   await ensureFonts();
   const emblem = await loadEmblem();
@@ -442,7 +489,7 @@ export async function downloadSongSheetImage(
   outer: for (const F of FONT_SIZES) {
     for (const cols of [1, 2, 3]) {
       const colW = (CW - COL_GAP * (cols - 1)) / cols;
-      const rows = layoutSongRows(sctx, song, semi, F, colW);
+      const rows = layoutSongRows(sctx, song, semi, F, colW, folded);
       if (packRows(rows, ch, cols)) {
         chosen = { F, cols, rows, colW };
         break outer;
@@ -454,7 +501,7 @@ export async function downloadSongSheetImage(
     const F = FONT_SIZES[FONT_SIZES.length - 1];
     const cols = 3;
     const colW = (CW - COL_GAP * (cols - 1)) / cols;
-    chosen = { F, cols, rows: layoutSongRows(sctx, song, semi, F, colW), colW };
+    chosen = { F, cols, rows: layoutSongRows(sctx, song, semi, F, colW, folded), colW };
   }
 
   const canvas = document.createElement("canvas");
@@ -488,7 +535,7 @@ export async function downloadSongSheetImage(
   await savePng(canvas, `guitarking-${song.slug}-chords.png`);
 }
 
-/* ── bot analysis sheet (uploaded songs, no lyrics) ─────────────────── */
+/* ── bot analysis sheet (uploaded songs, no lyrics) ───────────────── */
 
 interface BotSeg {
   chord: string;
